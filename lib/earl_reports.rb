@@ -1,34 +1,41 @@
 # EARL reporting
-require 'rdf/rdfa'
-require 'rdf/turtle'
-require 'json/ld'
+require 'linkeddata'
 require 'sparql'
 require 'haml'
-require 'crazyivan/core'
 
 ##
 # EARL reporting class.
 # Instantiate a new class using one or more input graphs
-require 'rdf/rdfa'
-require 'rdf/turtle'
-
-class EARL
+class EarlReports
   attr_reader :graph
   PROCESSOR_QUERY = %(
     PREFIX doap: <http://usefulinc.com/ns/doap#>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-    PREFIX rdfatest: <http://rdfa.info/vocabs/rdfa-test#>
     
     SELECT DISTINCT ?uri ?name ?developer ?dev_name ?dev_type ?doap_desc ?homepage ?language
     WHERE {
-      ?uri doap:name ?name .
-      OPTIONAL { ?uri doap:developer ?developer . ?developer foaf:name ?dev_name .}
-      OPTIONAL { ?uri doap:developer ?developer . ?developer a ?dev_type . }
+      ?uri a doap:Project; doap:name ?name .
+      OPTIONAL { ?uri doap:developer ?developer .}
       OPTIONAL { ?uri doap:homepage ?homepage . }
       OPTIONAL { ?uri doap:description ?doap_desc . }
       OPTIONAL { ?uri doap:programming-language ?language . }
+      OPTIONAL { ?developer foaf:name ?dev_name .}
+      OPTIONAL { ?developer a ?dev_type . }
     }
   ).freeze
+
+  DOAP_QUERY = %(
+    PREFIX earl: <http://www.w3.org/ns/earl#>
+    PREFIX doap: <http://usefulinc.com/ns/doap#>
+    
+    SELECT DISTINCT ?subject ?name
+    WHERE {
+      [ a earl:Assertion; earl:subject ?subject ] .
+      OPTIONAL {
+        ?subject a doap:Project; doap:name ?name
+      }
+    }
+  )
 
   ASSERTION_QUERY = %(
     PREFIX earl: <http://www.w3.org/ns/earl#>
@@ -44,91 +51,73 @@ class EARL
     }
   ).freeze
 
-  VOCAB_QUERY = %(
-    PREFIX dc: <http://purl.org/dc/terms/>
-    PREFIX owl: <http://www.w3.org/2002/07/owl#>
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    
-    SELECT DISTINCT ?prop ?label ?description
-    WHERE {
-      ?prop a owl:DatatypeProperty;
-        rdfs:label ?label;
-        dc:description ?description .
-    }
-  )
-
-  SUITE_URI = "http://rdfa.info/test-suite/"
-  PROCESSORS_PATH = File.expand_path("../../processors.json", __FILE__)
-
   # Convenience vocabularies
   class EARL < RDF::Vocabulary("http://www.w3.org/ns/earl#"); end
-  class RDFATEST < RDF::Vocabulary("http://rdfa.info/vocabs/rdfa-test#"); end
 
   ##
-  # @param [Array<String>] files
-  def initialize(files)
-    @graph = RDF::Repository.new
+  # Load test assertions and look for referenced software and developer information
+  # @param [String] manifest Test manifest describe Test Cases
+  # @param [Array<String>] files Assertions
+  def initialize(manifest, files)
+    @graph = RDF::Graph.new
     @prefixes = {}
-    [files].flatten.each do |file|
+    [manifest, files].flatten.each do |file|
       puts "read #{file}"
       reader = case file
-      when /\.ttl/ then RDF::Turtle::Reader
-      when /\.html/ then RDF::RDFa::Reader
       when /\.jsonld/
         @json_hash = ::JSON.parse(File.read(file))
         return
+      else RDF::Reader.for(file)
       end
       reader.open(file) {|r| @graph << r}
     end
-    
-    # Flatten named graphs introduced through loading
-    # so that we can query the default graph
-    @graph = RDF::Graph.new << @graph
 
-    processors = ::JSON.parse(File.read(PROCESSORS_PATH))
-    processors.each do |proc, info|
-      next if (proc || 'other') == 'other'
+    # Find or load DOAP descriptions for all subjects
+    SPARQL.execute(DOAP_QUERY, @graph).each do |solution|
+      subject = solution[:subject]
+
       # Load DOAP definitions
-      doap_url = info["doap_url"] || info["doap"]
-      puts "check for <#{info["doap"]}> in graph"
-      next unless doap_url && @graph.has_subject?(RDF::URI(info["doap"]))
-      doap_url = File.expand_path("../../public", __FILE__) + doap_url if doap_url[0,1] == '/'
-      puts "read doap description for #{proc} from #{doap_url}"
-      begin
-        doap_graph = RDF::Graph.load(doap_url)
-        #puts "doap: #{doap_graph.dump(:ttl)}"
-        @graph << doap_graph.to_a
-
-        # Load FOAF definitions of doap:developers
-        foaf_url = doap_graph.first_object(:predicate => RDF::DOAP.developer)
-        subject_triples = []
-        if foaf_url.url?
-          foaf_graph = RDF::Graph.load(foaf_url)
-          puts "read foaf description for #{proc} from #{foaf_url} with #{foaf_graph.count} triples"
-          #puts "foaf: #{foaf_graph.dump(:ttl)}"
-          @graph << foaf_graph.to_a
+      unless solution[:name] # not loaded
+        puts "read doap description for #{subject}"
+        begin
+          doap_graph = RDF::Graph.load(subject)
+          puts "  read #{doap_graph.count} triples"
+          @graph << doap_graph.to_a
+        rescue
+          puts "  failed"
         end
-      rescue
-        # Ignore failure
       end
     end
-    
-  end
 
+    # Load developers referenced from Test Subjects
+    SPARQL.execute(PROCESSOR_QUERY, @graph).each do |solution|
+      # Load DOAP definitions
+      if solution[:developer] && !solution[:dev_name] # not loaded
+        puts "read description for #{solution[:developer].inspect}"
+        begin
+          foaf_graph = RDF::Graph.load(solution[:developer])
+          puts "  read #{foaf_graph.count} triples"
+          @graph << foaf_graph.to_a
+        rescue
+          puts "  failed"
+        end
+      end
+    end
+  end
+    
   ##
   # Dump the collesced output graph
-  #
-  # If there is a DOAP file associated with a processor, load it's information into the
-  # graph.
   #
   # If no `io` parameter is provided, the output is returned as a string
   #
   # @param [Symbol] format
+  # @param [String] bibRef (nil)
+  #   ReSpec formatted bib ref for software being reported
   # @param [IO] io (nil)
   # @return [String] serialized graph, if `io` is nil
-  def dump(format, io = nil)
+  def dump(format, bibRef = nil, io = nil)
+    @bibRef = bibRef || "No reference provided"
     options = {
-      :base => SUITE_URI,
       :standard_prefixes => true,
       :prefixes => { :earl => "http://www.w3.org/ns/earl#", }
     }
@@ -137,13 +126,7 @@ class EARL
     # Retrieve Hashed information in JSON-LD format
     case format
     when :jsonld
-      json = json_hash.to_json(::JSON::State.new(
-        :indent       => "  ",
-        :space        => " ",
-        :space_before => "",
-        :object_nl    => "\n",
-        :array_nl     => "\n"
-      ))
+      json = json_hash(options).to_json(JSON::LD::JSON_STATE)
       io.write(json) if io
       json
     when :turtle, :ttl
@@ -192,13 +175,32 @@ class EARL
     @json_hash ||= begin
       # Customized JSON-LD output
       hash = Hash.ordered
-      hash["@context"] = "http://rdfa.info/contexts/rdfa-earl.jsonld"
-      hash["@id"] = SUITE_URI
+      hash["@context"] = {
+        dc:           "http://purl.org/dc/terms/",
+        doap:         "http://usefulinc.com/ns/doap#",
+        earl:         "http://www.w3.org/ns/earl#",
+        foaf:         "http://xmlns.com/foaf/0.1/",
+        rdfs:         "http://www.w3.org/2000/01/rdf-schema#",
+        assertedBy:   {"@id" => "earl:assertedBy", "@type" => "@id"},
+        bibRef:       {"@id" => "dc: bibliographicCitation"},
+        description:  {"@id" => "dc:description"},
+        developer:    {"@id" => "doap:developer", "@type" => "@id"},
+        homepage:     {"@id" => "doap:homepage", "@type" => "@id"},
+        doap_desc:    {"@id" => "doap:description"},
+        language:     {"@id" => "doap:programming-language"},
+        label:        {"@id" => "rdfs:label"},
+        mode:         {"@id" => "earl:mode", "@type" => "@id"},
+        name:         {"@id" => "doap:name"},
+        outcome:      {"@id" => "earl:outcome", "@type" => "@id"},
+        result:       {"@id" => "earl:result"},
+        subject:      {"@id" => "earl:subject", "@type" => "@id"},
+        test:         {"@id" => "earl:test", "@type" => "@id"},
+        title:        {"@id" => "dc:title"}
+      }
       hash["@type"] = %w(earl:Software doap:Project)
-      hash['homepage'] = "http://rdfa.info/"
       hash['name'] = "RDFa Test Suite"
-      hash['processor'] = json_processor_info
-      hash['vocabulary'] = json_vocabulary_info
+      hash['bibRef'] = @bibRef
+      hash['subjects'] = json_subject_info
       hash.merge!(json_result_info)
     end
   end
@@ -206,7 +208,7 @@ class EARL
   ##
   # Return array of processor information
   # @return [Array]
-  def json_processor_info
+  def json_subject_info
     # Get the set of processors
     proc_info = {}
     SPARQL.execute(PROCESSOR_QUERY, @graph).each do |solution|
@@ -235,24 +237,6 @@ class EARL
       end
       processor
     end
-  end
-  
-  ##
-  # Return information about JSON vocabularies
-  # @return [Hash]
-  def json_vocabulary_info
-    # Get vocabulary information for documentation
-    vocab_graph = RDF::Graph.load(File.expand_path("../../public/vocabs/rdfa-test.html", __FILE__))
-    vocab_info = {}
-    SPARQL.execute(VOCAB_QUERY, vocab_graph).each do |solution|
-      prop_name = solution[:prop].to_s.split('/').last
-      vocab_info[prop_name] = {
-        "@id"         => prop_name,
-        "label"       => solution[:label].to_s,
-        "description" => solution[:description].to_s
-      }
-    end
-    vocab_info
   end
   
   ##

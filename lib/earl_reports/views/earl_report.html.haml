@@ -1,0 +1,247 @@
+-# This template is used for generating a rollup EARL report. It expects to be
+-# called with a single _tests_ local with the following structure
+-#
+-#  {
+-#    "@context": {...},
+-#    "@type": "earl:Software",
+-#    "name": "...",
+-#    "bibRef": "[[...]]",
+-#    "testSubjects": [
+-#      {
+-#        "@id": "http://rubygems.org/gems/rdf-turtle",
+-#        "@type": "earl:TestSubject",
+-#        "name": "RDF::Turtle"
+-#      },
+-#      ...
+-#    ],
+-#    "tests": [{
+-#      "@id": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/manifest.ttl#testeval00",
+-#      "@type": ["earl:TestCriterion", "earl:TestCase"],
+-#      "title": "subm-test-00",
+-#      "description": "Blank subject",
+-#      "action": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/test-00.ttl",
+-#      "result": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/test-00.out"
+-#      "mode": "earl:automatic",
+-#      "http://rubygems.org/gems/rdf-turtle": {
+-#        "@id": "http://rdfa.info/test-suite/test-details/rdfa1.1/xml/0001?rdfa-extractor=http%3A//www.w3.org/2012/pyRdfa/extract%3Furi%3D",
+-#        "@type": "earl:Assertion",
+-#        "assertedBy": "http://greggkellogg.net/foaf#me",
+-#        "test": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/manifest.ttl#testeval00",
+-#        "subject": "http://rubygems.org/gems/rdf-turtle",
+-#        "result": {
+-#          "@type": "earl:TestResult",
+-#          "outcome": "earl:passed"
+-#        }
+-#      }
+-#    }]
+-#  }
+
+- test_info = {}
+!!! 5
+%html{:lang => "en"}
+  - subjects = tests['testSubjects']
+  - test_cases = tests['tests']
+  %head
+    %meta{"http-equiv" => "Content-Type", :content => "text/html;charset=utf-8"}
+    %title=tests['name']
+    %script.remove{:type => "text/javascript", :src => "http://dev.w3.org/2009/dap/ReSpec.js/js/respec.js"}
+    :javascript
+      var respecConfig = {
+          // specification status (e.g. WD, LCWD, NOTE, etc.). If in doubt use ED.
+          specStatus:           "unofficial",
+          copyrightStart:       "2010",
+          doRDFa:               "1.1",
+
+          // the specification's short name, as in http://www.w3.org/TR/short-name/
+          shortName:            "rdfa-earl",
+          subtitle:             "EARL results from the RDFa 1.1 Test Suite",
+          // if you wish the publication date to be other than today, set this
+          publishDate:  "#{Time.now.strftime("%Y/%m/%d")}",
+
+          // if there is a previously published draft, uncomment this and set its YYYY-MM-DD date
+          // and its maturity status
+          //previousPublishDate:  "2011-10-23",
+          //previousMaturity:     "ED",
+          //previousDiffURI:      "http://json-ld.org/spec/ED/json-ld-syntax/20111023/index.html",
+          //diffTool:             "http://www.aptest.com/standards/htmldiff/htmldiff.pl",
+
+          // if there a publicly available Editor's Draft, this is the link
+          edDraftURI:           "http://rdfa.info/earl-reports/earl.html",
+
+          // if this is a LCWD, uncomment and set the end of its review period
+          // lcEnd: "2009-08-05",
+
+          // if you want to have extra CSS, append them to this list
+          // it is recommended that the respec.css stylesheet be kept
+          extraCSS:             [
+              "http://dev.w3.org/2009/dap/ReSpec.js/css/respec.css"
+          ],
+
+          // editors, add as many as you like
+          // only "name" is required
+          editors:  [
+              { name: "Gregg Kellogg", url: "http://greggkellogg.net/",
+                company: "Kellogg Associates", companyURL: "http://kellogg-assoc.com/" },
+          ],
+
+          // authors, add as many as you like.
+          // This is optional, uncomment if you have authors as well as editors.
+          // only "name" is required. Same format as editors.
+          authors:  [
+            { name: "Gregg Kellogg", url: "http://greggkellogg.net/",
+              company: "Kellogg Associates", companyURL: "http://kellogg-assoc.com/" },
+            { name: "Iván Herman", url: "http://www.w3.org/People/Ivan/",
+              company: "W3C", companyURL: "http://www.w3.org" },
+            { name: "Manu Sporny", url: "http://digitalbazaar.com/",
+              company: "Digital Bazaar", companyURL: "http://digitalbazaar.com/" }
+          ],
+
+          // name of the WG
+          wg:           "Linking Data in JSON Community Group",
+
+          // URI of the public WG page
+          wgURI:        "http://json-ld.org/",
+
+          // name (with the @w3c.org) of the public mailing to which comments are due
+          wgPublicList: "public-linked-json@w3c.org",
+
+          // URI of the patent status for this WG, for Rec-track documents
+          // !!!! IMPORTANT !!!!
+          // This is important for Rec-track documents, do not copy a patent URI from a random
+          // document unless you know what you're doing. If in doubt ask your friendly neighbourhood
+          // Team Contact.
+          wgPatentURI:  "",
+          maxTocLevel: 4,
+          //alternateFormats: [ {uri: "diff-20120112.html", label: "diff to previous version"} ],
+      };
+    :css
+      span[property='dc:description'] { display: none; }
+      td.PASS { color: green; }
+      td.FAIL { color: red; }
+      table.report {
+        border-width: 1px;
+        border-spacing: 2px;
+        border-style: outset;
+        border-color: gray;
+        border-collapse: separate;
+        background-color: white;
+      }
+      table.report th {
+        border-width: 1px;
+        padding: 1px;
+        border-style: inset;
+        border-color: gray;
+        background-color: white;
+        -moz-border-radius: ;
+      }
+      table.report td {
+        border-width: 1px;
+        padding: 1px;
+        border-style: inset;
+        border-color: gray;
+        background-color: white;
+        -moz-border-radius: ;
+      }
+      pre.example.inputDoc, pre.example.resultDoc { margin-left: 0;}
+      pre.example.inputDoc::before { content: "Input Document";}
+      pre.example.sparqlResults::before { content: "Result Document";}
+  %body{:prefix => "earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap#"}
+    %section#abstract{:about => tests['@id'], :typeof => tests['@type']}
+      %p
+        This document reports processor conformance for and related specifications
+        = tests['bibRef']
+        according to the requirements of the Evaluation and Report Language (EARL) 1.0 Schema [[EARL10-SCHEMA]].
+      %p
+        This document describes
+        %span{:property => "doap:name"}<=tests['name']
+        = '.'
+      %p
+        This report is also available in alternate formats:
+        %a{:href => "earl.ttl"}
+          Turtle
+    %section#sodt
+    %section
+      %h2
+        Results
+      %table.report
+        %tr
+          %th
+            Test
+          - subjects.each do |subject|
+          - next unless test_cases.any? {|tc| tc.has_key?(processor['@id'])}
+            %th
+              %a{:href => subject['@id']}<=subject['name']
+        - test_cases.each do |test|
+          - tests['num'] = test['@id'].split('#').last
+          - test_info[tests['num']] ||= test.clone
+          %tr{:typeof => test['@type'], :resource => test['@id']}
+            %td
+              %a{:href => "#test_#{test['num']}"}<= test['num']
+              %span{:property => 'dc:title'}<= test['title']
+              %span{:property => 'dc:description'}<= test['description']
+            - subjects.each do |subjects|
+              - url = subjects['@id']
+              - next unless test.has_key?(url)
+              - assertion = test[url]
+              - pass_fail = assertion['result']['outcome'].split(':').last.upcase.sub(/ED$/, '')
+              %td{:class => pass_fail, :rel => assertion['@id'], :typeof => assertion['@type']}
+                %link{:property => "earl:assertedBy", :href => assertion['assertedBy']}
+                %link{:property => "earl:test", :href => assertion['test']}
+                %link{:property => "earl:subject", :href => assertion['subject']}
+                %link{:property => 'earl:mode', :href => assertion['mode']}/ 
+                %span{:property => "earl:result", :typeof => assertion['result']['@type'], :resource => assertion['result']['outcome']}
+                  = pass_fail
+    %section.appendix
+      %h2
+        Test Subjects
+      %p
+        This report was tested using the following test subjects:
+      %dl
+        - subjects.each do |subject|
+          %dt{:about => subject['@id'], :typeof => subject['@type'].join(" "), :property => "doap:name"}
+            = subject['name']
+          %dd{:about => subject['@id']}
+            %dl
+              - if subject['doap_desc']
+                %dt= "Description"
+                %dd{:property => "doap:description"}<= subject['doap_desc']
+              - if subject['language']
+                %dt= "Programming Language"
+                %dd{:property => "doap:programming-language"}<= subject['language']
+              - if subject['developer']
+                %dt= "Developer"
+                %dd{:property => "doap:developer", :resource => subject['developer']['@id'], :typeof => subject['developer']['@type']}
+                  - if subject['developer']['@id']
+                    %a{:href => subject['developer']['@id']}
+                      %span{:property => "foaf:name"}<= subject['developer']['foaf:name']
+                  - else
+                    %span{:property => "foaf:name"}<= subject['developer']['foaf:name']
+              - if subject['homepage']
+                %dt= "Home Page"
+                %dd{:property => "doap:homepage"}
+                  %a{:href=> subject['homepage']}=subject['homepage']
+    %section.appendix
+      %h2
+        Individual Test Results
+      %p
+        Individual test results used to construct this report are available here:
+      %ul
+        - source_files.each do |file|
+          %li
+            %a.source{:href => file}<= file
+    %section.appendix
+      %h2
+        Test Definitions
+      %dl
+        - keys = test_info.keys.sort
+        - keys.each do |num|
+          - test = test_info[num]
+          %dt{:id => "test_#{test['num']}"}
+            Test
+            = test['title']
+          %dd
+            = test['description']
+            %dl
+              %dt
+                %pre{:class => "example inputDoc"}<&= Kernel.open(test['action']) {|f| f.read}
+                %pre{:class => "example resultDoc"}<&= Kernel.open(test['result']) {|f| f.read}
