@@ -4,11 +4,11 @@ Gem::Specification.new do |gem|
   gem.version               = File.read('VERSION').chomp
   gem.date                  = File.mtime('VERSION').strftime('%Y-%m-%d')
 
-  gem.name                  = "earl-reports"
-  gem.homepage              = "http://github.com/gkellogg/earl-reports"
+  gem.name                  = "earl-report"
+  gem.homepage              = "http://github.com/gkellogg/earl-report"
   gem.license               = 'Public Domain' if gem.respond_to?(:license=)
   gem.summary               = "Earl Report summary generator"
-  gem.description           = "EarlReport generates HTML+RDFa rollups of multiple EARL reports."
+  gem.description           = "EarlReport generates HTML+RDFa rollups of multiple EARL report."
 
   gem.authors               = ['Gregg Kellogg']
   gem.email                 = 'gregg@greggkellogg.net'

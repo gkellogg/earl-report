@@ -198,7 +198,7 @@ class EarlReport
   private
   
   ##
-  # Return hashed EARL reports in JSON-LD form
+  # Return hashed EARL report in JSON-LD form
   # @return [Hash]
   def json_hash(options)
     @json_hash ||= begin
