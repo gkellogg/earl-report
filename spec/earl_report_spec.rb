@@ -2,9 +2,9 @@
 $:.unshift "."
 require 'spec_helper'
 
-describe EarlReports do
+describe EarlReport do
   subject {
-    EarlReports.new(
+    EarlReport.new(
       File.expand_path("../test-files/manifest.ttl", __FILE__),
       File.expand_path("../test-files/report-complete.ttl", __FILE__),
       :verbose => false)
@@ -18,7 +18,7 @@ describe EarlReports do
       end
 
       subject {
-        EarlReports.new(
+        EarlReport.new(
           File.expand_path("../test-files/manifest.ttl", __FILE__),
           File.expand_path("../test-files/report-complete.ttl", __FILE__),
           :verbose => false)
@@ -48,7 +48,7 @@ describe EarlReports do
       end
 
       subject {
-        EarlReports.new(
+        EarlReport.new(
           File.expand_path("../test-files/manifest.ttl", __FILE__),
           File.expand_path("../test-files/report-no-doap.ttl", __FILE__),
           :verbose => false)
@@ -78,7 +78,7 @@ describe EarlReports do
       end
 
       subject {
-        EarlReports.new(
+        EarlReport.new(
           File.expand_path("../test-files/manifest.ttl", __FILE__),
           File.expand_path("../test-files/report-no-foaf.ttl", __FILE__),
           :verbose => false)

@@ -1,5 +1,4 @@
 #!/usr/bin/env ruby -rubygems
-# -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |gem|
   gem.version               = File.read('VERSION').chomp
@@ -17,7 +16,7 @@ Gem::Specification.new do |gem|
   gem.platform              = Gem::Platform::RUBY
   gem.files                 = %w(README.md VERSION) + Dir.glob('lib/**/*.rb')
   gem.bindir               = %q(bin)
-  gem.executables          = %w(earl)
+  gem.executables          = %w(earl-report)
   gem.default_executable   = gem.executables.first
   gem.require_paths         = %w(lib)
   gem.extensions            = %w()

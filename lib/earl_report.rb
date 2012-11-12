@@ -6,7 +6,7 @@ require 'haml'
 ##
 # EARL reporting class.
 # Instantiate a new class using one or more input graphs
-class EarlReports
+class EarlReport
   attr_reader :graph
   TEST_SUBJECT_QUERY = %(
     PREFIX doap: <http://usefulinc.com/ns/doap#>
