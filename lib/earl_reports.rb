@@ -8,7 +8,7 @@ require 'haml'
 # Instantiate a new class using one or more input graphs
 class EarlReports
   attr_reader :graph
-  PROCESSOR_QUERY = %(
+  TEST_SUBJECT_QUERY = %(
     PREFIX doap: <http://usefulinc.com/ns/doap#>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
     
@@ -53,16 +53,20 @@ class EarlReports
 
   # Convenience vocabularies
   class EARL < RDF::Vocabulary("http://www.w3.org/ns/earl#"); end
+  class MF < RDF::Vocabulary("http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#"); end
 
   ##
   # Load test assertions and look for referenced software and developer information
   # @param [String] manifest Test manifest describe Test Cases
   # @param [Array<String>] files Assertions
-  def initialize(manifest, files)
+  # @param [Hash{Symbol => Object}] options
+  # @option options [Boolean] :verbose (true)
+  def initialize(manifest, files, options = {})
+    @options = {:verbose => true}.merge(options)
     @graph = RDF::Graph.new
     @prefixes = {}
     [manifest, files].flatten.each do |file|
-      puts "read #{file}"
+      status "read #{file}"
       reader = case file
       when /\.jsonld/
         @json_hash = ::JSON.parse(File.read(file))
@@ -78,28 +82,28 @@ class EarlReports
 
       # Load DOAP definitions
       unless solution[:name] # not loaded
-        puts "read doap description for #{subject}"
+        status "read doap description for #{subject}"
         begin
           doap_graph = RDF::Graph.load(subject)
-          puts "  read #{doap_graph.count} triples"
+          status "  read #{doap_graph.count} triples"
           @graph << doap_graph.to_a
         rescue
-          puts "  failed"
+          status "  failed"
         end
       end
     end
 
     # Load developers referenced from Test Subjects
-    SPARQL.execute(PROCESSOR_QUERY, @graph).each do |solution|
+    SPARQL.execute(TEST_SUBJECT_QUERY, @graph).each do |solution|
       # Load DOAP definitions
       if solution[:developer] && !solution[:dev_name] # not loaded
-        puts "read description for #{solution[:developer].inspect}"
+        status "read description for #{solution[:developer].inspect}"
         begin
           foaf_graph = RDF::Graph.load(solution[:developer])
-          puts "  read #{foaf_graph.count} triples"
+          status "  read #{foaf_graph.count} triples"
           @graph << foaf_graph.to_a
         rescue
-          puts "  failed"
+          status "  failed"
         end
       end
     end
@@ -111,22 +115,45 @@ class EarlReports
   # If no `io` parameter is provided, the output is returned as a string
   #
   # @param [Symbol] format
-  # @param [String] bibRef (nil)
-  #   ReSpec formatted bib ref for software being reported
-  # @param [IO] io (nil)
+  # @param [Hash{Symbol => Object}] options
+  # @option options [String] :bibRef
+  #   ReSpec bibliography reference for specification being tested
+  # @option options [String] :name
+  # @option options [String] :shortName
+  # @option options [String] :subTitle
+  # @option options [Array{Hash}, Hash] :editors
+  #   Editor has in ReSpec format.
+  # @option options [String] :wg
+  # @option options [String] :wgURI
+  # @option options [String] :wgPublicList
+  # @option options [String] :wgPatentURI
+  # @option options[IO] :io
+  #   Optional `IO` to output results
   # @return [String] serialized graph, if `io` is nil
-  def dump(format, bibRef = nil, io = nil)
-    @bibRef = bibRef || "No reference provided"
+  def dump(format, options = {})
     options = {
-      :standard_prefixes => true,
-      :prefixes => { :earl => "http://www.w3.org/ns/earl#", }
-    }
+      bibRef:       "[[TURTLE]]",
+      name:         "Turtle Test Results",
+      shortName:    "turtle-earl",
+      subTitle:     "Report on Test Subject Conformance for Turtle",
+      editors:      {
+                      name: "Gregg Kellogg",
+                      url: "http://greggkellogg.net/",
+                      company: "Kellogg Associates",
+                      companyURL: "http://kellogg-assoc.com/"
+                    },
+      wg:           "RDF Working Group",
+      wgURI:        "http://www.w3.org/2011/rdf-wg/",
+      wgPublicList: "public-rdf-comments",
+      wgPatentURI:  "http://www.w3.org/2004/01/pp-impl/46168/status",
+    }.merge(options)
+
 
     ##
     # Retrieve Hashed information in JSON-LD format
     case format
     when :jsonld
-      json = json_hash(options).to_json(JSON::LD::JSON_STATE)
+      json = json_hash(options).json_hash(JSON::LD::JSON_STATE)
       io.write(json) if io
       json
     when :turtle, :ttl
@@ -152,6 +179,7 @@ class EarlReports
   # If no `io` parameter is provided, the output is returned as a string
   #
   # @param [IO, String, Hash] json
+  #   JSON representation of output, created via {#json_hash}
   # @param [Array<String>] source_files
   # @param [IO] io (nil)
   # @return [String] Generated report, if `io` is nil
@@ -161,7 +189,8 @@ class EarlReports
 
     template = File.read(File.expand_path('../views/earl_report.html.haml', __FILE__))
 
-    html = Haml::Engine.new(template, :format => :xhtml).render(self, {:tests => tests, :source_files => source_files})
+    html = Haml::Engine.new(template, :format => :xhtml)
+      .render(self, :tests => tests, :source_files => source_files)
     io.write(html) if io
     html
   end
@@ -171,49 +200,50 @@ class EarlReports
   ##
   # Return hashed EARL reports in JSON-LD form
   # @return [Hash]
-  def json_hash
+  def json_hash(options)
     @json_hash ||= begin
       # Customized JSON-LD output
-      hash = Hash.ordered
-      hash["@context"] = {
-        dc:           "http://purl.org/dc/terms/",
-        doap:         "http://usefulinc.com/ns/doap#",
-        earl:         "http://www.w3.org/ns/earl#",
-        foaf:         "http://xmlns.com/foaf/0.1/",
-        rdfs:         "http://www.w3.org/2000/01/rdf-schema#",
-        assertedBy:   {"@id" => "earl:assertedBy", "@type" => "@id"},
-        bibRef:       {"@id" => "dc: bibliographicCitation"},
-        description:  {"@id" => "dc:description"},
-        developer:    {"@id" => "doap:developer", "@type" => "@id"},
-        homepage:     {"@id" => "doap:homepage", "@type" => "@id"},
-        doap_desc:    {"@id" => "doap:description"},
-        language:     {"@id" => "doap:programming-language"},
-        label:        {"@id" => "rdfs:label"},
-        mode:         {"@id" => "earl:mode", "@type" => "@id"},
-        name:         {"@id" => "doap:name"},
-        outcome:      {"@id" => "earl:outcome", "@type" => "@id"},
-        result:       {"@id" => "earl:result"},
-        subject:      {"@id" => "earl:subject", "@type" => "@id"},
-        test:         {"@id" => "earl:test", "@type" => "@id"},
-        title:        {"@id" => "dc:title"}
+      {
+        "@context" => {
+          dc:           "http://purl.org/dc/terms/",
+          doap:         "http://usefulinc.com/ns/doap#",
+          earl:         "http://www.w3.org/ns/earl#",
+          foaf:         "http://xmlns.com/foaf/0.1/",
+          rdfs:         "http://www.w3.org/2000/01/rdf-schema#",
+          assertedBy:   {"@id" => "earl:assertedBy", "@type" => "@id"},
+          bibRef:       {"@id" => "dc: bibliographicCitation"},
+          description:  {"@id" => "dc:description"},
+          developer:    {"@id" => "doap:developer", "@type" => "@id"},
+          homepage:     {"@id" => "doap:homepage", "@type" => "@id"},
+          doap_desc:    {"@id" => "doap:description"},
+          language:     {"@id" => "doap:programming-language"},
+          label:        {"@id" => "rdfs:label"},
+          mode:         {"@id" => "earl:mode", "@type" => "@id"},
+          name:         {"@id" => "doap:name"},
+          outcome:      {"@id" => "earl:outcome", "@type" => "@id"},
+          result:       {"@id" => "earl:result"},
+          subject:      {"@id" => "earl:subject", "@type" => "@id"},
+          test:         {"@id" => "earl:test", "@type" => "@id"},
+          title:        {"@id" => "dc:title"}
+        },
+        "@type" =>      %w(earl:Software doap:Project),
+        name:           options[:name],
+        bibRef:         options[:bibRef],
+        testSubjects:   json_test_subject_info,
+        tests:          json_result_info
       }
-      hash["@type"] = %w(earl:Software doap:Project)
-      hash['name'] = "RDFa Test Suite"
-      hash['bibRef'] = @bibRef
-      hash['subjects'] = json_subject_info
-      hash.merge!(json_result_info)
     end
   end
 
   ##
-  # Return array of processor information
+  # Return array of test subject information
   # @return [Array]
-  def json_subject_info
-    # Get the set of processors
-    proc_info = {}
-    SPARQL.execute(PROCESSOR_QUERY, @graph).each do |solution|
-      puts "solution #{solution.to_hash.inspect}"
-      info = proc_info[solution[:uri].to_s] ||= {}
+  def json_test_subject_info
+    # Get the set of subjects
+    ts_info = {}
+    SPARQL.execute(TEST_SUBJECT_QUERY, @graph).each do |solution|
+      status "solution #{solution.to_hash.inspect}"
+      info = ts_info[solution[:uri].to_s] ||= {}
       %w(name doap_desc homepage language).each do |prop|
         info[prop] = solution[prop.to_sym].to_s if solution[prop.to_sym]
       end
@@ -227,96 +257,72 @@ class EarlReports
     end
 
     # Map ids and values to array entries
-    proc_info.keys.map do |id|
-      info = proc_info[id]
-      processor = Hash.ordered
-      processor["@id"] = id
-      processor["@type"] = %w(earl:TestSubject doap:Project)
+    ts_info.keys.map do |id|
+      info = ts_info[id]
+      subject = Hash.ordered
+      subject["@id"] = id
+      subject["@type"] = %w(earl:TestSubject doap:Project)
       %w(name developer doap_desc homepage language).each do |prop|
-        processor[prop] = info[prop] if info[prop]
+        subject[prop] = info[prop] if info[prop]
       end
-      processor
+      subject
     end
   end
   
   ##
-  # Return result information as version/host-language
-  # @return [Hash]
+  # Return result information for each test
+  #
+  # @return [Array]
   def json_result_info
-    hash = Hash.ordered
+    test_list = @graph.first_object(:predicate => MF['entries'])
+    raise "No test entries found" unless test_list
     test_cases = {}
 
-    # Get versions and hostLanguages
-    @graph.query(:subject => RDF::URI(SUITE_URI)).each do |version_stmt|
-      if version_stmt.predicate.to_s.index(RDFATEST["version/"]) == 0
-        # This is a version predicate, it includes hostLanguage predicates
-        vers = version_stmt.predicate.to_s.sub(RDFATEST["version/"].to_s, '')
-        version = hash[vers] ||= begin
-          vh = Hash.ordered
-          vh['@type'] = "rdfatest:Version"
-          puts "version: #{vers}"
-          vh
-        end
-        
-        @graph.query(:subject => version_stmt.object).each do |hl_stmt|
-          if hl_stmt.predicate.to_s.index(RDFATEST["hostLanguage/"]) == 0
-            # This is a hostLanguage predicate, it includes hostLanguage predicates
-            hl = hl_stmt.predicate.to_s.sub(RDFATEST["hostLanguage/"].to_s, '')
-            next if version.has_key?(hl)
-            puts "hostLanguage: #{hl}"
-            version[hl] = []
-            
-            # Iterate though the list and append ordered test assertion
-            RDF::List.new(hl_stmt.object, @graph).each do |tc|
-              tc_hash = Hash.ordered
-              tc_hash['@id'] = tc.to_s
-              tc_hash['@type'] = "earl:TestCase"
-              test_cases[tc.to_s] = tc_hash
-              
-              # Extract important properties
-              title = description = nil
-              @graph.query(:subject => tc).each do |tc_stmt|
-                case tc_stmt.predicate.to_s
-                when RDF::DC.title.to_s
-                  title = tc_stmt.object.to_s
-                when RDF::DC.description.to_s
-                  description = tc_stmt.object.to_s
-                when EARL.mode.to_s, RDF.type.to_s
-                  # Skip this
-                end
-              end
+    # Iterate through the test manifest and write out a TestCase
+    # for each test
+    RDF::List.new(test_list, @graph).map do |tc|
+      tc_hash = {}
+      tc_hash['@id'] = tc.to_s
+      tc_hash['@type'] = %w(earl:TestCriterion earl:TestCase)
 
-              tc_hash['num'] = tc.to_s.split('/').last.split('.').first
-              tc_hash['title'] = title
-              tc_hash['description'] = description unless description.empty?
-
-              version[hl] << tc_hash
-            end
-          end
+      # Extract important properties
+      @graph.query(:subject => tc).each do |tc_stmt|
+        case tc_stmt.predicate.to_s
+        when MF.name.to_s
+          tc_hash['title'] = tc_stmt.object.to_s
+        when RDF::RDFS.comment.to_s
+          tc_hash['description'] = tc_stmt.object.to_s
+        when MF.action.to_s
+          tc_hash['testAction'] = tc_stmt.object.to_s
+        when MF.result.to_s
+          tc_hash['testResult'] = tc_stmt.object.to_s
         end
       end
+
+      test_cases[tc.to_s] = tc_hash
     end
+    raise "No test cases found" if test_cases.empty?
 
     # Iterate through assertions and add to appropriate test case
     SPARQL.execute(ASSERTION_QUERY, @graph).each do |solution|
       tc = test_cases[solution[:test].to_s]
       raise "No test case found for #{solution[:test]}" unless tc
       tc ||= {}
-      processor = solution[:subject].to_s
-      result_hash = Hash.ordered
-      result_hash['@type'] = 'earl:TestResult'
-      result_hash['outcome'] = solution[:outcome] == EARL.passed ? 'earl:passed' : 'earl:failed'
-      ta_hash = Hash.ordered
+      subject = solution[:subject].to_s
+      ta_hash = {}
       ta_hash['@type'] = 'earl:Assertion'
-      ta_hash['assertedBy'] = SUITE_URI
+      ta_hash['assertedBy'] = solution[:by].to_s
       ta_hash['test'] = solution[:test].to_s
       ta_hash['mode'] = "earl:#{solution[:mode].to_s.split('#').last || 'automatic'}"
-      ta_hash['subject'] = processor
-      ta_hash['result'] = result_hash
-      tc[processor] = ta_hash
+      ta_hash['subject'] = subject
+      ta_hash['result'] = {
+        '@type' => 'earl:TestResult',
+        "outcome" => (solution[:outcome] == EARL.passed ? 'earl:passed' : 'earl:failed')
+      }
+      tc[subject] = ta_hash
     end
 
-    hash
+    test_cases.values
   end
   
   ##
@@ -332,8 +338,6 @@ class EarlReports
       :foaf     => RDF::FOAF,
       :owl      => RDF::OWL,
       :rdf      => RDF,
-      :rdfa     => RDF::RDFA,
-      :rdfatest => RDFATEST,
       :rdfs     => RDF::RDFS,
       :xhv      => RDF::XHV,
       :xsd      => RDF::XSD
@@ -342,48 +346,29 @@ class EarlReports
     end
     io.puts
     
-    # Write earl:Software
+    # Write earl:Software for the report
     io.puts %(<#{json_hash['@id']}> a earl:Softare, doap:Project;)
     io.puts %(  doap:homepage <#{json_hash['homepage']}>;)
-    io.puts %(  doap:name "#{json_hash['homepage']}";)
-    
-    # Processors
-    proc_defs = json_hash['processor'].map {|proc_def| "<#{proc_def['@id']}>"}.join(",\n    ")
-    io.puts %(  rdfa:processor #{proc_defs};)
-    
-    # Versions
-    # also collect test case definitions
+    io.puts %(  doap:name "#{json_hash['name']}".)
+
+    # Test Cases
     # also collect each assertion definition
     test_cases = {}
     assertions = []
-    json_hash.keys.select {|k| k =~ /rdfa\d\.*/}.each do |version|
-      io.puts %(  <http://rdfa.info/vocabs/rdfa-test#version/#{version}> [ a rdfatest:Version;)
-      
-      # Host Languages
-      json_hash[version].keys.reject {|k| k == '@type'}.each do |host_language|
-        io.puts "    <http://rdfa.info/vocabs/rdfa-test#hostLanguage/#{host_language}> ("
-        
-        # Tests
-        json_hash[version][host_language].each do |test_case|
-          tc_desc =  test_cases[test_case['num']] ||= test_case.merge({'hostLanguage' => [], 'version' => []})
-          tc_desc['version'] << version
-          tc_desc['hostLanguage'] << host_language
-          test_case.keys.select {|k| k =~ /^http:/}.each do |proc_uri|
-            tc_desc[proc_uri] = test_case[proc_uri]['@id']
-            assertions << test_case[proc_uri]
-          end
-          io.puts %(      <#{test_case['@id']}>)
-        end
-        io.puts "    ),"
+
+    # Tests
+    json_hash['tests'].each do |test_case|
+      tc_desc =  test_cases[test_case['test']] ||= test_case.dup
+      test_case.keys.select {|k| k =~ /^http:/}.each do |ts_uri|
+        tc_desc[sw_uri] = test_case[ts_uri]['@id']
+        assertions << test_case[ts_uri]
       end
-      io.puts %(  ];)
     end
-    io.puts %(  .\n)
     
     # Write out each earl:TestSubject
-    io.puts %(#\n# Processor Definitions\n#)
-    json_hash['processor'].each do |proc_desc|
-      io.write(proc_turtle(proc_desc))
+    io.puts %(#\n# Subject Definitions\n#)
+    json_hash['testSubjects'].each do |ts_desc|
+      io.write(test_subject_turtle(ts_desc))
     end
     
     # Write out each earl:TestCase
@@ -400,10 +385,10 @@ class EarlReports
   end
   
   ##
-  # Write out Processor definition for each earl:TestSubject
+  # Write out Test Subject definition for each earl:TestSubject
   # @param [Hash] desc
   # @return [String]
-  def proc_turtle(desc)
+  def test_subject_turtle(desc)
     developer = desc['developer']
     res = %(<#{desc['@id']}> a #{desc['@type'].join(', ')}\n)
     res += %(  doap:name "#{desc['name']}";\n)
@@ -429,9 +414,6 @@ class EarlReports
     res = %(<#{desc['@id']}> a #{[desc['@type']].flatten.join(', ')};\n)
     res += %(  dc:title "#{desc['title']}";\n)
     res += %(  dc:description """#{desc['description']}""";\n)
-    res += %(  rdfatest:num "#{desc['num']}";\n)
-    res += %(  rdfatest:rdfaVersion #{desc['version'].sort.uniq.map(&:dump).join(', ')};\n)
-    res += %(  rdfatest:hostLanguage #{desc['hostLanguage'].sort.uniq.map(&:dump).join(', ')}.\n)
     res + "\n"
   end
 
@@ -448,5 +430,9 @@ class EarlReports
     res += %(  earl:result [ a earl:Result; #{desc['result']['outcome']}] ] .\n)
     res += %(\n)
     res
+  end
+  
+  def status(message)
+    puts message if @options[:verbose]
   end
 end

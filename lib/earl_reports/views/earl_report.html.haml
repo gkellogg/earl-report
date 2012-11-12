@@ -19,8 +19,8 @@
 -#      "@type": ["earl:TestCriterion", "earl:TestCase"],
 -#      "title": "subm-test-00",
 -#      "description": "Blank subject",
--#      "action": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/test-00.ttl",
--#      "result": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/test-00.out"
+-#      "testAction": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/test-00.ttl",
+-#      "testResult": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/test-00.out"
 -#      "mode": "earl:automatic",
 -#      "http://rubygems.org/gems/rdf-turtle": {
 -#        "@id": "http://rdfa.info/test-suite/test-details/rdfa1.1/xml/0001?rdfa-extractor=http%3A//www.w3.org/2012/pyRdfa/extract%3Furi%3D",
@@ -53,8 +53,8 @@
           doRDFa:               "1.1",
 
           // the specification's short name, as in http://www.w3.org/TR/short-name/
-          shortName:            "rdfa-earl",
-          subtitle:             "EARL results from the RDFa 1.1 Test Suite",
+          shortName:            "{{shortName}}",
+          subtitle:             "{{subtitle}}",
           // if you wish the publication date to be other than today, set this
           publishDate:  "#{Time.now.strftime("%Y/%m/%d")}",
 
@@ -79,39 +79,29 @@
 
           // editors, add as many as you like
           // only "name" is required
-          editors:  [
-              { name: "Gregg Kellogg", url: "http://greggkellogg.net/",
-                company: "Kellogg Associates", companyURL: "http://kellogg-assoc.com/" },
-          ],
+          editors:  [{{editors}}],
 
           // authors, add as many as you like.
           // This is optional, uncomment if you have authors as well as editors.
           // only "name" is required. Same format as editors.
           authors:  [
-            { name: "Gregg Kellogg", url: "http://greggkellogg.net/",
-              company: "Kellogg Associates", companyURL: "http://kellogg-assoc.com/" },
-            { name: "Iván Herman", url: "http://www.w3.org/People/Ivan/",
-              company: "W3C", companyURL: "http://www.w3.org" },
-            { name: "Manu Sporny", url: "http://digitalbazaar.com/",
-              company: "Digital Bazaar", companyURL: "http://digitalbazaar.com/" }
           ],
 
           // name of the WG
-          wg:           "Linking Data in JSON Community Group",
+          wg:           "{{wg}}",
 
           // URI of the public WG page
-          wgURI:        "http://json-ld.org/",
+          wgURI:        "{{wgURI}}",
 
           // name (with the @w3c.org) of the public mailing to which comments are due
-          wgPublicList: "public-linked-json@w3c.org",
+          wgPublicList: "{{wgPublicList}}",
 
           // URI of the patent status for this WG, for Rec-track documents
           // !!!! IMPORTANT !!!!
           // This is important for Rec-track documents, do not copy a patent URI from a random
           // document unless you know what you're doing. If in doubt ask your friendly neighbourhood
           // Team Contact.
-          wgPatentURI:  "",
-          maxTocLevel: 4,
+          wgPatentURI:  "{{wgPatentURI}}",
           //alternateFormats: [ {uri: "diff-20120112.html", label: "diff to previous version"} ],
       };
     :css

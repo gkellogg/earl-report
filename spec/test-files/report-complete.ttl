@@ -40,7 +40,7 @@
 [ a earl:Assertion;
   earl:assertedBy <http://greggkellogg.net/foaf#me>;
   earl:subject <http://rubygems.org/gems/rdf-turtle>;
-  earl:test <http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/manifest.ttl#testeval00>;
+  earl:test <http://example/manifest.ttl#testeval00>;
   earl:result [
     a earl:TestResult;
     earl:outcome earl:passed;

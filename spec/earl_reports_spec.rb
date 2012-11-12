@@ -3,6 +3,13 @@ $:.unshift "."
 require 'spec_helper'
 
 describe EarlReports do
+  subject {
+    EarlReports.new(
+      File.expand_path("../test-files/manifest.ttl", __FILE__),
+      File.expand_path("../test-files/report-complete.ttl", __FILE__),
+      :verbose => false)
+  }
+
   describe ".new" do
     context "complete report" do
       before(:each) do
@@ -13,7 +20,8 @@ describe EarlReports do
       subject {
         EarlReports.new(
           File.expand_path("../test-files/manifest.ttl", __FILE__),
-          File.expand_path("../test-files/report-complete.ttl", __FILE__))
+          File.expand_path("../test-files/report-complete.ttl", __FILE__),
+          :verbose => false)
       }
       it "loads manifest" do
         subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl"))
@@ -42,7 +50,8 @@ describe EarlReports do
       subject {
         EarlReports.new(
           File.expand_path("../test-files/manifest.ttl", __FILE__),
-          File.expand_path("../test-files/report-no-doap.ttl", __FILE__))
+          File.expand_path("../test-files/report-no-doap.ttl", __FILE__),
+          :verbose => false)
       }
       it "loads manifest" do
         subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl"))
@@ -71,7 +80,8 @@ describe EarlReports do
       subject {
         EarlReports.new(
           File.expand_path("../test-files/manifest.ttl", __FILE__),
-          File.expand_path("../test-files/report-no-foaf.ttl", __FILE__))
+          File.expand_path("../test-files/report-no-foaf.ttl", __FILE__),
+          :verbose => false)
       }
       it "loads manifest" do
         subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl"))
@@ -96,12 +106,104 @@ describe EarlReports do
   end
   
   describe "#json_hash" do
+    let(:json) {
+      subject.send(:json_hash, {
+        bibRef:       "[[TURTLE]]",
+        name:         "Turtle Test Results"
+      })
+    }
+    specify {json.should be_a(Hash)}
+    {
+      "@type" =>  %w(earl:Software doap:Project),
+      bibRef:     "[[TURTLE]]",
+      name:       "Turtle Test Results"
+    }.each do |prop, value|
+      specify(prop) {json[prop].should == value}
+    end
+
+    it "testSubjects" do
+      json.keys.should include(:testSubjects)
+    end
+
+    it "tests" do
+      json.keys.should include(:testSubjects)
+    end
   end
   
-  describe "#json_subject_info" do
+  describe "#json_test_subject_info" do
+    let(:json) {subject.send(:json_test_subject_info)}
+    specify {json.should be_a(Array)}
+    specify("have length 1") {json.length.should == 1}
+
+    context "test subject" do
+      let(:ts) {json.first}
+      {
+        "@id" =>  "http://rubygems.org/gems/rdf-turtle",
+        "@type" =>  %w(earl:TestSubject doap:Project),
+        doap_desc:  "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.",
+        homepage:   "http://ruby-rdf.github.com/rdf-turtle",
+        language:   "Ruby",
+        name:       "RDF::Turtle",
+      }.each do |prop, value|
+        specify(prop) {ts[prop.to_s].should == value}
+      end
+      
+      context "developer" do
+        let(:dev) {ts['developer']}
+        specify {dev.should be_a(Hash)}
+        {
+          "@id"       => "http://greggkellogg.net/foaf#me",
+          "@type"     => %(foaf:Person),
+          "foaf:name" => "Gregg Kellogg",
+        }.each do |prop, value|
+          specify(prop) {dev[prop.to_s].should == value}
+        end
+      end
+    end
   end
   
   describe "#json_result_info" do
+    let(:json) {subject.send(:json_result_info)}
+    specify {json.should be_a(Array)}
+    specify("have 2 entries") {json.length.should == 2}
+
+    context "test case" do
+      let(:tc) {json.first}
+      {
+        "@id" =>      "http://example/manifest.ttl#testeval00",
+        "@type" =>    %w(earl:TestCriterion earl:TestCase),
+        description:  "Blank subject",
+        testAction:   "http://example/test-00.ttl",
+        testResult:   "http://example/test-00.out",
+      }.each do |prop, value|
+        specify(prop) {tc[prop.to_s].should == value}
+      end
+
+      context "assertion" do
+        let(:as) {tc['http://rubygems.org/gems/rdf-turtle']}
+        specify {as.should be_a(Hash)}
+        {
+          "@type" =>  %(earl:Assertion),
+          assertedBy: "http://greggkellogg.net/foaf#me",
+          mode:       "earl:automatic",
+          subject:    "http://rubygems.org/gems/rdf-turtle",
+          test:       "http://example/manifest.ttl#testeval00",
+        }.each do |prop, value|
+          specify(prop) {as[prop.to_s].should == value}
+        end
+
+        context "result" do
+          let(:rs) {as['result']}
+          specify {rs.should be_a(Hash)}
+          {
+            "@type" =>  %(earl:TestResult),
+            outcome:    "earl:passed",
+          }.each do |prop, value|
+            specify(prop) {rs[prop.to_s].should == value}
+          end
+        end
+      end
+    end
   end
   
   describe "#earl_turtle" do
