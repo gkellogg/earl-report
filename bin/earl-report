@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+require 'rubygems'
+$:.unshift(File.expand_path(File.join(File.dirname(__FILE__), "..", 'lib')))
+
+require 'earl_report'
+require 'getoptlong'
+
+def run(input, options)
+end
+
+OPT_ARGS = [
+  ["--bibRef",            GetoptLong::REQUIRED_ARGUMENT,"ReSpec BibRef of specification being reported upon"],
+  ["--name",              GetoptLong::REQUIRED_ARGUMENT,"Name of specification"],
+  ["--shortName",         GetoptLong::REQUIRED_ARGUMENT,"W3C shortname"],
+  ["--subTitle",          GetoptLong::REQUIRED_ARGUMENT,"Subtitle of HTML report"],
+  ["--editor-name",       GetoptLong::REQUIRED_ARGUMENT,"Editors name"],
+  ["--editor-url",        GetoptLong::REQUIRED_ARGUMENT,"Editor's personal URL"],
+  ["--editor-company",    GetoptLong::REQUIRED_ARGUMENT,"Editor's company"],
+  ["--editor-companyURL", GetoptLong::REQUIRED_ARGUMENT,"Editor's company's URL"],
+  ["--wg",                GetoptLong::REQUIRED_ARGUMENT,"Working group name"],
+  ["--wgURI",             GetoptLong::REQUIRED_ARGUMENT,"Working group URI"],
+  ["--wgPublicList",      GetoptLong::REQUIRED_ARGUMENT,"Public mailing list of WG"],
+  ["--wgPatentURI",       GetoptLong::REQUIRED_ARGUMENT,"Patent URI for WG"],
+  ["--output", "-o",      GetoptLong::REQUIRED_ARGUMENT,"Output report to file"],
+  ["--json",              GetoptLong::NO_ARGUMENT,      "Input is a JSON-LD formatted result"],
+  ["--format", "-f",      GetoptLong::REQUIRED_ARGUMENT,"Format of output, one of 'ttl', 'json', or 'html'"],
+  ["--verbose",           GetoptLong::NO_ARGUMENT,      "Detail on execution"],
+  ["--help", "-?",        GetoptLong::NO_ARGUMENT,      "This message"]
+]
+def usage
+  STDERR.puts %{
+    Generate EARL report for mutliple test results against a test manifest.
+    
+    Usage: #{$0} [options] test-manifest test-result ...
+  }.gsub(/^    /, '')
+  width = OPT_ARGS.map do |o|
+    l = o.first.length
+    l += o[1].length + 2 if o[1].is_a?(String)
+    l
+  end.max
+  OPT_ARGS.each do |o|
+    s = "  %-*s  " % [width, (o[1].is_a?(String) ? "#{o[0,2].join(', ')}" : o[0])]
+    s += o.last
+    STDERR.puts s
+  end
+  exit(1)
+end
+
+opts = GetoptLong.new(*OPT_ARGS.map {|o| o[0..-2]})
+
+options = {
+  :format => :html,
+  :io => STDOUT}
+
+opts.each do |opt, arg|
+  case opt
+  when '--verbose'      then options[:verbose] = true
+  when '--help'         then usage
+  when '--output'       then options[:io] = File.open(arg, "w")
+  when '--format'       then options[:format] = arg.to_sym
+  when /--editor-(.*)/  then [options[:editor] ||= {}][$1.to_sym] = arg
+  else
+    options[opt.to_sym] = arg
+  end
+end
+
+earl = EarlReport.new(*ARGV, options)
+earl.generate(options)

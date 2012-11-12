@@ -57,23 +57,23 @@ class EarlReport
 
   ##
   # Load test assertions and look for referenced software and developer information
-  # @param [String] manifest Test manifest describe Test Cases
-  # @param [Array<String>] files Assertions
+  # @param [Array<String>] *files Assertions
   # @param [Hash{Symbol => Object}] options
   # @option options [Boolean] :verbose (true)
-  def initialize(manifest, files, options = {})
-    @options = {:verbose => true}.merge(options)
+  def initialize(*files)
+    @options = files.last.is_a?(Hash) ? files.pop.dup : {}
     @graph = RDF::Graph.new
     @prefixes = {}
-    [manifest, files].flatten.each do |file|
+    files.flatten.each do |file|
       status "read #{file}"
-      reader = case file
+      file_graph = case file
       when /\.jsonld/
         @json_hash = ::JSON.parse(File.read(file))
         return
-      else RDF::Reader.for(file)
+      else RDF::Graph.load(file)
       end
-      reader.open(file) {|r| @graph << r}
+      status "  loaded #{file_graph.count} triples"
+      @graph << file_graph
     end
 
     # Find or load DOAP descriptions for all subjects
@@ -85,7 +85,7 @@ class EarlReport
         status "read doap description for #{subject}"
         begin
           doap_graph = RDF::Graph.load(subject)
-          status "  read #{doap_graph.count} triples"
+          status "  loaded #{doap_graph.count} triples"
           @graph << doap_graph.to_a
         rescue
           status "  failed"
@@ -100,7 +100,7 @@ class EarlReport
         status "read description for #{solution[:developer].inspect}"
         begin
           foaf_graph = RDF::Graph.load(solution[:developer])
-          status "  read #{foaf_graph.count} triples"
+          status "  loaded #{foaf_graph.count} triples"
           @graph << foaf_graph.to_a
         rescue
           status "  failed"
@@ -112,10 +112,10 @@ class EarlReport
   ##
   # Dump the collesced output graph
   #
-  # If no `io` parameter is provided, the output is returned as a string
+  # If no `io` option is provided, the output is returned as a string
   #
-  # @param [Symbol] format
   # @param [Hash{Symbol => Object}] options
+  # @option options [Symbol] format (:html)
   # @option options [String] :bibRef
   #   ReSpec bibliography reference for specification being tested
   # @option options [String] :name
@@ -130,8 +130,9 @@ class EarlReport
   # @option options[IO] :io
   #   Optional `IO` to output results
   # @return [String] serialized graph, if `io` is nil
-  def dump(format, options = {})
+  def generate(options = {})
     options = {
+      format:       :html,
       bibRef:       "[[TURTLE]]",
       name:         "Turtle Test Results",
       shortName:    "turtle-earl",
@@ -148,12 +149,14 @@ class EarlReport
       wgPatentURI:  "http://www.w3.org/2004/01/pp-impl/46168/status",
     }.merge(options)
 
+    io = options.delete(:io)
 
+    status("generate: #{options[:format]}")
     ##
     # Retrieve Hashed information in JSON-LD format
-    case format
-    when :jsonld
-      json = json_hash(options).json_hash(JSON::LD::JSON_STATE)
+    case options[:format]
+    when :jsonld, :json
+      json = json_hash(options).to_json(JSON::LD::JSON_STATE)
       io.write(json) if io
       json
     when :turtle, :ttl
@@ -165,36 +168,24 @@ class EarlReport
         io.rewind
         io.read
       end
+    when :html
+      template = File.read(File.expand_path('../views/earl_report.html.haml', __FILE__))
+
+      # Generate HTML report
+      # FIXME: read source files
+      html = Haml::Engine.new(template, :format => :xhtml)
+        .render(self, :tests => json_hash(options), :source_files => [])
+      io.write(html) if io
+      html
     else
       if io
-        RDF::Writer.for(format).new(io) {|w| w << graph}
+        RDF::Writer.for(options[:format]).new(io) {|w| w << graph}
       else
-        graph.dump(format)
+        graph.dump(options[:format])
       end
     end
   end
 
-  ##
-  # Generate output report, using Haml template
-  # If no `io` parameter is provided, the output is returned as a string
-  #
-  # @param [IO, String, Hash] json
-  #   JSON representation of output, created via {#json_hash}
-  # @param [Array<String>] source_files
-  # @param [IO] io (nil)
-  # @return [String] Generated report, if `io` is nil
-  def self.generate(json, source_files, io = nil)
-    json = json.read if json.respond_to?(:read)
-    tests = json.is_a?(String) ? ::JSON.parse(json) : json
-
-    template = File.read(File.expand_path('../views/earl_report.html.haml', __FILE__))
-
-    html = Haml::Engine.new(template, :format => :xhtml)
-      .render(self, :tests => tests, :source_files => source_files)
-    io.write(html) if io
-    html
-  end
-  
   private
   
   ##
@@ -208,6 +199,7 @@ class EarlReport
           dc:           "http://purl.org/dc/terms/",
           doap:         "http://usefulinc.com/ns/doap#",
           earl:         "http://www.w3.org/ns/earl#",
+          mf:           "http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#",
           foaf:         "http://xmlns.com/foaf/0.1/",
           rdfs:         "http://www.w3.org/2000/01/rdf-schema#",
           assertedBy:   {"@id" => "earl:assertedBy", "@type" => "@id"},
@@ -217,6 +209,8 @@ class EarlReport
           homepage:     {"@id" => "doap:homepage", "@type" => "@id"},
           doap_desc:    {"@id" => "doap:description"},
           language:     {"@id" => "doap:programming-language"},
+          testAction:   {"@id" => "mf:action", "@type" => "@id"},
+          testResult:   {"@id" => "mf:result", "@type" => "@id"},
           label:        {"@id" => "rdfs:label"},
           mode:         {"@id" => "earl:mode", "@type" => "@id"},
           name:         {"@id" => "doap:name"},
@@ -274,39 +268,41 @@ class EarlReport
   #
   # @return [Array]
   def json_result_info
-    test_list = @graph.first_object(:predicate => MF['entries'])
-    raise "No test entries found" unless test_list
     test_cases = {}
 
-    # Iterate through the test manifest and write out a TestCase
-    # for each test
-    RDF::List.new(test_list, @graph).map do |tc|
-      tc_hash = {}
-      tc_hash['@id'] = tc.to_s
-      tc_hash['@type'] = %w(earl:TestCriterion earl:TestCase)
+    @graph.query(:predicate => MF['entries']) do |stmt|
+      # Iterate through the test manifest and write out a TestCase
+      # for each test
+      RDF::List.new(stmt.object, @graph).map do |tc|
+        tc_hash = {}
+        tc_hash['@id'] = tc.to_s
+        tc_hash['@type'] = %w(earl:TestCriterion earl:TestCase)
 
-      # Extract important properties
-      @graph.query(:subject => tc).each do |tc_stmt|
-        case tc_stmt.predicate.to_s
-        when MF.name.to_s
-          tc_hash['title'] = tc_stmt.object.to_s
-        when RDF::RDFS.comment.to_s
-          tc_hash['description'] = tc_stmt.object.to_s
-        when MF.action.to_s
-          tc_hash['testAction'] = tc_stmt.object.to_s
-        when MF.result.to_s
-          tc_hash['testResult'] = tc_stmt.object.to_s
+        # Extract important properties
+        @graph.query(:subject => tc).each do |tc_stmt|
+          case tc_stmt.predicate.to_s
+          when MF.name.to_s
+            tc_hash['title'] = tc_stmt.object.to_s
+          when RDF::RDFS.comment.to_s
+            tc_hash['description'] = tc_stmt.object.to_s
+          when MF.action.to_s
+            tc_hash['testAction'] = tc_stmt.object.to_s
+          when MF.result.to_s
+            tc_hash['testResult'] = tc_stmt.object.to_s
+          end
         end
-      end
 
-      test_cases[tc.to_s] = tc_hash
+        test_cases[tc.to_s] = tc_hash
+      end
     end
+
     raise "No test cases found" if test_cases.empty?
 
+    status "Test cases:\n  #{test_cases.keys.join("\n  ")}"
     # Iterate through assertions and add to appropriate test case
     SPARQL.execute(ASSERTION_QUERY, @graph).each do |solution|
       tc = test_cases[solution[:test].to_s]
-      raise "No test case found for #{solution[:test]}" unless tc
+      STDERR.puts "No test case found for #{solution[:test]}" unless tc
       tc ||= {}
       subject = solution[:subject].to_s
       ta_hash = {}
