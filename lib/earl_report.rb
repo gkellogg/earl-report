@@ -149,22 +149,23 @@ class EarlReport
       wgPatentURI:  "http://www.w3.org/2004/01/pp-impl/46168/status",
     }.merge(options)
 
-    io = options.delete(:io)
+    io = options[:io]
 
     status("generate: #{options[:format]}")
     ##
     # Retrieve Hashed information in JSON-LD format
+    hash = json_hash(options)
     case options[:format]
     when :jsonld, :json
-      json = json_hash(options).to_json(JSON::LD::JSON_STATE)
+      json = hash.to_json(JSON::LD::JSON_STATE)
       io.write(json) if io
       json
     when :turtle, :ttl
       if io
-        earl_turtle(io)
+        earl_turtle(options.merge(:json_hash => hash))
       else
         io = StringIO.new
-        earl_turtle(io)
+        earl_turtle(:json_hash => hash, :io => io)
         io.rewind
         io.read
       end
@@ -174,7 +175,7 @@ class EarlReport
       # Generate HTML report
       # FIXME: read source files
       html = Haml::Engine.new(template, :format => :xhtml)
-        .render(self, :tests => json_hash(options), :source_files => [])
+        .render(self, :tests => hash, :source_files => [])
       io.write(html) if io
       html
     else
@@ -220,11 +221,12 @@ class EarlReport
           test:         {"@id" => "earl:test", "@type" => "@id"},
           title:        {"@id" => "dc:title"}
         },
-        "@type" =>      %w(earl:Software doap:Project),
-        name:           options[:name],
-        bibRef:         options[:bibRef],
-        testSubjects:   json_test_subject_info,
-        tests:          json_result_info
+        "@id"          => "",
+        "@type"        => %w(earl:Software doap:Project),
+        'name'         => options[:name],
+        'bibRef'       => options[:bibRef],
+        'testSubjects' => json_test_subject_info,
+        'tests'        => json_result_info
       }
     end
   end
@@ -281,7 +283,7 @@ class EarlReport
         # Extract important properties
         @graph.query(:subject => tc).each do |tc_stmt|
           case tc_stmt.predicate.to_s
-          when MF.name.to_s
+          when MF['name'].to_s
             tc_hash['title'] = tc_stmt.object.to_s
           when RDF::RDFS.comment.to_s
             tc_hash['description'] = tc_stmt.object.to_s
@@ -289,6 +291,8 @@ class EarlReport
             tc_hash['testAction'] = tc_stmt.object.to_s
           when MF.result.to_s
             tc_hash['testResult'] = tc_stmt.object.to_s
+          else
+            #STDERR.puts "TC soln: #{tc_stmt.inspect}"
           end
         end
 
@@ -325,13 +329,16 @@ class EarlReport
   # Output consoloated EARL report as Turtle
   # @param [IO, StringIO] io
   # @return [String]
-  def earl_turtle(io)
+  def earl_turtle(options)
+    io = options[:io]
+    json_hash = options[:json_hash]
     # Write preamble
     {
       :dc       => RDF::DC,
       :doap     => RDF::DOAP,
-      :earl     => ::EARL::EARL,
+      :earl     => EARL,
       :foaf     => RDF::FOAF,
+      :mf       => MF,
       :owl      => RDF::OWL,
       :rdf      => RDF,
       :rdfs     => RDF::RDFS,
@@ -341,9 +348,9 @@ class EarlReport
       io.puts("@prefix #{prefix}: <#{vocab.to_uri}> .")
     end
     io.puts
-    
+
     # Write earl:Software for the report
-    io.puts %(<#{json_hash['@id']}> a earl:Softare, doap:Project;)
+    io.puts %(<#{json_hash['@id']}> a earl:Software, doap:Project;)
     io.puts %(  doap:homepage <#{json_hash['homepage']}>;)
     io.puts %(  doap:name "#{json_hash['name']}".)
 
@@ -356,7 +363,7 @@ class EarlReport
     json_hash['tests'].each do |test_case|
       tc_desc =  test_cases[test_case['test']] ||= test_case.dup
       test_case.keys.select {|k| k =~ /^http:/}.each do |ts_uri|
-        tc_desc[sw_uri] = test_case[ts_uri]['@id']
+        tc_desc[ts_uri] = test_case[ts_uri]['@id']
         assertions << test_case[ts_uri]
       end
     end
@@ -386,14 +393,14 @@ class EarlReport
   # @return [String]
   def test_subject_turtle(desc)
     developer = desc['developer']
-    res = %(<#{desc['@id']}> a #{desc['@type'].join(', ')}\n)
+    res = %(<#{desc['@id']}> a #{desc['@type'].join(', ')};\n)
     res += %(  doap:name "#{desc['name']}";\n)
     res += %(  doap:description """#{desc['doap_desc']}""";\n)     if desc['doap_desc']
     res += %(  doap:programming-language "#{desc['language']}";\n) if desc['language']
     if developer && developer['@id']
-      res += %(  doap:developer <#{developer['@id']}> .\n)
-      res += %(<#{developer['@id']}> a #{[developer['@type']].flatten.join(', ')} )
-      res += %(foaf:name "#{developer['foaf:name']}" .\n)
+      res += %(  doap:developer <#{developer['@id']}> .\n\n)
+      res += %(<#{developer['@id']}> a #{[developer['@type']].flatten.join(', ')};\n)
+      res += %(  foaf:name "#{developer['foaf:name']}" .\n)
     elsif developer
       res += %(  doap:developer [ a #{developer['@type'] || "foaf:Person"}; foaf:name "#{developer['foaf:name']}"] .\n)
     else
@@ -410,6 +417,8 @@ class EarlReport
     res = %(<#{desc['@id']}> a #{[desc['@type']].flatten.join(', ')};\n)
     res += %(  dc:title "#{desc['title']}";\n)
     res += %(  dc:description """#{desc['description']}""";\n)
+    res += %(  mf:action <#{desc['testAction']}>;\n)
+    res += %(  mf:result <#{desc['testResult']}>;\n)
     res + "\n"
   end
 
@@ -418,12 +427,12 @@ class EarlReport
   # @prarm[Hash] desc
   # @return [String]
   def as_turtle(desc)
-    res =  %([ a earl:Assertion\n)
+    res =  %([ a earl:Assertion;\n)
     res += %(  earl:assertedBy <#{desc['assertedBy']}>;\n)
     res += %(  earl:test <#{desc['test']}>;\n)
     res += %(  earl:subject <#{desc['subject']}>;\n)
     res += %(  earl:mode #{desc['mode']};\n)
-    res += %(  earl:result [ a earl:Result; #{desc['result']['outcome']}] ] .\n)
+    res += %(  earl:result [ a earl:TestResult; earl:outcome #{desc['result']['outcome']}] ] .\n)
     res += %(\n)
     res
   end

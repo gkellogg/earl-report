@@ -1,0 +1,130 @@
+{
+  "@context": {
+    "dc": "http://purl.org/dc/terms/",
+    "doap": "http://usefulinc.com/ns/doap#",
+    "earl": "http://www.w3.org/ns/earl#",
+    "mf": "http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#",
+    "foaf": "http://xmlns.com/foaf/0.1/",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "assertedBy": {
+      "@id": "earl:assertedBy",
+      "@type": "@id"
+    },
+    "bibRef": {
+      "@id": "dc: bibliographicCitation"
+    },
+    "description": {
+      "@id": "dc:description"
+    },
+    "developer": {
+      "@id": "doap:developer",
+      "@type": "@id"
+    },
+    "homepage": {
+      "@id": "doap:homepage",
+      "@type": "@id"
+    },
+    "doap_desc": {
+      "@id": "doap:description"
+    },
+    "language": {
+      "@id": "doap:programming-language"
+    },
+    "testAction": {
+      "@id": "mf:action",
+      "@type": "@id"
+    },
+    "testResult": {
+      "@id": "mf:result",
+      "@type": "@id"
+    },
+    "label": {
+      "@id": "rdfs:label"
+    },
+    "mode": {
+      "@id": "earl:mode",
+      "@type": "@id"
+    },
+    "name": {
+      "@id": "doap:name"
+    },
+    "outcome": {
+      "@id": "earl:outcome",
+      "@type": "@id"
+    },
+    "result": {
+      "@id": "earl:result"
+    },
+    "subject": {
+      "@id": "earl:subject",
+      "@type": "@id"
+    },
+    "test": {
+      "@id": "earl:test",
+      "@type": "@id"
+    },
+    "title": {
+      "@id": "dc:title"
+    }
+  },
+  "@id": "",
+  "@type": [
+    "earl:Software",
+    "doap:Project"
+  ],
+  "name": "Turtle Test Results",
+  "bibRef": "[[TURTLE]]",
+  "testSubjects": [
+    {
+      "@id": "http://rubygems.org/gems/rdf-turtle",
+      "@type": [
+        "earl:TestSubject",
+        "doap:Project"
+      ],
+      "name": "RDF::Turtle",
+      "developer": {
+        "@id": "http://greggkellogg.net/foaf#me",
+        "@type": "foaf:Person",
+        "foaf:name": "Gregg Kellogg"
+      },
+      "doap_desc": "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.",
+      "homepage": "http://ruby-rdf.github.com/rdf-turtle",
+      "language": "Ruby"
+    }
+  ],
+  "tests": [
+    {
+      "@id": "http://example/manifest.ttl#testeval00",
+      "@type": [
+        "earl:TestCriterion",
+        "earl:TestCase"
+      ],
+      "title": "subm-test-00",
+      "description": "Blank subject",
+      "testAction": "http://example/test-00.ttl",
+      "testResult": "http://example/test-00.out",
+      "http://rubygems.org/gems/rdf-turtle": {
+        "@type": "earl:Assertion",
+        "assertedBy": "http://greggkellogg.net/foaf#me",
+        "test": "http://example/manifest.ttl#testeval00",
+        "mode": "earl:automatic",
+        "subject": "http://rubygems.org/gems/rdf-turtle",
+        "result": {
+          "@type": "earl:TestResult",
+          "outcome": "earl:passed"
+        }
+      }
+    },
+    {
+      "@id": "_:g70231313888100",
+      "@type": [
+        "earl:TestCriterion",
+        "earl:TestCase"
+      ],
+      "title": "subm-test-01",
+      "description": "@prefix and qnames",
+      "testAction": "http://example/test-01.ttl",
+      "testResult": "http://example/test-01.out"
+    }
+  ]
+}
