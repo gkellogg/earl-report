@@ -44,7 +44,8 @@
   - test_cases = tests['tests']
   %head
     %meta{"http-equiv" => "Content-Type", :content => "text/html;charset=utf-8"}
-    %title=tests['name']
+    %title{:property => "doap:name"}=tests['name']
+    %link{:property => "doap:homepage", :href => ""}
     %script.remove{:type => "text/javascript", :src => "http://dev.w3.org/2009/dap/ReSpec.js/js/respec.js"}
     :javascript
       var respecConfig = {
@@ -150,6 +151,8 @@
         This report is also available in alternate formats:
         %a{:href => "earl.ttl"}
           Turtle
+        %a{:href => "earl.jsonld"}
+          JSON-LD
     %section#sodt
     %section
       %h2
@@ -159,13 +162,13 @@
           %th
             Test
           - subjects.each do |subject|
-          - next unless test_cases.any? {|tc| tc.has_key?(processor['@id'])}
+          - next unless test_cases.any? {|tc| tc.has_key?(subject['@id'])}
             %th
               %a{:href => subject['@id']}<=subject['name']
         - test_cases.each do |test|
-          - tests['num'] = test['@id'].split('#').last
-          - test_info[tests['num']] ||= test.clone
-          %tr{:typeof => test['@type'], :resource => test['@id']}
+          - test['num'] = test['@id'][0,2] == '_:' ? test['@id'][2..-1] : test['@id'].split('#').last
+          - test_info[test['num']] ||= test.clone
+          %tr{:typeof => [test['@type']].flatten.join(' '), :resource => test['@id']}
             %td
               %a{:href => "#test_#{test['num']}"}<= test['num']
               %span{:property => 'dc:title'}<= test['title']
@@ -189,9 +192,9 @@
         This report was tested using the following test subjects:
       %dl
         - subjects.each do |subject|
-          %dt{:about => subject['@id'], :typeof => subject['@type'].join(" "), :property => "doap:name"}
+          %dt{:about => subject['@id'], :property => "doap:name"}<
             = subject['name']
-          %dd{:about => subject['@id']}
+          %dd{:about => subject['@id'], :typeof => [subject['@type']].flatten.join(" ")}
             %dl
               - if subject['doap_desc']
                 %dt= "Description"
@@ -211,15 +214,16 @@
                 %dt= "Home Page"
                 %dd{:property => "doap:homepage"}
                   %a{:href=> subject['homepage']}=subject['homepage']
-    %section.appendix
-      %h2
-        Individual Test Results
-      %p
-        Individual test results used to construct this report are available here:
-      %ul
-        - source_files.each do |file|
-          %li
-            %a.source{:href => file}<= file
+    - unless source_files.empty?
+      %section.appendix
+        %h2
+          Individual Test Results
+        %p
+          Individual test results used to construct this report are available here:
+        %ul
+          - source_files.each do |file|
+            %li
+              %a.source{:href => file}<= file
     %section.appendix
       %h2
         Test Definitions
@@ -227,12 +231,14 @@
         - keys = test_info.keys.sort
         - keys.each do |num|
           - test = test_info[num]
-          %dt{:id => "test_#{test['num']}"}
+          %dt{:id => "test_#{test['num']}", :about => test['@id'], :typeof => test['@type'].join(' ')}
             Test
-            = test['title']
+            %span{:property => "dc:title"}<= test['title']
           %dd
-            = test['description']
+            %p{:property => "dc:description"}<= test['description']
             %dl
               %dt
-                %pre{:class => "example inputDoc"}<&= Kernel.open(test['action']) {|f| f.read}
-                %pre{:class => "example resultDoc"}<&= Kernel.open(test['result']) {|f| f.read}
+                %pre{:class => "example actionDoc", :property => "mf:action", :resource => test['testAction']}<&
+                  = Kernel.open(test['testAction']) {|f| f.read} rescue "not loaded"
+                %pre{:class => "example resultDoc", :property => "mf:result", :resource => test['testResult']}<&
+                  = Kernel.open(test['testResult']) {|f| f.read} rescue "not loaded"

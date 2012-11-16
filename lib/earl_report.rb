@@ -127,6 +127,8 @@ class EarlReport
   # @option options [String] :wgURI
   # @option options [String] :wgPublicList
   # @option options [String] :wgPatentURI
+  # @option options [Array<String>] :source_files
+  #   Used for referencing the files used to generate this report
   # @option options[IO] :io
   #   Optional `IO` to output results
   # @return [String] serialized graph, if `io` is nil
@@ -170,12 +172,11 @@ class EarlReport
         io.read
       end
     when :html
-      template = File.read(File.expand_path('../views/earl_report.html.haml', __FILE__))
+      template = File.read(File.expand_path('../earl_report/views/earl_report.html.haml', __FILE__))
 
       # Generate HTML report
-      # FIXME: read source files
       html = Haml::Engine.new(template, :format => :xhtml)
-        .render(self, :tests => hash, :source_files => [])
+        .render(self, :tests => hash, :source_files => options.fetch(:source_files, []))
       io.write(html) if io
       html
     else

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang='en'>
+  <head>
+    <meta content='text/html;charset=utf-8' http-equiv='Content-Type' />
+    <title property='doap:name'>Turtle Test Results</title>
+    <link href='' property='doap:homepage' />
+    <script class='remove' src='http://dev.w3.org/2009/dap/ReSpec.js/js/respec.js' type='text/javascript'></script>
+    <script type='text/javascript'>
+  //<![CDATA[
+    var respecConfig = {
+        // specification status (e.g. WD, LCWD, NOTE, etc.). If in doubt use ED.
+        specStatus:           "unofficial",
+        copyrightStart:       "2010",
+        doRDFa:               "1.1",
+    
+        // the specification's short name, as in http://www.w3.org/TR/short-name/
+        shortName:            "{{shortName}}",
+        subtitle:             "{{subtitle}}",
+        // if you wish the publication date to be other than today, set this
+        publishDate:  "2012/11/16",
+    
+        // if there is a previously published draft, uncomment this and set its YYYY-MM-DD date
+        // and its maturity status
+        //previousPublishDate:  "2011-10-23",
+        //previousMaturity:     "ED",
+        //previousDiffURI:      "http://json-ld.org/spec/ED/json-ld-syntax/20111023/index.html",
+        //diffTool:             "http://www.aptest.com/standards/htmldiff/htmldiff.pl",
+    
+        // if there a publicly available Editor's Draft, this is the link
+        //edDraftURI:           "",
+    
+        // if this is a LCWD, uncomment and set the end of its review period
+        // lcEnd: "2009-08-05",
+    
+        // if you want to have extra CSS, append them to this list
+        // it is recommended that the respec.css stylesheet be kept
+        extraCSS:             [
+            "http://dev.w3.org/2009/dap/ReSpec.js/css/respec.css"
+        ],
+    
+        // editors, add as many as you like
+        // only "name" is required
+        editors:  [{{editors}}],
+    
+        // authors, add as many as you like.
+        // This is optional, uncomment if you have authors as well as editors.
+        // only "name" is required. Same format as editors.
+        authors:  [
+        ],
+    
+        // name of the WG
+        wg:           "{{wg}}",
+    
+        // URI of the public WG page
+        wgURI:        "{{wgURI}}",
+    
+        // name (with the @w3c.org) of the public mailing to which comments are due
+        wgPublicList: "{{wgPublicList}}",
+    
+        // URI of the patent status for this WG, for Rec-track documents
+        // !!!! IMPORTANT !!!!
+        // This is important for Rec-track documents, do not copy a patent URI from a random
+        // document unless you know what you're doing. If in doubt ask your friendly neighbourhood
+        // Team Contact.
+        wgPatentURI:  "{{wgPatentURI}}",
+        //alternateFormats: [ {uri: "diff-20120112.html", label: "diff to previous version"} ],
+    };
+  //]]>
+</script>
+    <style type='text/css'>
+      /*<![CDATA[*/
+        span[property='dc:description'] { display: none; }
+        td.PASS { color: green; }
+        td.FAIL { color: red; }
+        table.report {
+          border-width: 1px;
+          border-spacing: 2px;
+          border-style: outset;
+          border-color: gray;
+          border-collapse: separate;
+          background-color: white;
+        }
+        table.report th {
+          border-width: 1px;
+          padding: 1px;
+          border-style: inset;
+          border-color: gray;
+          background-color: white;
+          -moz-border-radius: ;
+        }
+        table.report td {
+          border-width: 1px;
+          padding: 1px;
+          border-style: inset;
+          border-color: gray;
+          background-color: white;
+          -moz-border-radius: ;
+        }
+        pre.example.inputDoc, pre.example.resultDoc { margin-left: 0;}
+        pre.example.inputDoc::before { content: "Input Document";}
+        pre.example.sparqlResults::before { content: "Result Document";}
+      /*]]>*/
+    </style>
+  </head>
+  <body prefix='earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap#'>
+    <section about='' id='abstract' typeof='["earl:Software", "doap:Project"]'>
+      <p>
+        This document report processor conformance for and related specifications
+        [[TURTLE]]
+        according to the requirements of the Evaluation and Report Language (EARL) 1.0 Schema [[EARL10-SCHEMA]].
+      </p>
+      <p>
+        This document describes
+        <span property='doap:name'>Turtle Test Results</span>
+        .
+      </p>
+      <p>
+        This report is also available in alternate formats:
+        <a href='earl.ttl'>
+          Turtle
+        </a>
+        <a href='earl.jsonld'>
+          JSON-LD
+        </a>
+      </p>
+    </section>
+    <section id='sodt'></section>
+    <section>
+      <h2>
+        Results
+      </h2>
+      <table class='report'>
+        <tr>
+          <th>
+            Test
+          </th>
+          <th>
+            <a href='http://rubygems.org/gems/rdf-turtle'>RDF::Turtle</a>
+          </th>
+        </tr>
+        <tr resource='http://example/manifest.ttl#testeval00' typeof='earl:TestCriterion earl:TestCase'>
+          <td>
+            <a href='#test_testeval00'>testeval00</a>
+            <span property='dc:title'>subm-test-00</span>
+            <span property='dc:description'>Blank subject</span>
+          </td>
+          <td class='PASS' typeof='earl:Assertion'>
+            <link href='http://greggkellogg.net/foaf#me' property='earl:assertedBy' />
+            <link href='http://example/manifest.ttl#testeval00' property='earl:test' />
+            <link href='http://rubygems.org/gems/rdf-turtle' property='earl:subject' />
+            <link href='earl:automatic' property='earl:mode' />
+            <span property='earl:result' resource='earl:passed' typeof='earl:TestResult'>
+              PASS
+            </span>
+          </td>
+        </tr>
+        <tr resource='_:g70231313888100' typeof='earl:TestCriterion earl:TestCase'>
+          <td>
+            <a href='#test_g70231313888100'>g70231313888100</a>
+            <span property='dc:title'>subm-test-01</span>
+            <span property='dc:description'>@prefix and qnames</span>
+          </td>
+        </tr>
+      </table>
+    </section>
+    <section class='appendix'>
+      <h2>
+        Test Subjects
+      </h2>
+      <p>
+        This report was tested using the following test subjects:
+      </p>
+      <dl>
+        <dt about='http://rubygems.org/gems/rdf-turtle' property='doap:name'>RDF::Turtle</dt>
+        <dd about='http://rubygems.org/gems/rdf-turtle' typeof='earl:TestSubject doap:Project'>
+          <dl>
+            <dt>Description</dt>
+            <dd property='doap:description'>RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.</dd>
+            <dt>Programming Language</dt>
+            <dd property='doap:programming-language'>Ruby</dd>
+            <dt>Developer</dt>
+            <dd property='doap:developer' resource='http://greggkellogg.net/foaf#me' typeof='foaf:Person'>
+              <a href='http://greggkellogg.net/foaf#me'>
+                <span property='foaf:name'>Gregg Kellogg</span>
+              </a>
+            </dd>
+            <dt>Home Page</dt>
+            <dd property='doap:homepage'>
+              <a href='http://ruby-rdf.github.com/rdf-turtle'>http://ruby-rdf.github.com/rdf-turtle</a>
+            </dd>
+          </dl>
+        </dd>
+      </dl>
+    </section>
+    <section class='appendix'>
+      <h2>
+        Test Definitions
+      </h2>
+      <dl>
+        <dt about='_:g70231313888100' id='test_g70231313888100' typeof='earl:TestCriterion earl:TestCase'>
+          Test
+          <span property='dc:title'>subm-test-01</span>
+        </dt>
+        <dd>
+          <p property='dc:description'>@prefix and qnames</p>
+          <dl>
+            <dt>
+              <pre class='example actionDoc' property='mf:action' resource='http://example/test-01.ttl'>not loaded</pre>
+              <pre class='example resultDoc' property='mf:result' resource='http://example/test-01.out'>not loaded</pre>
+            </dt>
+          </dl>
+        </dd>
+        <dt about='http://example/manifest.ttl#testeval00' id='test_testeval00' typeof='earl:TestCriterion earl:TestCase'>
+          Test
+          <span property='dc:title'>subm-test-00</span>
+        </dt>
+        <dd>
+          <p property='dc:description'>Blank subject</p>
+          <dl>
+            <dt>
+              <pre class='example actionDoc' property='mf:action' resource='http://example/test-00.ttl'>not loaded</pre>
+              <pre class='example resultDoc' property='mf:result' resource='http://example/test-00.out'>not loaded</pre>
+            </dt>
+          </dl>
+        </dd>
+      </dl>
+    </section>
+  </body>
+</html>
