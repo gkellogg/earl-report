@@ -93,6 +93,10 @@ The `earl` command may be used to directly create a report from zero or more inp
 
 The report template is in ReSpec form using [Haml]() to generate individual elements.
 
+## License
+
+This software is licensed using [Unlicense](http://unlicense.org) and is freely available without encumbrance.
+
 [DOAP]: https://github.com/edumbill/doap/wiki
 [EARL]: http://www.w3.org/TR/EARL10-Schema/
 [FOAF]: http://xmlns.com/foaf/spec/
