@@ -118,15 +118,6 @@ class EarlReport
   # @option options [Symbol] format (:html)
   # @option options [String] :bibRef
   #   ReSpec bibliography reference for specification being tested
-  # @option options [String] :name
-  # @option options [String] :shortName
-  # @option options [String] :subTitle
-  # @option options [Array{Hash}, Hash] :editors
-  #   Editor has in ReSpec format.
-  # @option options [String] :wg
-  # @option options [String] :wgURI
-  # @option options [String] :wgPublicList
-  # @option options [String] :wgPatentURI
   # @option options [Array<String>] :source_files
   #   Used for referencing the files used to generate this report
   # @option options[IO] :io
@@ -137,18 +128,6 @@ class EarlReport
       format:       :html,
       bibRef:       "[[TURTLE]]",
       name:         "Turtle Test Results",
-      shortName:    "turtle-earl",
-      subTitle:     "Report on Test Subject Conformance for Turtle",
-      editors:      {
-                      name: "Gregg Kellogg",
-                      url: "http://greggkellogg.net/",
-                      company: "Kellogg Associates",
-                      companyURL: "http://kellogg-assoc.com/"
-                    },
-      wg:           "RDF Working Group",
-      wgURI:        "http://www.w3.org/2011/rdf-wg/",
-      wgPublicList: "public-rdf-comments",
-      wgPatentURI:  "http://www.w3.org/2004/01/pp-impl/46168/status",
     }.merge(options)
 
     io = options[:io]
@@ -172,7 +151,8 @@ class EarlReport
         io.read
       end
     when :html
-      template = File.read(File.expand_path('../earl_report/views/earl_report.html.haml', __FILE__))
+      template = options[:template] ||
+        File.read(File.expand_path('../earl_report/views/earl_report.html.haml', __FILE__))
 
       # Generate HTML report
       html = Haml::Engine.new(template, :format => :xhtml)
