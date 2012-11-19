@@ -62,8 +62,8 @@ describe EarlReport do
         subject.graph.predicates.to_a.should include(RDF::URI("http://www.w3.org/ns/earl#assertedBy"))
       end
 
-      it "does not load doap" do
-        subject.graph.subjects.to_a.should_not include(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
+      it "loads doap" do
+        subject.graph.subjects.to_a.should include(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
       end
 
       it "loads foaf" do
@@ -151,13 +151,14 @@ describe EarlReport do
       
       context "developer" do
         let(:dev) {ts['developer']}
-        specify {dev.should be_a(Hash)}
+        specify {dev.should be_a(Array)}
+        specify {dev.first.should be_a(Hash)}
         {
           "@id"       => "http://greggkellogg.net/foaf#me",
           "@type"     => %(foaf:Person),
           "foaf:name" => "Gregg Kellogg",
         }.each do |prop, value|
-          specify(prop) {dev[prop.to_s].should == value}
+          specify(prop) {dev.first[prop.to_s].should == value}
         end
       end
     end

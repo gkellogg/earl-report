@@ -268,6 +268,9 @@ class EarlReport
           when MF['name'].to_s
             tc_hash['title'] = tc_stmt.object.to_s
           when RDF::RDFS.comment.to_s
+            # Might use comment for description
+            tc_hash['description'] = tc_stmt.object.to_s
+          when RDF::DC.description.to_s
             tc_hash['description'] = tc_stmt.object.to_s
           when MF.action.to_s
             tc_hash['testAction'] = tc_stmt.object.to_s

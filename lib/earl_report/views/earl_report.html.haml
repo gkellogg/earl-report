@@ -163,18 +163,20 @@
         %tr
           %th
             Test
-          - subjects.each do |subject|
-          - next unless test_cases.any? {|tc| tc.has_key?(subject['@id'])}
+          - subjects.each_with_index do |subject, i|
+            - next unless test_cases.any? {|tc| tc.has_key?(subject['@id'])}
+            - subject['fragID'] = "subj_#{i}"
             %th
-              %a{:href => subject['@id']}<=subject['name']
+              %a{:href => '#' + subject['fragID']}<=subject['name']
         - test_cases.each do |test|
           - test['num'] = test['@id'][0,2] == '_:' ? test['@id'][2..-1] : test['@id'].split('#').last
           - test_info[test['num']] ||= test.clone
           %tr{:typeof => [test['@type']].flatten.join(' '), :resource => test['@id']}
             %td
-              %a{:href => "#test_#{test['num']}"}<= test['num']
-              %span{:property => 'dc:title'}<= test['title']
-              %span{:property => 'dc:description'}<= test['description']
+              %a{:href => "#test_#{test['num']}"}
+                %span{:property => 'dc:title'}<= test['title']
+              - if test.has_key?('description')
+                %span{:property => 'dc:description'}<= test['description']
             - subjects.each do |subjects|
               - url = subjects['@id']
               - next unless test.has_key?(url)
@@ -194,8 +196,9 @@
         This report was tested using the following test subjects:
       %dl
         - subjects.each do |subject|
-          %dt{:about => subject['@id'], :property => "doap:name"}<
-            = subject['name']
+          %dt{:id => subject['fragID']}<
+            %a{:href => subject['@id']}
+              %span{:about => subject['@id'], :property => "doap:name"}<= subject['name']
           %dd{:about => subject['@id'], :typeof => [subject['@type']].flatten.join(" ")}
             %dl
               - if subject['doap_desc']
