@@ -187,7 +187,7 @@ class EarlReport
           assertedBy:   {"@id" => "earl:assertedBy", "@type" => "@id"},
           bibRef:       {"@id" => "dc: bibliographicCitation"},
           description:  {"@id" => "dc:description"},
-          developer:    {"@id" => "doap:developer", "@type" => "@id"},
+          developer:    {"@id" => "doap:developer", "@type" => "@id", "@container" => "@set"},
           homepage:     {"@id" => "doap:homepage", "@type" => "@id"},
           doap_desc:    {"@id" => "doap:description"},
           language:     {"@id" => "doap:programming-language"},
@@ -226,11 +226,12 @@ class EarlReport
       end
       if solution[:dev_name]
         dev_type = solution[:dev_type].to_s =~ /Organization/ ? "foaf:Organization" : "foaf:Person"
-        info['developer'] = Hash.ordered
-        info['developer']['@id'] = solution[:developer].to_s if solution[:developer].uri?
-        info['developer']['@type'] = dev_type
-        info['developer']['foaf:name'] = solution[:dev_name].to_s if solution[:dev_name]
+        dev = {'@type' => dev_type}
+        dev['@id'] = solution[:developer].to_s if solution[:developer].uri?
+        dev['foaf:name'] = solution[:dev_name].to_s if solution[:dev_name]
+        (info['developer'] ||= []) << dev
       end
+      info['developer'] = info['developer'].uniq
     end
 
     # Map ids and values to array entries
@@ -287,7 +288,9 @@ class EarlReport
     # Iterate through assertions and add to appropriate test case
     SPARQL.execute(ASSERTION_QUERY, @graph).each do |solution|
       tc = test_cases[solution[:test].to_s]
-      STDERR.puts "No test case found for #{solution[:test]}" unless tc
+      STDERR.puts "No test case found for #{solution[:test]}: #{tc.inspect}" unless tc
+      STDERR.puts "Must have outcome earl:passed or earl:failed: #{solution[:outcome].inspect}" unless
+        [EARL.passed, EARL.failed].include?(solution[:outcome])
       tc ||= {}
       subject = solution[:subject].to_s
       ta_hash = {}

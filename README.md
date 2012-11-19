@@ -27,7 +27,7 @@ where .... is a list of links to test descriptions, one per line.
 
 ### Test description
 
-This is an example of a synatx test:
+This is an example of a syntax test:
 
     <#turtle-syntax-file-01> rdf:type rdft:TestTurtlePositiveSyntax ;
        mf:name    "turtle-syntax-file-01" ;
@@ -45,7 +45,7 @@ in the following form:
     [ a earl:Assertion;
       earl:assertedBy <http://greggkellogg.net/foaf#me>;
       earl:subject <http://rubygems.org/gems/rdf-turtle>;
-      earl:test <http://dvcs.w3.org/hg/rdf/raw-file/e80b58a1a711/rdf-turtle/tests-ttl/manifest.ttl#turtle-syntax-file-01>;
+      earl:test <http://dvcs.w3.org/hg/rdf/raw-file/default/rdf-turtle/tests-ttl/manifest.ttl#turtle-syntax-file-01>;
       earl:result [
         a earl:TestResult;
         earl:outcome earl:passed;

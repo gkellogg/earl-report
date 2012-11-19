@@ -206,16 +206,18 @@
                 %dd{:property => "doap:programming-language"}<= subject['language']
               - if subject['developer']
                 %dt= "Developer"
-                %dd{:property => "doap:developer", :resource => subject['developer']['@id'], :typeof => subject['developer']['@type']}
-                  - if subject['developer']['@id']
-                    %a{:href => subject['developer']['@id']}
-                      %span{:property => "foaf:name"}<= subject['developer']['foaf:name']
-                  - else
-                    %span{:property => "foaf:name"}<= subject['developer']['foaf:name']
-              - if subject['homepage']
-                %dt= "Home Page"
-                %dd{:property => "doap:homepage"}
-                  %a{:href=> subject['homepage']}=subject['homepage']
+                %dd{:rel => "doap:developer"}
+                  - subject['developer'].each do |dev|
+                    %div{:resource => dev['@id'], :typeof => dev['@type']}
+                      - if dev.has_key?('@id')
+                        %a{:href => dev['@id']}
+                          %span{:property => "foaf:name"}<= dev['foaf:name']
+                      - else
+                        %span{:property => "foaf:name"}<= dev['foaf:name']
+                      - if dev['homepage']
+                        %dt= "Home Page"
+                        %dd{:property => "doap:homepage"}
+                          %a{:href=> dev['homepage']}=dev['homepage']
     - unless source_files.empty?
       %section.appendix
         %h2
