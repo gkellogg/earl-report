@@ -9,9 +9,11 @@ def run(input, options)
 end
 
 OPT_ARGS = [
+  ["--base",              GetoptLong::REQUIRED_ARGUMENT,"Base URI to use when loading test manifest"],
   ["--bibRef",            GetoptLong::REQUIRED_ARGUMENT,"ReSpec BibRef of specification being reported upon"],
   ["--format", "-f",      GetoptLong::REQUIRED_ARGUMENT,"Format of output, one of 'ttl', 'json', or 'html'"],
   ["--json",              GetoptLong::NO_ARGUMENT,      "Input is a JSON-LD formatted result"],
+  ["--manifest",          GetoptLong::REQUIRED_ARGUMENT,"Test manifest"],
   ["--name",              GetoptLong::REQUIRED_ARGUMENT,"Name of specification"],
   ["--output", "-o",      GetoptLong::REQUIRED_ARGUMENT,"Output report to file"],
   ["--template",          GetoptLong::OPTIONAL_ARGUMENT,"Specify or return default report template"],
@@ -45,8 +47,11 @@ options = {
 
 opts.each do |opt, arg|
   case opt
+  when '--base'         then options[:base] = arg
   when '--bibRef'       then options[:bibRef] = arg
   when '--format'       then options[:format] = arg.to_sym
+  when '--manifest'     then options[:manifest] = arg
+  when '--base'         then options[:base] = arg
   when '--name'         then options[:name] = arg
   when '--output'       then options[:io] = File.open(arg, "w")
   when '--template'     then options[:template] = arg
@@ -64,5 +69,5 @@ if options.has_key?(:template) && options[:template].empty?
   end
 else
   earl = EarlReport.new(*ARGV, options)
-  earl.generate(options.merge(:source_files => ARGV))
+  earl.generate(options)
 end

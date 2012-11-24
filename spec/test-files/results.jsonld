@@ -24,7 +24,7 @@
       "@id": "doap:homepage",
       "@type": "@id"
     },
-    "doap_desc": {
+    "doapDesc": {
       "@id": "doap:description"
     },
     "language": {
@@ -87,7 +87,7 @@
         "@type": "foaf:Person",
         "foaf:name": "Gregg Kellogg"
       },
-      "doap_desc": "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.",
+      "doapDesc": "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.",
       "homepage": "http://ruby-rdf.github.com/rdf-turtle",
       "language": "Ruby"
     }

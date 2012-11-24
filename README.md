@@ -1,42 +1,13 @@
 # earl-report
-============
-
 Ruby gem to consolidate multiple EARL report and generate a rollup conformance report.
 
 ## Description
-
 Reads a test manifest in the
 [standard RDF WG format](http://www.w3.org/2011/rdf-wg/wiki/Turtle_Test_Suite)
-and generates a rollup report in RDFa+HTML.
-
-## Test Specifications
-The test manifest is presumed to be of the following form:
-
-### Manifest Header
-
-The manifest header looks like:
-
-    <>  rdf:type mf:Manifest ;
-        rdfs:comment "Turtle tests" ;
-        mf:entries
-        (
-        ....
-        ) .
-
-where .... is a list of links to test descriptions, one per line.
-
-### Test description
-
-This is an example of a syntax test:
-
-    <#turtle-syntax-file-01> rdf:type rdft:TestTurtlePositiveSyntax ;
-       mf:name    "turtle-syntax-file-01" ;
-       rdfs:comment "Further description of the test" ;
-       mf:action  <turtle-syntax-file-01.ttl> ;
-       mf:result  <turtle-eval-struct-01.nt> .
+along with one or more individual EARL reports and generates a rollup report in
+HTML+RDFa in [ReSpec][] format.
 
 ## Individual EARL reports
-
 Results for individual implementations should be specified in Turtle form, but
 may be specified in an any compatible RDF serialization (JSON-LD is presumed to
 be a cached rollup report). The report is composed of `Assertion` declarations
@@ -75,9 +46,35 @@ of the following form:
 If not found, the IRI identified by `doap:developer`
 will be dereferenced and is presumed to provide a [FOAF]() profile of the developer.
 
-## Usage
+## Manifest query
+The test manifest is used to generate `earl:TestCase` entries for each test
+described in the test manifest. It will also summarize each test, including
+any input and result files associated with the tests. The built-in query
+is based on the [standard RDF WG format](). Alternative manifest formats
+can be used by specifying a customized manifest query. The default query
+is the following:
 
-The `earl` command may be used to directly create a report from zero or more input files, which are themselves [EARL][] report.
+    PREFIX dc: <http://purl.org/dc/terms/>
+    PREFIX mf: <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#>
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+    SELECT ?lh ?uri ?title ?description ?testAction ?testResult
+    WHERE {
+      ?uri mf:name ?title; mf:action ?testAction.
+      OPTIONAL { ?uri rdfs:comment ?description. }
+      OPTIONAL { ?uri mf:result ?testResult. }
+      OPTIONAL { [ mf:entries ?lh] . ?lh rdf:first ?uri . }
+    }
+
+If any result has a non-null `?lh`, it is taken as the list head and used
+to maintain the list order within `earl:tests`.
+
+## Report generation template
+The report template is in [ReSpec][] form using [Haml]() to generate individual report elements.
+
+## Usage
+The `earl-report` command may be used to directly create a report from zero or more input files, which are themselves [EARL][] report.
 
     gem install earl-report
     
@@ -86,12 +83,15 @@ The `earl` command may be used to directly create a report from zero or more inp
       --tempate [FILE]  # Location of report template file; returns default if not specified
       --bibRef          # The default ReSpec-formatted bibliographic reference for the report
       --name            # The name of the software being reported upon
-      manifest          # one or more test manifests used to define test descriptions
+      --manifest FILE   # a test manifest used to define test descriptions
+      --base URI        # Base URI to by applied when parsing test manifest
+      --query FILE      # Alternative SPARQL query for extracting information from manifest
       report*           # one or more EARL report in most RDF formats
 
-## Report generation template
-
-The report template is in ReSpec form using [Haml]() to generate individual elements.
+### Initialization File
+`earl-report` can take defaults for options from an initialization file.
+When run, `earl-report` attempts to open the file `.earl` in the current directory.
+This file is in [YAML][] format with entries for each option.
 
 ## License
 

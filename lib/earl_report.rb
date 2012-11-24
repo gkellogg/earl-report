@@ -8,19 +8,35 @@ require 'haml'
 # Instantiate a new class using one or more input graphs
 class EarlReport
   attr_reader :graph
+
+  MANIFEST_QUERY = %(
+    PREFIX dc: <http://purl.org/dc/terms/>
+    PREFIX mf: <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#>
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+    SELECT ?lh ?uri ?title ?description ?testAction ?testResult
+    WHERE {
+      ?uri mf:name ?title; mf:action ?testAction.
+      OPTIONAL { ?uri rdfs:comment ?description. }
+      OPTIONAL { ?uri mf:result ?testResult. }
+      OPTIONAL { [ mf:entries ?lh] . ?lh rdf:first ?uri . }
+    }
+  ).freeze
+
   TEST_SUBJECT_QUERY = %(
     PREFIX doap: <http://usefulinc.com/ns/doap#>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
     
-    SELECT DISTINCT ?uri ?name ?developer ?dev_name ?dev_type ?doap_desc ?homepage ?language
+    SELECT DISTINCT ?uri ?name ?developer ?devName ?devType ?doapDesc ?homepage ?language
     WHERE {
       ?uri a doap:Project; doap:name ?name .
       OPTIONAL { ?uri doap:developer ?developer .}
       OPTIONAL { ?uri doap:homepage ?homepage . }
-      OPTIONAL { ?uri doap:description ?doap_desc . }
+      OPTIONAL { ?uri doap:description ?doapDesc . }
       OPTIONAL { ?uri doap:programming-language ?language . }
-      OPTIONAL { ?developer foaf:name ?dev_name .}
-      OPTIONAL { ?developer a ?dev_type . }
+      OPTIONAL { ?developer foaf:name ?devName .}
+      OPTIONAL { ?developer a ?devType . }
     }
   ).freeze
 
@@ -35,7 +51,7 @@ class EarlReport
         ?subject a doap:Project; doap:name ?name
       }
     }
-  )
+  ).freeze
 
   ASSERTION_QUERY = %(
     PREFIX earl: <http://www.w3.org/ns/earl#>
@@ -51,6 +67,35 @@ class EarlReport
     }
   ).freeze
 
+  TEST_CONTEXT = {
+    "@vocab" =>   "http://www.w3.org/ns/earl#",
+    dc:           "http://purl.org/dc/terms/",
+    doap:         "http://usefulinc.com/ns/doap#",
+    earl:         "http://www.w3.org/ns/earl#",
+    mf:           "http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#",
+    foaf:         "http://xmlns.com/foaf/0.1/",
+    rdfs:         "http://www.w3.org/2000/01/rdf-schema#",
+    assertedBy:   {"@type" => "@id"},
+    assertions:   {"@type" => "@id"},
+    bibRef:       {"@id" => "dc: bibliographicCitation"},
+    description:  {"@id" => "dc:description"},
+    developer:    {"@id" => "doap:developer", "@type" => "@id", "@container" => "@set"},
+    doapDesc:     {"@id" => "doap:description"},
+    homepage:     {"@id" => "doap:homepage", "@type" => "@id"},
+    label:        {"@id" => "rdfs:label"},
+    language:     {"@id" => "doap:programming-language"},
+    mode:         {"@type" => "@id"},
+    name:         {"@id" => "doap:name"},
+    outcome:      {"@type" => "@id"},
+    subject:      {"@type" => "@id"},
+    test:         {"@type" => "@id"},
+    testAction:   {"@id" => "mf:action", "@type" => "@id"},
+    testResult:   {"@id" => "mf:result", "@type" => "@id"},
+    tests:        {"@type" => "@id", "@container" => "@list"},
+    testSubjects: {"@type" => "@id", "@container" => "@list"},
+    title:        {"@id" => "dc:title"}
+  }.freeze
+
   # Convenience vocabularies
   class EARL < RDF::Vocabulary("http://www.w3.org/ns/earl#"); end
   class MF < RDF::Vocabulary("http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#"); end
@@ -60,18 +105,31 @@ class EarlReport
   # @param [Array<String>] *files Assertions
   # @param [Hash{Symbol => Object}] options
   # @option options [Boolean] :verbose (true)
+  # @option options [String] :manifest Test manifest
+  # @option options [String] :query Manifest query
+  # @option options [String] :dump JSON-LD results dump
   def initialize(*files)
     @options = files.last.is_a?(Hash) ? files.pop.dup : {}
-    @graph = RDF::Graph.new
+    @options[:query] ||= MANIFEST_QUERY
+    raise "Test Manifest must be specified with :manifest option" unless @options[:manifest]
+    @files = files
     @prefixes = {}
+    if @options[:dump]
+      @json_hash = ::JSON.parse(File.read(@options[:dump]))
+      return
+    end
+
+    # Load manifest, possibly with base URI
+    status "read #{@options[:manifest]}"
+    man_opts = {}
+    man_opts[:base_uri] = @options[:base] if @options[:base]
+    @graph = RDF::Graph.load(@options[:manifest], man_opts)
+    status "  loaded #{@graph.count} triples"
+
+    # Read test assertion files
     files.flatten.each do |file|
       status "read #{file}"
-      file_graph = case file
-      when /\.jsonld/
-        @json_hash = ::JSON.parse(File.read(file))
-        return
-      else RDF::Graph.load(file)
-      end
+      file_graph = RDF::Graph.load(file)
       status "  loaded #{file_graph.count} triples"
       @graph << file_graph
     end
@@ -96,7 +154,7 @@ class EarlReport
     # Load developers referenced from Test Subjects
     SPARQL.execute(TEST_SUBJECT_QUERY, @graph).each do |solution|
       # Load DOAP definitions
-      if solution[:developer] && !solution[:dev_name] # not loaded
+      if solution[:developer] && !solution[:devName] # not loaded
         status "read description for #{solution[:developer].inspect}"
         begin
           foaf_graph = RDF::Graph.load(solution[:developer])
@@ -118,8 +176,6 @@ class EarlReport
   # @option options [Symbol] format (:html)
   # @option options [String] :bibRef
   #   ReSpec bibliography reference for specification being tested
-  # @option options [Array<String>] :source_files
-  #   Used for referencing the files used to generate this report
   # @option options[IO] :io
   #   Optional `IO` to output results
   # @return [String] serialized graph, if `io` is nil
@@ -156,7 +212,7 @@ class EarlReport
 
       # Generate HTML report
       html = Haml::Engine.new(template, :format => :xhtml)
-        .render(self, :tests => hash, :source_files => options.fetch(:source_files, []))
+        .render(self, :tests => hash)
       io.write(html) if io
       html
     else
@@ -177,33 +233,10 @@ class EarlReport
     @json_hash ||= begin
       # Customized JSON-LD output
       {
-        "@context" => {
-          dc:           "http://purl.org/dc/terms/",
-          doap:         "http://usefulinc.com/ns/doap#",
-          earl:         "http://www.w3.org/ns/earl#",
-          mf:           "http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#",
-          foaf:         "http://xmlns.com/foaf/0.1/",
-          rdfs:         "http://www.w3.org/2000/01/rdf-schema#",
-          assertedBy:   {"@id" => "earl:assertedBy", "@type" => "@id"},
-          bibRef:       {"@id" => "dc: bibliographicCitation"},
-          description:  {"@id" => "dc:description"},
-          developer:    {"@id" => "doap:developer", "@type" => "@id", "@container" => "@set"},
-          homepage:     {"@id" => "doap:homepage", "@type" => "@id"},
-          doap_desc:    {"@id" => "doap:description"},
-          language:     {"@id" => "doap:programming-language"},
-          testAction:   {"@id" => "mf:action", "@type" => "@id"},
-          testResult:   {"@id" => "mf:result", "@type" => "@id"},
-          label:        {"@id" => "rdfs:label"},
-          mode:         {"@id" => "earl:mode", "@type" => "@id"},
-          name:         {"@id" => "doap:name"},
-          outcome:      {"@id" => "earl:outcome", "@type" => "@id"},
-          result:       {"@id" => "earl:result"},
-          subject:      {"@id" => "earl:subject", "@type" => "@id"},
-          test:         {"@id" => "earl:test", "@type" => "@id"},
-          title:        {"@id" => "dc:title"}
-        },
+        "@context" => TEST_CONTEXT,
         "@id"          => "",
         "@type"        => %w(earl:Software doap:Project),
+        "assertions"   => @files,
         'name'         => options[:name],
         'bibRef'       => options[:bibRef],
         'testSubjects' => json_test_subject_info,
@@ -221,14 +254,14 @@ class EarlReport
     SPARQL.execute(TEST_SUBJECT_QUERY, @graph).each do |solution|
       status "solution #{solution.to_hash.inspect}"
       info = ts_info[solution[:uri].to_s] ||= {}
-      %w(name doap_desc homepage language).each do |prop|
+      %w(name doapDesc homepage language).each do |prop|
         info[prop] = solution[prop.to_sym].to_s if solution[prop.to_sym]
       end
-      if solution[:dev_name]
-        dev_type = solution[:dev_type].to_s =~ /Organization/ ? "foaf:Organization" : "foaf:Person"
+      if solution[:devName]
+        dev_type = solution[:devType].to_s =~ /Organization/ ? "foaf:Organization" : "foaf:Person"
         dev = {'@type' => dev_type}
         dev['@id'] = solution[:developer].to_s if solution[:developer].uri?
-        dev['foaf:name'] = solution[:dev_name].to_s if solution[:dev_name]
+        dev['foaf:name'] = solution[:devName].to_s if solution[:devName]
         (info['developer'] ||= []) << dev
       end
       info['developer'] = info['developer'].uniq
@@ -240,49 +273,45 @@ class EarlReport
       subject = Hash.ordered
       subject["@id"] = id
       subject["@type"] = %w(earl:TestSubject doap:Project)
-      %w(name developer doap_desc homepage language).each do |prop|
+      %w(name developer doapDesc homepage language).each do |prop|
         subject[prop] = info[prop] if info[prop]
       end
       subject
     end
   end
-  
+
   ##
-  # Return result information for each test
+  # Return result information for each test.
+  # This counts on hash maintaining insertion order
   #
   # @return [Array]
   def json_result_info
     test_cases = {}
 
-    @graph.query(:predicate => MF['entries']) do |stmt|
-      # Iterate through the test manifest and write out a TestCase
-      # for each test
-      RDF::List.new(stmt.object, @graph).map do |tc|
-        tc_hash = {}
-        tc_hash['@id'] = tc.to_s
-        tc_hash['@type'] = %w(earl:TestCriterion earl:TestCase)
+    # Hash test cases by URI
+    solutions = SPARQL.execute(@options[:query], @graph)
+      .to_a
+      .inject({}) {|memo, soln| memo[soln[:uri]] = soln; memo}
 
-        # Extract important properties
-        @graph.query(:subject => tc).each do |tc_stmt|
-          case tc_stmt.predicate.to_s
-          when MF['name'].to_s
-            tc_hash['title'] = tc_stmt.object.to_s
-          when RDF::RDFS.comment.to_s
-            # Might use comment for description
-            tc_hash['description'] = tc_stmt.object.to_s
-          when RDF::DC.description.to_s
-            tc_hash['description'] = tc_stmt.object.to_s
-          when MF.action.to_s
-            tc_hash['testAction'] = tc_stmt.object.to_s
-          when MF.result.to_s
-            tc_hash['testResult'] = tc_stmt.object.to_s
-          else
-            #STDERR.puts "TC soln: #{tc_stmt.inspect}"
-          end
-        end
+    # If test cases are in a list, maintain order
+    solution_list = if first_soln = solutions.values.detect {|s| s[:lh]}
+      RDF::List.new(first_soln[:lh], @graph)
+    else
+      solutions.keys  # Any order will do
+    end
 
-        test_cases[tc.to_s] = tc_hash
-      end
+    # Collect each TestCase
+    solution_list.each do |uri|
+      solution = solutions[uri]
+      tc_hash = {
+        '@id' => uri.to_s,
+        '@type' => %w(earl:TestCriterion earl:TestCase),
+        'title' => solution[:title].to_s,
+        'testAction' => solution[:testAction].to_s
+      }
+      tc_hash['description'] = solution[:description].to_s if solution[:description]
+      tc_hash['testResult'] = solution[:testResult].to_s if solution[:testResult]
+      test_cases[uri.to_s] = tc_hash
     end
 
     raise "No test cases found" if test_cases.empty?
@@ -311,7 +340,7 @@ class EarlReport
 
     test_cases.values
   end
-  
+
   ##
   # Output consoloated EARL report as Turtle
   # @param [IO, StringIO] io
@@ -382,7 +411,7 @@ class EarlReport
     developer = desc['developer']
     res = %(<#{desc['@id']}> a #{desc['@type'].join(', ')};\n)
     res += %(  doap:name "#{desc['name']}";\n)
-    res += %(  doap:description """#{desc['doap_desc']}""";\n)     if desc['doap_desc']
+    res += %(  doap:description """#{desc['doapDesc']}""";\n)     if desc['doapDesc']
     res += %(  doap:programming-language "#{desc['language']}";\n) if desc['language']
     if developer && developer['@id']
       res += %(  doap:developer <#{developer['@id']}> .\n\n)
@@ -403,9 +432,9 @@ class EarlReport
   def tc_turtle(desc)
     res = %(<#{desc['@id']}> a #{[desc['@type']].flatten.join(', ')};\n)
     res += %(  dc:title "#{desc['title']}";\n)
-    res += %(  dc:description """#{desc['description']}""";\n)
+    res += %(  dc:description """#{desc['description']}""";\n) if desc.has_key?('description')
     res += %(  mf:action <#{desc['testAction']}>;\n)
-    res += %(  mf:result <#{desc['testResult']}>;\n)
+    res += %(  mf:result <#{desc['testResult']}>;\n) if desc.has_key?('testResult')
     res + "\n"
   end
 

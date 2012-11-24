@@ -19,6 +19,7 @@
 -#      "@id": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/manifest.ttl#testeval00",
 -#      "@type": ["earl:TestCriterion", "earl:TestCase"],
 -#      "title": "subm-test-00",
+-#      "assertions": ["./rdf.rb-earl.ttl"],
 -#      "description": "Blank subject",
 -#      "testAction": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/test-00.ttl",
 -#      "testResult": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/test-00.out"
@@ -201,9 +202,9 @@
               %span{:about => subject['@id'], :property => "doap:name"}<= subject['name']
           %dd{:about => subject['@id'], :typeof => [subject['@type']].flatten.join(" ")}
             %dl
-              - if subject['doap_desc']
+              - if subject['doapDesc']
                 %dt= "Description"
-                %dd{:property => "doap:description"}<= subject['doap_desc']
+                %dd{:property => "doap:description"}<= subject['doapDesc']
               - if subject['language']
                 %dt= "Programming Language"
                 %dd{:property => "doap:programming-language"}<= subject['language']
@@ -221,14 +222,14 @@
                         %dt= "Home Page"
                         %dd{:property => "doap:homepage"}
                           %a{:href=> dev['homepage']}=dev['homepage']
-    - unless source_files.empty?
+    - unless test['assertions'].empty?
       %section.appendix
         %h2
           Individual Test Results
         %p
           Individual test results used to construct this report are available here:
         %ul
-          - source_files.each do |file|
+          - test['assertions'].each do |file|
             %li
               %a.source{:href => file}<= file
     %section.appendix

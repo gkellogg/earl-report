@@ -5,23 +5,22 @@ require 'spec_helper'
 describe EarlReport do
   subject {
     EarlReport.new(
-      File.expand_path("../test-files/manifest.ttl", __FILE__),
       File.expand_path("../test-files/report-complete.ttl", __FILE__),
-      :verbose => false)
+      :verbose => false,
+      :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
   }
 
   describe ".new" do
-    context "complete report" do
-      #before(:each) do
-      #  RDF::Graph.should_not_receive(:load).with(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
-      #  RDF::Graph.should_not_receive(:load).with(RDF::URI("http://greggkellogg.net/foaf#me"))
-      #end
+    it "requires a :manifest option" do
+      lambda {EarlReport.new}.should raise_error("Test Manifest must be specified with :manifest option")
+    end
 
+    context "complete report" do
       subject {
         EarlReport.new(
-          File.expand_path("../test-files/manifest.ttl", __FILE__),
           File.expand_path("../test-files/report-complete.ttl", __FILE__),
-          :verbose => false)
+          :verbose => false,
+          :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
       }
       it "loads manifest" do
         subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl"))
@@ -42,16 +41,11 @@ describe EarlReport do
     end
 
     context "no doap report" do
-      #before(:each) do
-      #  RDF::Graph.should_receive(:load).with(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
-      #  RDF::Graph.should_not_receive(:load).with(RDF::URI("http://greggkellogg.net/foaf#me"))
-      #end
-
       subject {
         EarlReport.new(
-          File.expand_path("../test-files/manifest.ttl", __FILE__),
           File.expand_path("../test-files/report-no-doap.ttl", __FILE__),
-          :verbose => false)
+          :verbose => false,
+          :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
       }
       it "loads manifest" do
         subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl"))
@@ -72,16 +66,11 @@ describe EarlReport do
     end
 
     context "no foaf report" do
-      #before(:each) do
-      #  RDF::Graph.should_not_receive(:load).with(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
-      #  RDF::Graph.should_receive(:load).with(RDF::URI("http://greggkellogg.net/foaf#me")).and_return(RDF::Graph.new << [RDF::Node.new, RDF.type, RDF::FOAF.Person])
-      #end
-
       subject {
         EarlReport.new(
-          File.expand_path("../test-files/manifest.ttl", __FILE__),
           File.expand_path("../test-files/report-no-foaf.ttl", __FILE__),
-          :verbose => false)
+          :verbose => false,
+          :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
       }
       it "loads manifest" do
         subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl"))
@@ -100,9 +89,6 @@ describe EarlReport do
         subject.graph.objects.to_a.should include(RDF::FOAF.Person)
       end
     end
-  end
-  
-  describe ".generate" do
   end
   
   describe "#json_hash" do
@@ -141,7 +127,7 @@ describe EarlReport do
       {
         "@id" =>  "http://rubygems.org/gems/rdf-turtle",
         "@type" =>  %w(earl:TestSubject doap:Project),
-        doap_desc:  "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.",
+        doapDesc:   "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.",
         homepage:   "http://ruby-rdf.github.com/rdf-turtle",
         language:   "Ruby",
         name:       "RDF::Turtle",
@@ -215,7 +201,7 @@ describe EarlReport do
       let(:desc) {{
         "@id"       => "http://rubygems.org/gems/rdf-turtle",
         "@type"     => %w(earl:TestSubject doap:Project),
-        'doap_desc' => "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.",
+        'doapDesc'  => "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.",
         'homepage'  => "http://ruby-rdf.github.com/rdf-turtle",
         'language'  => "Ruby",
         'name'      => "RDF::Turtle",
@@ -237,7 +223,7 @@ describe EarlReport do
         ttl.should match(/ doap:name "#{desc['name']}";$/)
       end
       it "has description" do
-        ttl.should match(/ doap:description """#{desc['doap_desc']}""";$/)
+        ttl.should match(/ doap:description """#{desc['doapDesc']}""";$/)
       end
       it "has doap:programming-language" do
         ttl.should match(/ doap:programming-language "#{desc['language']}";$/)
