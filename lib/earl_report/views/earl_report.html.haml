@@ -38,15 +38,14 @@
 -#    }]
 -#  }
 
-- test_info = {}
 !!! 5
-%html{:lang => "en"}
+%html{:prefix => "earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap# mf: http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#"}
   - subjects = tests['testSubjects']
   - test_cases = tests['tests']
   %head
     %meta{"http-equiv" => "Content-Type", :content => "text/html;charset=utf-8"}
-    %title{:property => "doap:name"}=tests['name']
-    %link{:property => "doap:homepage", :href => ""}
+    %title{:property => "doap:name"}<
+      = tests['name']
     %script.remove{:type => "text/javascript", :src => "http://www.w3.org/Tools/respec/respec-w3c-common"}
     :javascript
       var respecConfig = {
@@ -140,11 +139,12 @@
         background-color: white;
         -moz-border-radius: ;
       }
-  %body{:prefix => "earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap#"}
-    %section#abstract{:about => tests['@id'], :typeof => tests['@type']}
+  %body
+    %section#abstract{:about => tests['@id'], :typeof => tests['@type'].join(' ')}
       %p
         This document report processor conformance for and related specifications
-        = tests['bibRef']
+        %span{:property => "dc:bibliographicCitation"}<
+          = tests['bibRef']
         according to the requirements of the Evaluation and Report Language (EARL) 1.0 Schema [[EARL10-SCHEMA]].
       %p
         This document describes
@@ -158,6 +158,8 @@
           JSON-LD
     %section#sodt
     %section
+      - test_refs = {}
+      - subject_refs = {}
       %h2
         Results
       %table.report
@@ -166,30 +168,27 @@
             Test
           - subjects.each_with_index do |subject, i|
             - next unless test_cases.any? {|tc| tc.has_key?(subject['@id'])}
-            - subject['fragID'] = "subj_#{i}"
+            - subject_refs[subject['@id']] = "subj_#{i}"
             %th
-              %a{:href => '#' + subject['fragID']}<=subject['name']
+              %a{:href => '#' + subject_refs[subject['@id']]}<=subject['name']
         - test_cases.each do |test|
-          - test['num'] = test['@id'][0,2] == '_:' ? test['@id'][2..-1] : test['@id'].split('#').last
-          - test_info[test['num']] ||= test.clone
-          %tr{:typeof => [test['@type']].flatten.join(' '), :resource => test['@id']}
-            %td
-              %a{:href => "#test_#{test['num']}"}
-                %span{:property => 'dc:title'}<= test['title']
-              - if test.has_key?('description')
-                %span{:property => 'dc:description'}<= test['description']
+          - test_refs[test['@id']] = 'test_' + (test['@id'][0,2] == '_:' ? test['@id'][2..-1] : test['@id'].split('#').last)
+          %tr
+            %td{:resource => test['@id']}
+              %a{:href => '#' + test_refs[test['@id']]}<= test['title']
             - subjects.each do |subjects|
               - url = subjects['@id']
               - next unless test.has_key?(url)
               - assertion = test[url]
               - pass_fail = assertion['result']['outcome'].split(':').last.upcase.sub(/ED$/, '')
-              %td{:class => pass_fail, :rel => assertion['@id'], :typeof => assertion['@type']}
+              %td{:class => pass_fail, :property => assertion['subject'], :typeof => assertion['@type']}
                 %link{:property => "earl:assertedBy", :href => assertion['assertedBy']}
                 %link{:property => "earl:test", :href => assertion['test']}
                 %link{:property => "earl:subject", :href => assertion['subject']}
                 %link{:property => 'earl:mode', :href => assertion['mode']}/ 
-                %span{:property => "earl:result", :typeof => assertion['result']['@type'], :resource => assertion['result']['outcome']}
-                  = pass_fail
+                %span{:property => "earl:result", :typeof => assertion['result']['@type'], :resource => '_'}
+                  %span{:property => 'earl:outcome', :resource => assertion['result']['outcome']}
+                    = pass_fail
     %section.appendix
       %h2
         Test Subjects
@@ -197,10 +196,10 @@
         This report was tested using the following test subjects:
       %dl
         - subjects.each do |subject|
-          %dt{:id => subject['fragID']}<
+          %dt{:id => subject_refs[subject['@id']]}<
             %a{:href => subject['@id']}
               %span{:about => subject['@id'], :property => "doap:name"}<= subject['name']
-          %dd{:about => subject['@id'], :typeof => [subject['@type']].flatten.join(" ")}
+          %dd{:property => "earl:testSubjects", :resource => subject['@id'], :typeof => [subject['@type']].flatten.join(" "), :inlist => true}
             %dl
               - if subject['doapDesc']
                 %dt= "Description"
@@ -218,31 +217,31 @@
                           %span{:property => "foaf:name"}<= dev['foaf:name']
                       - else
                         %span{:property => "foaf:name"}<= dev['foaf:name']
-                      - if dev['homepage']
-                        %dt= "Home Page"
-                        %dd{:property => "doap:homepage"}
-                          %a{:href=> dev['homepage']}=dev['homepage']
-    - unless test['assertions'].empty?
-      %section.appendix
+                      - if dev['foaf:homepage']
+                        %dt
+                          Home Page
+                        %dd
+                          %a{:property => "foaf:homepage", :href=> dev['foaf:homepage']}
+                            = dev['homepage']
+    - unless tests['assertions'].empty?
+      %section.appendix{:rel => "earl:assertions"}
         %h2
           Individual Test Results
         %p
           Individual test results used to construct this report are available here:
         %ul
-          - test['assertions'].each do |file|
+          - tests['assertions'].each do |file|
             %li
               %a.source{:href => file}<= file
     %section.appendix
       %h2
         Test Definitions
       %dl
-        - keys = test_info.keys.sort
-        - keys.each do |num|
-          - test = test_info[num]
-          %dt{:id => "test_#{test['num']}", :about => test['@id'], :typeof => test['@type'].join(' ')}
+        - tests['tests'].each do |test|
+          %dt{:id => test_refs[test['@id']], :resource => test['@id']}
             Test
             %span{:property => "dc:title"}<= test['title']
-          %dd
+          %dd{:property => "earl:tests", :resource => test['@id'], :typeof => [test['@type']].flatten.join(' '), :inlist => true}
             %p{:property => "dc:description"}<= test['description']
             %dl
               %dt

@@ -1,3 +1,6 @@
+@prefix earl: <http://www.w3.org/ns/earl#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
 <http://greggkellogg.net/foaf#me> a foaf:Person, earl:Assertor;
   foaf:name "Gregg Kellogg";
   foaf:title "Implementor";

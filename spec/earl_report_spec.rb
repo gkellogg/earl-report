@@ -6,16 +6,58 @@ describe EarlReport do
   subject {
     EarlReport.new(
       File.expand_path("../test-files/report-complete.ttl", __FILE__),
-      :verbose => false,
+      :bibRef   =>       "[[TURTLE]]",
+      :name     =>         "Turtle Test Results",
+      :verbose  => false,
       :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
   }
 
   describe ".new" do
+    let(:manifest) {
+      RDF::Graph.new << RDF::Turtle::Reader.new(File.open File.expand_path("../test-files/manifest.ttl", __FILE__))
+    }
+    let(:reportComplete) {
+      RDF::Graph.new << RDF::Turtle::Reader.new(File.open File.expand_path("../test-files/report-complete.ttl", __FILE__))
+    }
+    let(:reportNoDoap) {
+      RDF::Graph.new << RDF::Turtle::Reader.new(File.open File.expand_path("../test-files/report-no-doap.ttl", __FILE__))
+    }
+    let(:reportNoFoaf) {
+      RDF::Graph.new << RDF::Turtle::Reader.new(File.open File.expand_path("../test-files/report-no-foaf.ttl", __FILE__))
+    }
+    let(:doap) {
+      RDF::Graph.new << RDF::Turtle::Reader.new(File.open File.expand_path("../test-files/doap.ttl", __FILE__))
+    }
+    let(:foaf) {
+      RDF::Graph.new << RDF::Turtle::Reader.new(File.open File.expand_path("../test-files/foaf.ttl", __FILE__))
+    }
+
     it "requires a :manifest option" do
       lambda {EarlReport.new}.should raise_error("Test Manifest must be specified with :manifest option")
     end
 
+    context "with base" do
+      it "loads manifest relative to base" do
+        RDF::Graph.should_receive(:load)
+          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {:base_uri => "http://example.com/base/"})
+          .and_return(manifest)
+        EarlReport.new(
+          :verbose => false,
+          :base => "http://example.com/base/",
+          :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
+      end
+    end
+
     context "complete report" do
+      before(:each) do
+        RDF::Graph.should_receive(:load)
+          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {})
+          .and_return(manifest)
+        RDF::Graph.should_receive(:load)
+          .with(File.expand_path("../test-files/report-complete.ttl", __FILE__))
+          .and_return(reportComplete)
+      end
+
       subject {
         EarlReport.new(
           File.expand_path("../test-files/report-complete.ttl", __FILE__),
@@ -41,6 +83,18 @@ describe EarlReport do
     end
 
     context "no doap report" do
+      before(:each) do
+        RDF::Graph.should_receive(:load)
+          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {})
+          .and_return(manifest)
+        RDF::Graph.should_receive(:load)
+          .with(File.expand_path("../test-files/report-no-doap.ttl", __FILE__))
+          .and_return(reportNoDoap)
+        RDF::Graph.should_receive(:load)
+          .with("http://rubygems.org/gems/rdf-turtle")
+          .and_return(doap)
+      end
+
       subject {
         EarlReport.new(
           File.expand_path("../test-files/report-no-doap.ttl", __FILE__),
@@ -66,6 +120,18 @@ describe EarlReport do
     end
 
     context "no foaf report" do
+      before(:each) do
+        RDF::Graph.should_receive(:load)
+          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {})
+          .and_return(manifest)
+        RDF::Graph.should_receive(:load)
+          .with(File.expand_path("../test-files/report-no-foaf.ttl", __FILE__))
+          .and_return(reportNoFoaf)
+        RDF::Graph.should_receive(:load)
+          .with("http://greggkellogg.net/foaf#me")
+          .and_return(foaf)
+      end
+
       subject {
         EarlReport.new(
           File.expand_path("../test-files/report-no-foaf.ttl", __FILE__),
@@ -93,10 +159,7 @@ describe EarlReport do
   
   describe "#json_hash" do
     let(:json) {
-      subject.send(:json_hash, {
-        bibRef:       "[[TURTLE]]",
-        name:         "Turtle Test Results"
-      })
+      subject.send(:json_hash)
     }
     specify {json.should be_a(Hash)}
     {
@@ -114,6 +177,34 @@ describe EarlReport do
 
     it "tests" do
       json.keys.should include('tests')
+    end
+
+    context "parsing to RDF" do
+      let(:graph) do
+        @graph ||= begin
+          RDF::Graph.new << JSON::LD::Reader.new(json.to_json, :base_uri => "http://example.com/report")
+        end
+      end
+
+      it "has Report" do
+        SPARQL.execute(REPORT_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Subject" do
+        SPARQL.execute(SUBJECT_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Developer" do
+        SPARQL.execute(DEVELOPER_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Test Case" do
+        SPARQL.execute(TC_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Assertion" do
+        SPARQL.execute(ASSERTION_QUERY, graph).should be_true
+      end
     end
   end
   
@@ -195,7 +286,6 @@ describe EarlReport do
     end
   end
 
-
   describe "#test_subject_turtle" do
     context "test subject" do
       let(:desc) {{
@@ -272,7 +362,7 @@ describe EarlReport do
         ttl.should match(/ dc:description """#{tc['description']}""";$/)
       end
       it "has mf:action" do
-        ttl.should match(/ mf:action <#{tc['testAction']}>;$/)
+        ttl.should match(/ mf:action <#{tc['testAction']}> .$/)
       end
       it "has mf:result" do
         ttl.should match(/ mf:result <#{tc['testResult']}>;$/)
@@ -317,19 +407,17 @@ describe EarlReport do
   end
 
   describe "#earl_turtle" do
-    let(:results) {
-      @results ||= JSON.parse(File.read(File.expand_path("../test-files/results.jsonld", __FILE__)))
-    }
+    let(:json_hash) {subject.send(:json_hash)}
     let(:output) {
       @output ||= begin
         sio = StringIO.new
-        subject.send(:earl_turtle, {json_hash: results, io: sio})
+        subject.send(:earl_turtle, {io: sio})
         sio.rewind
         sio.read
       end
     }
-    let(:ts) {results['testSubjects'].first}
-    let(:tc) {results['tests'].first}
+    let(:ts) {json_hash['testSubjects'].first}
+    let(:tc) {json_hash['tests'].first}
     let(:as) {tc[ts['@id']]}
 
     context "prefixes" do
@@ -341,20 +429,152 @@ describe EarlReport do
     end
 
     context "earl:Software" do
-      specify {output.should match(/<> a earl:Software, doap:Project;/)}
-      specify {output.should match(/  doap:name "#{results['name']}"\./)}
+      specify {output.should match(/<> a earl:Software, doap:Project\s*[;\.]$/)}
+      specify {output.should match(/  doap:name "#{json_hash['name']}"\s*[;\.]$/)}
     end
 
     context "Subject Definitions" do
-      specify {output.should match(/<#{ts['@id']}> a #{ts['@type'].join(', ')};/)}
+      specify {output.should match(/<#{ts['@id']}> a #{ts['@type'].join(', ')}\s*[;\.]$/)}
     end
 
     context "Test Case Definitions" do
-      specify {output.should match(/<#{tc['@id']}> a #{tc['@type'].join(', ')};/)}
+      specify {output.should match(/<#{tc['@id']}> a #{tc['@type'].join(', ')}\s*[;\.]$/)}
     end
 
     context "Assertion" do
-      specify {output.should match(/\[ a #{as['@type']};/)}
+      specify {output.should match(/\[ a #{as['@type']}\s*[;\.]$/)}
+    end
+
+    context "parsing to RDF" do
+      let(:graph) do
+        @graph ||= begin
+          RDF::Graph.new << RDF::Turtle::Reader.new(output, :base_uri => "http://example.com/report")
+        end
+      end
+
+      it "has Report" do
+        SPARQL.execute(REPORT_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Subject" do
+        SPARQL.execute(SUBJECT_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Developer" do
+        SPARQL.execute(DEVELOPER_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Test Case" do
+        SPARQL.execute(TC_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Assertion" do
+        SPARQL.execute(ASSERTION_QUERY, graph).should be_true
+      end
     end
   end
+
+  describe "#generate" do
+    let(:output) {
+      @output ||= begin
+        subject.generate()
+      end
+    }
+
+    context "parsing to RDF" do
+      let(:graph) do
+        @graph ||= begin
+          RDF::Graph.new << RDF::RDFa::Reader.new(output, :base_uri => "http://example.com/report")
+        end
+      end
+
+      it "has Report" do
+        SPARQL.execute(REPORT_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Subject" do
+        SPARQL.execute(SUBJECT_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Developer" do
+        SPARQL.execute(DEVELOPER_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Test Case" do
+        SPARQL.execute(TC_QUERY, graph).should == RDF::Literal::TRUE
+      end
+
+      it "has Assertion" do
+        SPARQL.execute(ASSERTION_QUERY, graph).should be_true
+      end
+    end
+  end
+
+  REPORT_QUERY = %(
+    PREFIX dc: <http://purl.org/dc/terms/>
+    PREFIX doap: <http://usefulinc.com/ns/doap#>
+    PREFIX earl: <http://www.w3.org/ns/earl#>
+          
+    ASK WHERE {
+      ?uri a earl:Software, doap:Project;
+        doap:name "Turtle Test Results";
+        dc:bibliographicCitation "[[TURTLE]]";
+        earl:assertions ?assertionFile;
+        earl:testSubjects (<http://rubygems.org/gems/rdf-turtle>);
+        earl:tests (
+          <http://example/manifest.ttl#testeval00>
+          ?test01
+        ) .
+    }
+  )
+
+  SUBJECT_QUERY = %(
+    PREFIX doap: <http://usefulinc.com/ns/doap#>
+    PREFIX earl: <http://www.w3.org/ns/earl#>
+          
+    ASK WHERE {
+      <http://rubygems.org/gems/rdf-turtle> a earl:TestSubject, doap:Project;
+        doap:name "RDF::Turtle";
+        doap:description """RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.""";
+        doap:programming-language "Ruby";
+        doap:developer <http://greggkellogg.net/foaf#me> .
+    }
+  )
+
+  DEVELOPER_QUERY = %(
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+          
+    ASK WHERE {
+      <http://greggkellogg.net/foaf#me> a foaf:Person;
+        foaf:name "Gregg Kellogg";
+        foaf:homepage <http://greggkellogg.net/> .
+    }
+  )
+
+  TC_QUERY = %(
+    PREFIX dc: <http://purl.org/dc/terms/>
+    PREFIX earl: <http://www.w3.org/ns/earl#>
+    PREFIX mf: <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#>
+          
+    ASK WHERE {
+      <http://example/manifest.ttl#testeval00> a earl:TestCriterion, earl:TestCase;
+        dc:title "subm-test-00";
+        dc:description """Blank subject""";
+        mf:action <http://example/test-00.ttl>;
+        mf:result <http://example/test-00.out> .
+    }
+  )
+
+  ASSERTION_QUERY = %(
+    PREFIX earl: <http://www.w3.org/ns/earl#>
+          
+    ASK WHERE {
+      [ a earl:Assertion;
+        earl:assertedBy <http://greggkellogg.net/foaf#me>;
+        earl:test <http://example/manifest.ttl#testeval00>;
+        earl:subject <http://rubygems.org/gems/rdf-turtle>;
+        earl:mode earl:automatic;
+        earl:result [ a earl:TestResult; earl:outcome earl:passed] ] .
+    }
+  )
 end

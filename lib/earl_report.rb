@@ -28,7 +28,7 @@ class EarlReport
     PREFIX doap: <http://usefulinc.com/ns/doap#>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
     
-    SELECT DISTINCT ?uri ?name ?developer ?devName ?devType ?doapDesc ?homepage ?language
+    SELECT DISTINCT ?uri ?name ?doapDesc ?homepage ?language ?developer ?devName ?devType ?devHomepage
     WHERE {
       ?uri a doap:Project; doap:name ?name .
       OPTIONAL { ?uri doap:developer ?developer .}
@@ -37,6 +37,7 @@ class EarlReport
       OPTIONAL { ?uri doap:programming-language ?language . }
       OPTIONAL { ?developer foaf:name ?devName .}
       OPTIONAL { ?developer a ?devType . }
+      OPTIONAL { ?developer foaf:homepage ?devHomepage . }
     }
   ).freeze
 
@@ -69,6 +70,7 @@ class EarlReport
 
   TEST_CONTEXT = {
     "@vocab" =>   "http://www.w3.org/ns/earl#",
+    "foaf:homepage" => {"@type" => "@id"},
     dc:           "http://purl.org/dc/terms/",
     doap:         "http://usefulinc.com/ns/doap#",
     earl:         "http://www.w3.org/ns/earl#",
@@ -77,7 +79,7 @@ class EarlReport
     rdfs:         "http://www.w3.org/2000/01/rdf-schema#",
     assertedBy:   {"@type" => "@id"},
     assertions:   {"@type" => "@id"},
-    bibRef:       {"@id" => "dc: bibliographicCitation"},
+    bibRef:       {"@id" => "dc:bibliographicCitation"},
     description:  {"@id" => "dc:description"},
     developer:    {"@id" => "doap:developer", "@type" => "@id", "@container" => "@set"},
     doapDesc:     {"@id" => "doap:description"},
@@ -105,9 +107,14 @@ class EarlReport
   # @param [Array<String>] *files Assertions
   # @param [Hash{Symbol => Object}] options
   # @option options [Boolean] :verbose (true)
+  # @option options [String] :base Base IRI for loading Manifest
+  # @option options [String] :bibRef
+  #   ReSpec bibliography reference for specification being tested
+  # @option options [String] :json Result of previous JSON-LD generation
   # @option options [String] :manifest Test manifest
-  # @option options [String] :query Manifest query
-  # @option options [String] :dump JSON-LD results dump
+  # @option options [String] :name Name of specification
+  # @option options [String] :query
+  #   Query, or file containing query for extracting information from Test manifest
   def initialize(*files)
     @options = files.last.is_a?(Hash) ? files.pop.dup : {}
     @options[:query] ||= MANIFEST_QUERY
@@ -122,7 +129,7 @@ class EarlReport
     # Load manifest, possibly with base URI
     status "read #{@options[:manifest]}"
     man_opts = {}
-    man_opts[:base_uri] = @options[:base] if @options[:base]
+    man_opts[:base_uri] = RDF::URI(@options[:base]) if @options[:base]
     @graph = RDF::Graph.load(@options[:manifest], man_opts)
     status "  loaded #{@graph.count} triples"
 
@@ -174,35 +181,28 @@ class EarlReport
   #
   # @param [Hash{Symbol => Object}] options
   # @option options [Symbol] format (:html)
-  # @option options [String] :bibRef
-  #   ReSpec bibliography reference for specification being tested
   # @option options[IO] :io
   #   Optional `IO` to output results
   # @return [String] serialized graph, if `io` is nil
   def generate(options = {})
-    options = {
-      format:       :html,
-      bibRef:       "[[TURTLE]]",
-      name:         "Turtle Test Results",
-    }.merge(options)
+    options = {:format => :html}.merge(options)
 
     io = options[:io]
 
     status("generate: #{options[:format]}")
     ##
     # Retrieve Hashed information in JSON-LD format
-    hash = json_hash(options)
     case options[:format]
     when :jsonld, :json
-      json = hash.to_json(JSON::LD::JSON_STATE)
+      json = json_hash.to_json(JSON::LD::JSON_STATE)
       io.write(json) if io
       json
     when :turtle, :ttl
       if io
-        earl_turtle(options.merge(:json_hash => hash))
+        earl_turtle(options)
       else
         io = StringIO.new
-        earl_turtle(:json_hash => hash, :io => io)
+        earl_turtle(options.merge(:io => io))
         io.rewind
         io.read
       end
@@ -211,8 +211,7 @@ class EarlReport
         File.read(File.expand_path('../earl_report/views/earl_report.html.haml', __FILE__))
 
       # Generate HTML report
-      html = Haml::Engine.new(template, :format => :xhtml)
-        .render(self, :tests => hash)
+      html = Haml::Engine.new(template, :format => :xhtml).render(self, :tests => json_hash)
       io.write(html) if io
       html
     else
@@ -229,7 +228,7 @@ class EarlReport
   ##
   # Return hashed EARL report in JSON-LD form
   # @return [Hash]
-  def json_hash(options)
+  def json_hash
     @json_hash ||= begin
       # Customized JSON-LD output
       {
@@ -237,8 +236,8 @@ class EarlReport
         "@id"          => "",
         "@type"        => %w(earl:Software doap:Project),
         "assertions"   => @files,
-        'name'         => options[:name],
-        'bibRef'       => options[:bibRef],
+        'name'         => @options[:name],
+        'bibRef'       => @options[:bibRef],
         'testSubjects' => json_test_subject_info,
         'tests'        => json_result_info
       }
@@ -262,6 +261,7 @@ class EarlReport
         dev = {'@type' => dev_type}
         dev['@id'] = solution[:developer].to_s if solution[:developer].uri?
         dev['foaf:name'] = solution[:devName].to_s if solution[:devName]
+        dev['foaf:homepage'] = solution[:devHomepage].to_s if solution[:devHomepage]
         (info['developer'] ||= []) << dev
       end
       info['developer'] = info['developer'].uniq
@@ -347,7 +347,6 @@ class EarlReport
   # @return [String]
   def earl_turtle(options)
     io = options[:io]
-    json_hash = options[:json_hash]
     # Write preamble
     {
       :dc       => RDF::DC,
@@ -366,9 +365,16 @@ class EarlReport
     io.puts
 
     # Write earl:Software for the report
-    io.puts %(<#{json_hash['@id']}> a earl:Software, doap:Project;)
-    io.puts %(  doap:homepage <#{json_hash['homepage']}>;)
-    io.puts %(  doap:name "#{json_hash['name']}".)
+    io.puts %{<#{json_hash['@id']}> a earl:Software, doap:Project;}
+    io.puts %{  doap:homepage <#{json_hash['homepage']}>;}
+    io.puts %{  doap:name "#{json_hash['name']}";}
+    io.puts %{  dc:bibliographicCitation "#{json_hash['bibRef']}";}
+    io.puts %{  earl:assertions\n}
+    io.puts %{    } + json_hash['assertions'].map {|a| as_resource(a)}.join(",\n    ") + ';'
+    io.puts %{  earl:testSubjects (\n}
+    io.puts %{    } + json_hash['testSubjects'].map {|a| as_resource(a['@id'])}.join("\n    ") + ');'
+    io.puts %{  earl:tests (\n}
+    io.puts %{    } + json_hash['tests'].map {|a| as_resource(a['@id'])}.join("\n    ") + ') .'
 
     # Test Cases
     # also collect each assertion definition
@@ -408,19 +414,24 @@ class EarlReport
   # @param [Hash] desc
   # @return [String]
   def test_subject_turtle(desc)
-    developer = desc['developer']
     res = %(<#{desc['@id']}> a #{desc['@type'].join(', ')};\n)
     res += %(  doap:name "#{desc['name']}";\n)
     res += %(  doap:description """#{desc['doapDesc']}""";\n)     if desc['doapDesc']
     res += %(  doap:programming-language "#{desc['language']}";\n) if desc['language']
-    if developer && developer['@id']
-      res += %(  doap:developer <#{developer['@id']}> .\n\n)
-      res += %(<#{developer['@id']}> a #{[developer['@type']].flatten.join(', ')};\n)
-      res += %(  foaf:name "#{developer['foaf:name']}" .\n)
-    elsif developer
-      res += %(  doap:developer [ a #{developer['@type'] || "foaf:Person"}; foaf:name "#{developer['foaf:name']}"] .\n)
-    else
-      res += %(  .\n)
+    res += %( .\n\n)
+
+    [desc['developer']].flatten.each do |developer|
+      if developer['@id']
+        res += %(<#{desc['@id']}> doap:developer <#{developer['@id']}> .\n\n)
+        res += %(<#{developer['@id']}> a #{[developer['@type']].flatten.join(', ')};\n)
+        res += %(  foaf:homepage <#{developer['foaf:homepage']}>;\n) if developer['foaf:homepage']
+        res += %(  foaf:name "#{developer['foaf:name']}" .\n\n)
+      else
+        res += %(<#{desc['@id']}> doap:developer\n)
+        res += %(   [ a #{developer['@type'] || "foaf:Person"};\n)
+        res += %(     foaf:homepage <#{developer['foaf:homepage']}>;\n) if developer['foaf:homepage']
+        res += %(     foaf:name "#{developer['foaf:name']}" ] .\n\n)
+      end
     end
     res + "\n"
   end
@@ -433,9 +444,8 @@ class EarlReport
     res = %(<#{desc['@id']}> a #{[desc['@type']].flatten.join(', ')};\n)
     res += %(  dc:title "#{desc['title']}";\n)
     res += %(  dc:description """#{desc['description']}""";\n) if desc.has_key?('description')
-    res += %(  mf:action <#{desc['testAction']}>;\n)
     res += %(  mf:result <#{desc['testResult']}>;\n) if desc.has_key?('testResult')
-    res + "\n"
+    res += %(  mf:action <#{desc['testAction']}> .\n\n)
   end
 
   ##
@@ -453,6 +463,10 @@ class EarlReport
     res
   end
   
+  def as_resource(resource)
+    resource[0,2] == '_:' ? resource : "<#{resource}>"
+  end
+
   def status(message)
     puts message if @options[:verbose]
   end

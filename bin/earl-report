@@ -16,6 +16,7 @@ OPT_ARGS = [
   ["--manifest",          GetoptLong::REQUIRED_ARGUMENT,"Test manifest"],
   ["--name",              GetoptLong::REQUIRED_ARGUMENT,"Name of specification"],
   ["--output", "-o",      GetoptLong::REQUIRED_ARGUMENT,"Output report to file"],
+  ["--query",             GetoptLong::REQUIRED_ARGUMENT,"Query, or file containing query for extracting information from Test manifest"]
   ["--template",          GetoptLong::OPTIONAL_ARGUMENT,"Specify or return default report template"],
   ["--verbose",           GetoptLong::NO_ARGUMENT,      "Detail on execution"],
   ["--help", "-?",        GetoptLong::NO_ARGUMENT,      "This message"]
@@ -51,6 +52,7 @@ opts.each do |opt, arg|
   when '--bibRef'       then options[:bibRef] = arg
   when '--format'       then options[:format] = arg.to_sym
   when '--manifest'     then options[:manifest] = arg
+  when '--query'        then options[:manifest] = arg
   when '--base'         then options[:base] = arg
   when '--name'         then options[:name] = arg
   when '--output'       then options[:io] = File.open(arg, "w")
