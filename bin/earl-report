@@ -4,6 +4,7 @@ $:.unshift(File.expand_path(File.join(File.dirname(__FILE__), "..", 'lib')))
 
 require 'earl_report'
 require 'getoptlong'
+require 'yaml'
 
 def run(input, options)
 end
@@ -17,6 +18,7 @@ OPT_ARGS = [
   ["--name",              GetoptLong::REQUIRED_ARGUMENT,"Name of specification"],
   ["--output", "-o",      GetoptLong::REQUIRED_ARGUMENT,"Output report to file"],
   ["--query",             GetoptLong::REQUIRED_ARGUMENT,"Query, or file containing query for extracting information from Test manifest"],
+  ["--rc",                GetoptLong::NO_ARGUMENT,      "Write options to run-control file"],
   ["--template",          GetoptLong::OPTIONAL_ARGUMENT,"Specify or return default report template"],
   ["--verbose",           GetoptLong::NO_ARGUMENT,      "Detail on execution"],
   ["--help", "-?",        GetoptLong::NO_ARGUMENT,      "This message"]
@@ -24,6 +26,9 @@ OPT_ARGS = [
 def usage
   STDERR.puts %{
     Generate EARL report for mutliple test results against a test manifest.
+    
+    Options are initialized by reading optional run-control file '.earl' in the local directory,
+    if it exists.
     
     Usage: #{$0} [options] test-manifest test-result ...
   }.gsub(/^    /, '')
@@ -45,6 +50,7 @@ opts = GetoptLong.new(*OPT_ARGS.map {|o| o[0..-2]})
 options = {
   :format => :html,
   :io => STDOUT}
+options.merge!(YAML.load(File.open ".earl")) if File.exist?(".earl")
 
 opts.each do |opt, arg|
   case opt
@@ -57,12 +63,26 @@ opts.each do |opt, arg|
   when '--json'         then options[:json] = true
   when '--name'         then options[:name] = arg
   when '--output'       then options[:io] = File.open(arg, "w")
+  when '--rc'           then options[:rc] = true
   when '--template'     then options[:template] = arg
   when '--verbose'      then options[:verbose] = true
   when '--help'         then usage
   else
     options[opt.to_sym] = arg
   end
+end
+
+# Replace query from a specified file, with the query itself
+if options.has_key?(:query) && File.exist?(options[:query])
+  options[:query] = File.read(options[:query])
+end
+
+# Write run-control file to output
+if options.has_key?(:rc)
+  io = options.delete(:io) || STDOUT
+  options.delete_if {|k, v| [:rc, :json, :output, :verbose].include?(k)}
+  io.puts options.to_yaml
+  exit 0
 end
 
 # If requesting template, just return it
