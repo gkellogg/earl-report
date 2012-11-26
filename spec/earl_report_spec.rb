@@ -171,12 +171,8 @@ describe EarlReport do
       specify(prop) {json[prop].should == value}
     end
 
-    it "testSubjects" do
-      json.keys.should include('testSubjects')
-    end
-
-    it "tests" do
-      json.keys.should include('tests')
+    %w(assertions testSubjects tests).each do |key|
+      specify {json.keys.should include(key)}
     end
 
     context "parsing to RDF" do
@@ -259,8 +255,13 @@ describe EarlReport do
         specify(prop) {tc[prop.to_s].should == value}
       end
 
+      context('assertions') do
+        specify { tc['assertions'].should be_a(Array)}
+        specify('has one entry') { tc['assertions'].length.should == 1}
+      end
+
       context "assertion" do
-        let(:as) {tc['http://rubygems.org/gems/rdf-turtle']}
+        let(:as) {tc['assertions'].first}
         specify {as.should be_a(Hash)}
         {
           "@type" =>  %(earl:Assertion),
@@ -307,16 +308,16 @@ describe EarlReport do
         ttl.should match(/<#{desc['@id']}> a/)
       end
       it "has types" do
-        ttl.should match(/ a #{desc['@type'].join(', ')};$/)
+        ttl.should match(/ a #{desc['@type'].join(', ')}\s*[;\.]$/)
       end
       it "has name" do
-        ttl.should match(/ doap:name "#{desc['name']}";$/)
+        ttl.should match(/ doap:name "#{desc['name']}"\s*[;\.]$/)
       end
       it "has description" do
-        ttl.should match(/ doap:description """#{desc['doapDesc']}""";$/)
+        ttl.should match(/ doap:description """#{desc['doapDesc']}"""\s*[;\.]$/)
       end
       it "has doap:programming-language" do
-        ttl.should match(/ doap:programming-language "#{desc['language']}";$/)
+        ttl.should match(/ doap:programming-language "#{desc['language']}"\s*[;\.]$/)
       end
       it "has doap:developer" do
         ttl.should match(/ doap:developer <#{desc['developer']['@id']}>/)
@@ -328,10 +329,10 @@ describe EarlReport do
           ttl.should match(/<#{dev['@id']}> a/)
         end
         it "has types" do
-          ttl.should match(/ a #{dev['@type'].join(', ')};$/)
+          ttl.should match(/ a #{dev['@type'].join(', ')}\s*[;\.]$/)
         end
         it "has name" do
-          ttl.should match(/ foaf:name "#{dev['foaf:name']}" .$/)
+          ttl.should match(/ foaf:name "#{dev['foaf:name']}"\s*[;\.]$/)
         end
       end
     end
@@ -346,6 +347,17 @@ describe EarlReport do
         'description' => "Blank subject",
         'testAction'  => "http://example/test-00.ttl",
         'testResult'  => "http://example/test-00.out",
+        'assertions'  => [{
+          "@type"      =>  %(earl:Assertion),
+          'assertedBy' =>"http://greggkellogg.net/foaf#me",
+          'mode'       => "earl:automatic",
+          'subject'    => "http://rubygems.org/gems/rdf-turtle",
+          'test'       => "http://example/manifest.ttl#testeval00",
+          'result'     => {
+            "@type"    => %(earl:TestResult),
+            'outcome'  => "earl:passed",
+          }
+        }]
       }}
       let(:ttl) {subject.send(:tc_turtle, tc)}
       specify {ttl.length.should > 0}
@@ -353,19 +365,22 @@ describe EarlReport do
         ttl.should match(/<#{tc['@id']}> a/)
       end
       it "has types" do
-        ttl.should match(/ a #{tc['@type'].join(', ')};$/)
+        ttl.should match(/ a #{tc['@type'].join(', ')}\s*[;\.]$/)
       end
       it "has dc:title" do
-        ttl.should match(/ dc:title "#{tc['title']}";$/)
+        ttl.should match(/ dc:title "#{tc['title']}"\s*[;\.]$/)
       end
       it "has dc:description" do
-        ttl.should match(/ dc:description """#{tc['description']}""";$/)
+        ttl.should match(/ dc:description """#{tc['description']}"""\s*[;\.]$/)
       end
       it "has mf:action" do
-        ttl.should match(/ mf:action <#{tc['testAction']}> .$/)
+        ttl.should match(/ mf:action <#{tc['testAction']}>\s*[;\.]$/)
       end
       it "has mf:result" do
-        ttl.should match(/ mf:result <#{tc['testResult']}>;$/)
+        ttl.should match(/ mf:result <#{tc['testResult']}>\s*[;\.]$/)
+      end
+      it "has earl:assertions" do
+        ttl.should match(/ earl:assertions \(\s*\[ a earl:Assertion/m)
       end
     end
   end
@@ -386,22 +401,22 @@ describe EarlReport do
       let(:ttl) {subject.send(:as_turtle, as)}
       specify {ttl.length.should > 0}
       it "has type" do
-        ttl.should match(/ a #{as['@type'].join(', ')};$/)
+        ttl.should match(/ a #{as['@type'].join(', ')}\s*[;\.]$/)
       end
       it "has earl:assertedBy" do
-        ttl.should match(/ earl:assertedBy <#{as['assertedBy']}>;$/)
+        ttl.should match(/ earl:assertedBy <#{as['assertedBy']}>\s*[;\.]$/)
       end
       it "has earl:test" do
-        ttl.should match(/ earl:test <#{as['test']}>;$/)
+        ttl.should match(/ earl:test <#{as['test']}>\s*[;\.]$/)
       end
       it "has earl:subject" do
-        ttl.should match(/ earl:subject <#{as['subject']}>;$/)
+        ttl.should match(/ earl:subject <#{as['subject']}>\s*[;\.]$/)
       end
       it "has earl:mode" do
-        ttl.should match(/ earl:mode #{as['mode']};$/)
+        ttl.should match(/ earl:mode #{as['mode']}\s*[;\.]$/)
       end
       it "has earl:result" do
-        ttl.should match(/ earl:result \[ a #{as['result']['@type']}; earl:outcome #{as['result']['outcome']}\]/)
+        ttl.should match(/ earl:result \[ a #{as['result']['@type']}; earl:outcome #{as['result']['outcome']} \]\]/)
       end
     end
   end
@@ -418,7 +433,7 @@ describe EarlReport do
     }
     let(:ts) {json_hash['testSubjects'].first}
     let(:tc) {json_hash['tests'].first}
-    let(:as) {tc[ts['@id']]}
+    let(:as) {tc['assertions'].first}
 
     context "prefixes" do
       %w(dc doap earl foaf mf owl rdf rdfs xsd).each do |pfx|
@@ -561,7 +576,10 @@ describe EarlReport do
         dc:title "subm-test-00";
         dc:description """Blank subject""";
         mf:action <http://example/test-00.ttl>;
-        mf:result <http://example/test-00.out> .
+        mf:result <http://example/test-00.out>;
+        earl:assertions (
+          [ a earl:Assertion; earl:subject <http://rubygems.org/gems/rdf-turtle> ]
+        ) .
     }
   )
 

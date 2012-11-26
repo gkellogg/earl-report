@@ -7,6 +7,7 @@
 -#    "@type": "earl:Software",
 -#    "name": "...",
 -#    "bibRef": "[[...]]",
+-#    "assertions": ["./rdf.rb-earl.ttl"],
 -#    "testSubjects": [
 -#      {
 -#        "@id": "http://rubygems.org/gems/rdf-turtle",
@@ -16,25 +17,25 @@
 -#      ...
 -#    ],
 -#    "tests": [{
--#      "@id": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/manifest.ttl#testeval00",
+-#      "@id": "http://dvcs.w3.org/hg/rdf/raw-file/default/rdf-turtle/tests-ttl/manifest.ttl#turtle-syntax-file-01",
 -#      "@type": ["earl:TestCriterion", "earl:TestCase"],
 -#      "title": "subm-test-00",
--#      "assertions": ["./rdf.rb-earl.ttl"],
 -#      "description": "Blank subject",
--#      "testAction": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/test-00.ttl",
--#      "testResult": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/test-00.out"
+-#      "testAction": "http://dvcs.w3.org/hg/rdf/raw-file/default/rdf-turtle/tests-ttl/turtle-syntax-file-01.ttl",
+-#      "testResult": "http://dvcs.w3.org/hg/rdf/raw-file/default/rdf-turtle/tests-ttl/turtle-syntax-file-01.out"
 -#      "mode": "earl:automatic",
--#      "http://rubygems.org/gems/rdf-turtle": {
--#        "@id": "http://rdfa.info/test-suite/test-details/rdfa1.1/xml/0001?rdfa-extractor=http%3A//www.w3.org/2012/pyRdfa/extract%3Furi%3D",
--#        "@type": "earl:Assertion",
--#        "assertedBy": "http://greggkellogg.net/foaf#me",
--#        "test": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/manifest.ttl#testeval00",
--#        "subject": "http://rubygems.org/gems/rdf-turtle",
--#        "result": {
--#          "@type": "earl:TestResult",
--#          "outcome": "earl:passed"
+-#      "assertions": [
+-#        {
+-#          "@type": "earl:Assertion",
+-#          "assertedBy": "http://greggkellogg.net/foaf#me",
+-#          "test": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/manifest.ttl#testeval00",
+-#          "subject": "http://rubygems.org/gems/rdf-turtle",
+-#          "result": {
+-#            "@type": "earl:TestResult",
+-#            "outcome": "earl:passed"
+-#          }
 -#        }
--#      }
+-#      ]
 -#    }]
 -#  }
 
@@ -44,11 +45,16 @@
   - test_cases = tests['tests']
   %head
     %meta{"http-equiv" => "Content-Type", :content => "text/html;charset=utf-8"}
-    %title{:property => "doap:name"}<
+    %title
       = tests['name']
     %script.remove{:type => "text/javascript", :src => "http://www.w3.org/Tools/respec/respec-w3c-common"}
     :javascript
       var respecConfig = {
+          // extend the bibliography entries
+          localBiblio: {
+              TURTLE: "Eric Prud'hommeaux, Gavin Carothers. <cite><a href=\"http://www.w3.org/TR/2011/WD-turtle-20110809/\">Turtle: Terse RDF Triple Language.</a></cite> 09 August 2011. W3C Working Draft. URL: <a href=\"http://www.w3.org/TR/2011/WD-turtle-20110809/\">http://www.w3.org/TR/2011/WD-turtle-20110809/</a>",
+          },
+
           // specification status (e.g. WD, LCWD, NOTE, etc.). If in doubt use ED.
           specStatus:           "unofficial",
           copyrightStart:       "2010",
@@ -109,7 +115,10 @@
           // document unless you know what you're doing. If in doubt ask your friendly neighbourhood
           // Team Contact.
           wgPatentURI:  "http://www.w3.org/2004/01/pp-impl/46168/status",
-          //alternateFormats: [ {uri: "diff-20120112.html", label: "diff to previous version"} ],
+          alternateFormats: [
+            {uri: "earl.ttl", label: "Turtle"},
+            {uri: "earl.jsonld", label: "JSON-LD"}
+          ],
       };
     :css
       span[property='dc:description'] { display: none; }
@@ -142,18 +151,16 @@
   %body
     %section#abstract{:about => tests['@id'], :typeof => tests['@type'].join(' ')}
       %p
-        This document report processor conformance for and related specifications
+        This document report processor conformance for and related specifications for
+        %span{:property => "doap:name"}<=tests['name']
         %span{:property => "dc:bibliographicCitation"}<
           = tests['bibRef']
         according to the requirements of the Evaluation and Report Language (EARL) 1.0 Schema [[EARL10-SCHEMA]].
       %p
-        This document describes
-        %span{:property => "doap:name"}<=tests['name']
-        = '.'
-      %p
         This report is also available in alternate formats:
         %a{:href => "earl.ttl"}
           Turtle
+        and
         %a{:href => "earl.jsonld"}
           JSON-LD
     %section#sodt
@@ -167,25 +174,21 @@
           %th
             Test
           - subjects.each_with_index do |subject, i|
-            - next unless test_cases.any? {|tc| tc.has_key?(subject['@id'])}
             - subject_refs[subject['@id']] = "subj_#{i}"
             %th
               %a{:href => '#' + subject_refs[subject['@id']]}<=subject['name']
         - test_cases.each do |test|
           - test_refs[test['@id']] = 'test_' + (test['@id'][0,2] == '_:' ? test['@id'][2..-1] : test['@id'].split('#').last)
-          %tr
-            %td{:resource => test['@id']}
+          %tr{:resource => test['@id']}
+            %td
               %a{:href => '#' + test_refs[test['@id']]}<= test['title']
-            - subjects.each do |subjects|
-              - url = subjects['@id']
-              - next unless test.has_key?(url)
-              - assertion = test[url]
+            - test['assertions'].each do |assertion|
               - pass_fail = assertion['result']['outcome'].split(':').last.upcase.sub(/ED$/, '')
-              %td{:class => pass_fail, :property => assertion['subject'], :typeof => assertion['@type']}
+              %td{:class => pass_fail, :property => "earl:assertions", :typeof => assertion['@type'], :inlist => true}
                 %link{:property => "earl:assertedBy", :href => assertion['assertedBy']}
                 %link{:property => "earl:test", :href => assertion['test']}
                 %link{:property => "earl:subject", :href => assertion['subject']}
-                %link{:property => 'earl:mode', :href => assertion['mode']}/ 
+                %link{:property => 'earl:mode', :href => assertion['mode']}
                 %span{:property => "earl:result", :typeof => assertion['result']['@type'], :resource => '_'}
                   %span{:property => 'earl:outcome', :resource => assertion['result']['outcome']}
                     = pass_fail
@@ -222,7 +225,7 @@
                           Home Page
                         %dd
                           %a{:property => "foaf:homepage", :href=> dev['foaf:homepage']}
-                            = dev['homepage']
+                            = dev['foaf:homepage']
     - unless tests['assertions'].empty?
       %section.appendix{:rel => "earl:assertions"}
         %h2

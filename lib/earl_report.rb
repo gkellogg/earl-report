@@ -66,6 +66,7 @@ class EarlReport
         earl:subject ?subject;
         earl:test ?test ] .
     }
+    ORDER BY ?subject
   ).freeze
 
   TEST_CONTEXT = {
@@ -78,7 +79,7 @@ class EarlReport
     foaf:         "http://xmlns.com/foaf/0.1/",
     rdfs:         "http://www.w3.org/2000/01/rdf-schema#",
     assertedBy:   {"@type" => "@id"},
-    assertions:   {"@type" => "@id"},
+    assertions:   {"@type" => "@id", "@container" => "@list"},
     bibRef:       {"@id" => "dc:bibliographicCitation"},
     description:  {"@id" => "dc:description"},
     developer:    {"@id" => "doap:developer", "@type" => "@id", "@container" => "@set"},
@@ -118,11 +119,11 @@ class EarlReport
   def initialize(*files)
     @options = files.last.is_a?(Hash) ? files.pop.dup : {}
     @options[:query] ||= MANIFEST_QUERY
-    raise "Test Manifest must be specified with :manifest option" unless @options[:manifest]
+    raise "Test Manifest must be specified with :manifest option" unless @options[:manifest] || @options[:json]
     @files = files
     @prefixes = {}
-    if @options[:dump]
-      @json_hash = ::JSON.parse(File.read(@options[:dump]))
+    if @options[:json]
+      @json_hash = ::JSON.parse(File.read(files.first))
       return
     end
 
@@ -249,34 +250,36 @@ class EarlReport
   # @return [Array]
   def json_test_subject_info
     # Get the set of subjects
-    ts_info = {}
-    SPARQL.execute(TEST_SUBJECT_QUERY, @graph).each do |solution|
-      status "solution #{solution.to_hash.inspect}"
-      info = ts_info[solution[:uri].to_s] ||= {}
-      %w(name doapDesc homepage language).each do |prop|
-        info[prop] = solution[prop.to_sym].to_s if solution[prop.to_sym]
+    @subject_info ||= begin
+      ts_info = {}
+      SPARQL.execute(TEST_SUBJECT_QUERY, @graph).each do |solution|
+        status "solution #{solution.to_hash.inspect}"
+        info = ts_info[solution[:uri].to_s] ||= {}
+        %w(name doapDesc homepage language).each do |prop|
+          info[prop] = solution[prop.to_sym].to_s if solution[prop.to_sym]
+        end
+        if solution[:devName]
+          dev_type = solution[:devType].to_s =~ /Organization/ ? "foaf:Organization" : "foaf:Person"
+          dev = {'@type' => dev_type}
+          dev['@id'] = solution[:developer].to_s if solution[:developer].uri?
+          dev['foaf:name'] = solution[:devName].to_s if solution[:devName]
+          dev['foaf:homepage'] = solution[:devHomepage].to_s if solution[:devHomepage]
+          (info['developer'] ||= []) << dev
+        end
+        info['developer'] = info['developer'].uniq
       end
-      if solution[:devName]
-        dev_type = solution[:devType].to_s =~ /Organization/ ? "foaf:Organization" : "foaf:Person"
-        dev = {'@type' => dev_type}
-        dev['@id'] = solution[:developer].to_s if solution[:developer].uri?
-        dev['foaf:name'] = solution[:devName].to_s if solution[:devName]
-        dev['foaf:homepage'] = solution[:devHomepage].to_s if solution[:devHomepage]
-        (info['developer'] ||= []) << dev
-      end
-      info['developer'] = info['developer'].uniq
-    end
 
-    # Map ids and values to array entries
-    ts_info.keys.map do |id|
-      info = ts_info[id]
-      subject = Hash.ordered
-      subject["@id"] = id
-      subject["@type"] = %w(earl:TestSubject doap:Project)
-      %w(name developer doapDesc homepage language).each do |prop|
-        subject[prop] = info[prop] if info[prop]
+      # Map ids and values to array entries
+      ts_info.keys.sort.map do |id|
+        info = ts_info[id]
+        subject = Hash.ordered
+        subject["@id"] = id
+        subject["@type"] = %w(earl:TestSubject doap:Project)
+        %w(name developer doapDesc homepage language).each do |prop|
+          subject[prop] = info[prop] if info[prop]
+        end
+        subject
       end
-      subject
     end
   end
 
@@ -287,6 +290,7 @@ class EarlReport
   # @return [Array]
   def json_result_info
     test_cases = {}
+    subjects = json_test_subject_info.map {|s| s['@id']}
 
     # Hash test cases by URI
     solutions = SPARQL.execute(@options[:query], @graph)
@@ -307,10 +311,25 @@ class EarlReport
         '@id' => uri.to_s,
         '@type' => %w(earl:TestCriterion earl:TestCase),
         'title' => solution[:title].to_s,
-        'testAction' => solution[:testAction].to_s
+        'testAction' => solution[:testAction].to_s,
+        'assertions' => []
       }
       tc_hash['description'] = solution[:description].to_s if solution[:description]
       tc_hash['testResult'] = solution[:testResult].to_s if solution[:testResult]
+      
+      # Pre-initialize results for each subject to untested
+      subjects.each do |siri|
+        tc_hash['assertions'] << {
+          '@type' => 'earl:Assertion',
+          'test'    => uri.to_s,
+          'subject' => siri,
+          'result' => {
+            '@type' => 'earl:TestResult',
+            'outcome' => 'earl:untested'
+          }
+        }
+      end
+
       test_cases[uri.to_s] = tc_hash
     end
 
@@ -321,21 +340,12 @@ class EarlReport
     SPARQL.execute(ASSERTION_QUERY, @graph).each do |solution|
       tc = test_cases[solution[:test].to_s]
       STDERR.puts "No test case found for #{solution[:test]}: #{tc.inspect}" unless tc
-      STDERR.puts "Must have outcome earl:passed or earl:failed: #{solution[:outcome].inspect}" unless
-        [EARL.passed, EARL.failed].include?(solution[:outcome])
-      tc ||= {}
       subject = solution[:subject].to_s
-      ta_hash = {}
-      ta_hash['@type'] = 'earl:Assertion'
+      result_index = subjects.index(subject)
+      ta_hash = tc['assertions'][result_index]
       ta_hash['assertedBy'] = solution[:by].to_s
-      ta_hash['test'] = solution[:test].to_s
       ta_hash['mode'] = "earl:#{solution[:mode].to_s.split('#').last || 'automatic'}"
-      ta_hash['subject'] = subject
-      ta_hash['result'] = {
-        '@type' => 'earl:TestResult',
-        "outcome" => (solution[:outcome] == EARL.passed ? 'earl:passed' : 'earl:failed')
-      }
-      tc[subject] = ta_hash
+      ta_hash['result']['outcome'] = "earl:#{solution[:outcome].to_s.split('#').last}"
     end
 
     test_cases.values
@@ -401,12 +411,6 @@ class EarlReport
     test_cases.keys.sort.each do |num|
       io.write(tc_turtle(test_cases[num]))
     end
-    
-    # Write out each earl:Assertion
-    io.puts %(#\n# Assertions\n#)
-    assertions.sort_by {|a| a['@id']}.each do |as_desc|
-      io.write(as_turtle(as_desc))
-    end
   end
   
   ##
@@ -441,11 +445,16 @@ class EarlReport
   # @prarm[Hash] desc
   # @return [String]
   def tc_turtle(desc)
-    res = %(<#{desc['@id']}> a #{[desc['@type']].flatten.join(', ')};\n)
-    res += %(  dc:title "#{desc['title']}";\n)
-    res += %(  dc:description """#{desc['description']}""";\n) if desc.has_key?('description')
-    res += %(  mf:result <#{desc['testResult']}>;\n) if desc.has_key?('testResult')
-    res += %(  mf:action <#{desc['testAction']}> .\n\n)
+    res = %{<#{desc['@id']}> a #{[desc['@type']].flatten.join(', ')};\n}
+    res += %{  dc:title "#{desc['title']}";\n}
+    res += %{  dc:description """#{desc['description']}""";\n} if desc.has_key?('description')
+    res += %{  mf:result <#{desc['testResult']}>;\n} if desc.has_key?('testResult')
+    res += %{  mf:action <#{desc['testAction']}>;\n}
+    res += %{  earl:assertions (\n}
+    desc['assertions'].each do |as_desc|
+      res += as_turtle(as_desc)
+    end
+    res += %{  ) .\n\n}
   end
 
   ##
@@ -453,14 +462,12 @@ class EarlReport
   # @prarm[Hash] desc
   # @return [String]
   def as_turtle(desc)
-    res =  %([ a earl:Assertion;\n)
-    res += %(  earl:assertedBy <#{desc['assertedBy']}>;\n)
-    res += %(  earl:test <#{desc['test']}>;\n)
-    res += %(  earl:subject <#{desc['subject']}>;\n)
-    res += %(  earl:mode #{desc['mode']};\n)
-    res += %(  earl:result [ a earl:TestResult; earl:outcome #{desc['result']['outcome']}] ] .\n)
-    res += %(\n)
-    res
+    res =  %(    [ a earl:Assertion;\n)
+    res += %(      earl:assertedBy <#{desc['assertedBy']}>;\n)
+    res += %(      earl:test <#{desc['test']}>;\n)
+    res += %(      earl:subject <#{desc['subject']}>;\n)
+    res += %(      earl:mode #{desc['mode']};\n)
+    res += %(      earl:result [ a earl:TestResult; earl:outcome #{desc['result']['outcome']} ]]\n)
   end
   
   def as_resource(resource)
