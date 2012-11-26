@@ -41,7 +41,11 @@ describe EarlReport do
         RDF::Graph.should_receive(:load)
           .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {:base_uri => "http://example.com/base/"})
           .and_return(manifest)
+        RDF::Graph.should_receive(:load)
+          .with(File.expand_path("../test-files/report-complete.ttl", __FILE__))
+          .and_return(reportComplete)
         EarlReport.new(
+          File.expand_path("../test-files/report-complete.ttl", __FILE__),
           :verbose => false,
           :base => "http://example.com/base/",
           :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
@@ -164,14 +168,14 @@ describe EarlReport do
     specify {json.should be_a(Hash)}
     {
       "@id"    => "",
-      "@type"  => %w(earl:Software doap:Project),
+      "@type"  => "earl:Report",
       'bibRef' => "[[TURTLE]]",
-      'name'   => "Turtle Test Results"
+      'title'   => "Turtle Test Results"
     }.each do |prop, value|
       specify(prop) {json[prop].should == value}
     end
 
-    %w(assertions testSubjects tests).each do |key|
+    %w(assertions generatedBy testSubjects tests).each do |key|
       specify {json.keys.should include(key)}
     end
 
@@ -314,7 +318,7 @@ describe EarlReport do
         ttl.should match(/ doap:name "#{desc['name']}"\s*[;\.]$/)
       end
       it "has description" do
-        ttl.should match(/ doap:description """#{desc['doapDesc']}"""\s*[;\.]$/)
+        ttl.should match(/ doap:description """#{desc['doapDesc']}"""@en\s*[;\.]$/)
       end
       it "has doap:programming-language" do
         ttl.should match(/ doap:programming-language "#{desc['language']}"\s*[;\.]$/)
@@ -371,7 +375,7 @@ describe EarlReport do
         ttl.should match(/ dc:title "#{tc['title']}"\s*[;\.]$/)
       end
       it "has dc:description" do
-        ttl.should match(/ dc:description """#{tc['description']}"""\s*[;\.]$/)
+        ttl.should match(/ dc:description """#{tc['description']}"""@en\s*[;\.]$/)
       end
       it "has mf:action" do
         ttl.should match(/ mf:action <#{tc['testAction']}>\s*[;\.]$/)
@@ -444,8 +448,8 @@ describe EarlReport do
     end
 
     context "earl:Software" do
-      specify {output.should match(/<> a earl:Software, doap:Project\s*[;\.]$/)}
-      specify {output.should match(/  doap:name "#{json_hash['name']}"\s*[;\.]$/)}
+      specify {output.should match(/<> a earl:Report\s*[;\.]$/)}
+      specify {output.should match(/  dc:title "#{json_hash['title']}"\s*[;\.]$/)}
     end
 
     context "Subject Definitions" do
@@ -531,9 +535,10 @@ describe EarlReport do
     PREFIX earl: <http://www.w3.org/ns/earl#>
           
     ASK WHERE {
-      ?uri a earl:Software, doap:Project;
-        doap:name "Turtle Test Results";
+      ?uri a earl:Report;
+        dc:title "Turtle Test Results";
         dc:bibliographicCitation "[[TURTLE]]";
+        earl:generatedBy ?generatedBy;
         earl:assertions ?assertionFile;
         earl:testSubjects (<http://rubygems.org/gems/rdf-turtle>);
         earl:tests (
@@ -550,7 +555,7 @@ describe EarlReport do
     ASK WHERE {
       <http://rubygems.org/gems/rdf-turtle> a earl:TestSubject, doap:Project;
         doap:name "RDF::Turtle";
-        doap:description """RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.""";
+        doap:description """RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite."""@en;
         doap:programming-language "Ruby";
         doap:developer <http://greggkellogg.net/foaf#me> .
     }
@@ -574,7 +579,7 @@ describe EarlReport do
     ASK WHERE {
       <http://example/manifest.ttl#testeval00> a earl:TestCriterion, earl:TestCase;
         dc:title "subm-test-00";
-        dc:description """Blank subject""";
+        dc:description """Blank subject"""@en;
         mf:action <http://example/test-00.ttl>;
         mf:result <http://example/test-00.out>;
         earl:assertions (

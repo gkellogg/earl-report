@@ -8,13 +8,13 @@ Gem::Specification.new do |gem|
   gem.homepage              = "http://github.com/gkellogg/earl-report"
   gem.license               = 'Public Domain' if gem.respond_to?(:license=)
   gem.summary               = "Earl Report summary generator"
-  gem.description           = "EarlReport generates HTML+RDFa rollups of multiple EARL report."
+  gem.description           = "EarlReport generates HTML+RDFa rollups of multiple EARL reports."
 
   gem.authors               = ['Gregg Kellogg']
   gem.email                 = 'gregg@greggkellogg.net'
 
   gem.platform              = Gem::Platform::RUBY
-  gem.files                 = %w(README.md VERSION) + Dir.glob('lib/**/*.rb')
+  gem.files                 = %w(README.md VERSION) + Dir.glob('lib/**/*')
   gem.bindir               = %q(bin)
   gem.executables          = %w(earl-report)
   gem.default_executable   = gem.executables.first

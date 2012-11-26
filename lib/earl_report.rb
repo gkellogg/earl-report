@@ -7,6 +7,8 @@ require 'haml'
 # EARL reporting class.
 # Instantiate a new class using one or more input graphs
 class EarlReport
+  autoload :VERSION, 'earl_report/version'
+
   attr_reader :graph
 
   MANIFEST_QUERY = %(
@@ -81,22 +83,28 @@ class EarlReport
     assertedBy:   {"@type" => "@id"},
     assertions:   {"@type" => "@id", "@container" => "@list"},
     bibRef:       {"@id" => "dc:bibliographicCitation"},
-    description:  {"@id" => "dc:description"},
+    created:      {"@id" => "doap:created", "@type" => "xsd:date"},
+    description:  {"@id" => "dc:description", "@language" => "en"},
     developer:    {"@id" => "doap:developer", "@type" => "@id", "@container" => "@set"},
-    doapDesc:     {"@id" => "doap:description"},
+    doapDesc:     {"@id" => "doap:description", "@language" => "en"},
+    generatedBy:  {"@type" => "@id"},
     homepage:     {"@id" => "doap:homepage", "@type" => "@id"},
-    label:        {"@id" => "rdfs:label"},
+    label:        {"@id" => "rdfs:label", "@language" => "en"},
     language:     {"@id" => "doap:programming-language"},
+    license:      {"@id" => "doap:license", "@type" => "@id"},
     mode:         {"@type" => "@id"},
     name:         {"@id" => "doap:name"},
     outcome:      {"@type" => "@id"},
+    release:      {"@id" => "doap:release", "@type" => "@id"},
+    shortdesc:    {"@id" => "doap:shortdesc", "@language" => "en"},
     subject:      {"@type" => "@id"},
     test:         {"@type" => "@id"},
     testAction:   {"@id" => "mf:action", "@type" => "@id"},
     testResult:   {"@id" => "mf:result", "@type" => "@id"},
     tests:        {"@type" => "@id", "@container" => "@list"},
     testSubjects: {"@type" => "@id", "@container" => "@list"},
-    title:        {"@id" => "dc:title"}
+    title:        {"@id" => "dc:title"},
+    xsd:          {"@id" => "http://www.w3.org/2001/XMLSchema#"}
   }.freeze
 
   # Convenience vocabularies
@@ -120,6 +128,7 @@ class EarlReport
     @options = files.last.is_a?(Hash) ? files.pop.dup : {}
     @options[:query] ||= MANIFEST_QUERY
     raise "Test Manifest must be specified with :manifest option" unless @options[:manifest] || @options[:json]
+    raise "Require at least one input file" if files.empty?
     @files = files
     @prefixes = {}
     if @options[:json]
@@ -234,11 +243,34 @@ class EarlReport
       # Customized JSON-LD output
       {
         "@context" => TEST_CONTEXT,
-        "@id"          => "",
-        "@type"        => %w(earl:Software doap:Project),
+        "@id"           => "",
+        "@type"         => "earl:Report",
+        'title'         => @options[:name],
+        'bibRef'        => @options[:bibRef],
+        'generatedBy'   => {
+          "@id"         => "http://rubygems.org/gems/earl-report",
+          "@type"       => %w(earl:Software doap:Project),
+          "name"        => "earl-report",
+          "shortdesc"   => "Earl Report summary generator",
+          "doapDesc"    => "EarlReport generates HTML+RDFa rollups of multiple EARL reports",
+          "homepage"    => "https://github.com/gkellogg/earl-report",
+          "language"    => "Ruby",
+          "license"     => "http://unlicense.org",
+          "release"     => {
+            "@id"       => "https://github.com/gkellogg/earl-report/tree/#{VERSION}",
+            "@type"     => "doap:Version",
+            "name"      => "earl-report-#{VERSION}",
+            "created"   => File.mtime(File.expand_path('../../VERSION', __FILE__)).strftime('%Y-%m-%d'),
+            "revision"  => VERSION.to_s
+          },
+          "developer"   => {
+            "@type"     => "foaf:Person",
+            "@id"       => "http://greggkellogg.net/foaf#me",
+            "foaf:name" => "Gregg Kellogg",
+            "foaf:homepage" => "http://greggkellogg.net/"
+          }
+        },
         "assertions"   => @files,
-        'name'         => @options[:name],
-        'bibRef'       => @options[:bibRef],
         'testSubjects' => json_test_subject_info,
         'tests'        => json_result_info
       }
@@ -375,21 +407,33 @@ class EarlReport
     io.puts
 
     # Write earl:Software for the report
-    io.puts %{<#{json_hash['@id']}> a earl:Software, doap:Project;}
-    io.puts %{  doap:homepage <#{json_hash['homepage']}>;}
-    io.puts %{  doap:name "#{json_hash['name']}";}
-    io.puts %{  dc:bibliographicCitation "#{json_hash['bibRef']}";}
-    io.puts %{  earl:assertions\n}
-    io.puts %{    } + json_hash['assertions'].map {|a| as_resource(a)}.join(",\n    ") + ';'
-    io.puts %{  earl:testSubjects (\n}
-    io.puts %{    } + json_hash['testSubjects'].map {|a| as_resource(a['@id'])}.join("\n    ") + ');'
-    io.puts %{  earl:tests (\n}
-    io.puts %{    } + json_hash['tests'].map {|a| as_resource(a['@id'])}.join("\n    ") + ') .'
+    io.puts %{
+      #{as_resource(json_hash['@id'])} a #{[json_hash['@type']].flatten.join(', ')};
+        dc:title "#{json_hash['title']}";
+        dc:bibliographicCitation "#{json_hash['bibRef']}";
+        earl:generatedBy #{as_resource json_hash['generatedBy']['@id']};
+        earl:assertions
+          #{json_hash['assertions'].map {|a| as_resource(a)}.join(",\n          ")};
+        earl:testSubjects (
+          #{json_hash['testSubjects'].map {|a| as_resource(a['@id'])}.join("\n          ")});
+        earl:tests (
+          #{json_hash['tests'].map {|a| as_resource(a['@id'])}.join("\n          ")}) .
 
-    # Test Cases
-    # also collect each assertion definition
-    test_cases = {}
-    assertions = []
+    }.gsub(/^      /, '')
+
+    # Write generating software information
+    io.puts %{
+      <http://rubygems.org/gems/earl-report> a earl:Software, doap:Project;
+        doap:name "earl-report";
+        doap:shortdesc "Earl Report summary generator"@en;
+        doap:description "EarlReport generates HTML+RDFa rollups of multiple EARL reports"@en;
+        doap:homepage <https://github.com/gkellogg/earl-report>;
+        doap:programming-language "Ruby";
+        doap:license <http://unlicense.org>;
+        doap:release <https://github.com/gkellogg/earl-report/tree/#{VERSION}>;
+        doap:developer <http://greggkellogg.net/foaf#me> .
+
+    }.gsub(/^      /, '')
 
     # Write out each earl:TestSubject
     io.puts %(#\n# Subject Definitions\n#)
@@ -411,7 +455,7 @@ class EarlReport
   def test_subject_turtle(desc)
     res = %(<#{desc['@id']}> a #{desc['@type'].join(', ')};\n)
     res += %(  doap:name "#{desc['name']}";\n)
-    res += %(  doap:description """#{desc['doapDesc']}""";\n)     if desc['doapDesc']
+    res += %(  doap:description """#{desc['doapDesc']}"""@en;\n)     if desc['doapDesc']
     res += %(  doap:programming-language "#{desc['language']}";\n) if desc['language']
     res += %( .\n\n)
 
@@ -438,7 +482,7 @@ class EarlReport
   def tc_turtle(desc)
     res = %{#{as_resource desc['@id']} a #{[desc['@type']].flatten.join(', ')};\n}
     res += %{  dc:title "#{desc['title']}";\n}
-    res += %{  dc:description """#{desc['description']}""";\n} if desc.has_key?('description')
+    res += %{  dc:description """#{desc['description']}"""@en;\n} if desc.has_key?('description')
     res += %{  mf:result #{as_resource desc['testResult']};\n} if desc.has_key?('testResult')
     res += %{  mf:action #{as_resource desc['testAction']};\n}
     res += %{  earl:assertions (\n}

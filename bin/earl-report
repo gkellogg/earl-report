@@ -25,12 +25,13 @@ OPT_ARGS = [
 ]
 def usage
   STDERR.puts %{
+    earl-report version #{EarlReport::VERSION}
     Generate EARL report for mutliple test results against a test manifest.
     
     Options are initialized by reading optional run-control file '.earl' in the local directory,
     if it exists.
     
-    Usage: #{$0} [options] test-manifest test-result ...
+    Usage: #{$0} [options] test-result ...
   }.gsub(/^    /, '')
   width = OPT_ARGS.map do |o|
     l = o.first.length
@@ -90,6 +91,8 @@ if options.has_key?(:template) && options[:template].empty?
   File.open(File.expand_path("../../lib/earl_report/views/earl_report.html.haml", __FILE__)) do |f|
     options[:io].write(f.read)
   end
+elsif ARGV.empty?
+  usage
 else
   earl = EarlReport.new(*ARGV, options)
   earl.generate(options)

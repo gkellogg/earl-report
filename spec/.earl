@@ -1,0 +1,4 @@
+---
+:format: :html
+:manifest: test-files/manifest.ttl
+:base: http://example.org/manifest
