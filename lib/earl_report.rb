@@ -391,15 +391,6 @@ class EarlReport
     test_cases = {}
     assertions = []
 
-    # Tests
-    json_hash['tests'].each do |test_case|
-      tc_desc =  test_cases[test_case['test']] ||= test_case.dup
-      test_case.keys.select {|k| k =~ /^http:/}.each do |ts_uri|
-        tc_desc[ts_uri] = test_case[ts_uri]['@id']
-        assertions << test_case[ts_uri]
-      end
-    end
-    
     # Write out each earl:TestSubject
     io.puts %(#\n# Subject Definitions\n#)
     json_hash['testSubjects'].each do |ts_desc|
@@ -408,8 +399,8 @@ class EarlReport
     
     # Write out each earl:TestCase
     io.puts %(#\n# Test Case Definitions\n#)
-    test_cases.keys.sort.each do |num|
-      io.write(tc_turtle(test_cases[num]))
+    json_hash['tests'].each do |test_case|
+      io.write(tc_turtle(test_case))
     end
   end
   
@@ -445,11 +436,11 @@ class EarlReport
   # @prarm[Hash] desc
   # @return [String]
   def tc_turtle(desc)
-    res = %{<#{desc['@id']}> a #{[desc['@type']].flatten.join(', ')};\n}
+    res = %{#{as_resource desc['@id']} a #{[desc['@type']].flatten.join(', ')};\n}
     res += %{  dc:title "#{desc['title']}";\n}
     res += %{  dc:description """#{desc['description']}""";\n} if desc.has_key?('description')
-    res += %{  mf:result <#{desc['testResult']}>;\n} if desc.has_key?('testResult')
-    res += %{  mf:action <#{desc['testAction']}>;\n}
+    res += %{  mf:result #{as_resource desc['testResult']};\n} if desc.has_key?('testResult')
+    res += %{  mf:action #{as_resource desc['testAction']};\n}
     res += %{  earl:assertions (\n}
     desc['assertions'].each do |as_desc|
       res += as_turtle(as_desc)
@@ -463,10 +454,10 @@ class EarlReport
   # @return [String]
   def as_turtle(desc)
     res =  %(    [ a earl:Assertion;\n)
-    res += %(      earl:assertedBy <#{desc['assertedBy']}>;\n)
-    res += %(      earl:test <#{desc['test']}>;\n)
-    res += %(      earl:subject <#{desc['subject']}>;\n)
-    res += %(      earl:mode #{desc['mode']};\n)
+    res += %(      earl:assertedBy #{as_resource desc['assertedBy']};\n) if desc['assertedBy']
+    res += %(      earl:test #{as_resource desc['test']};\n)
+    res += %(      earl:subject #{as_resource desc['subject']};\n)
+    res += %(      earl:mode #{desc['mode']};\n) if desc['mode']
     res += %(      earl:result [ a earl:TestResult; earl:outcome #{desc['result']['outcome']} ]]\n)
   end
   
