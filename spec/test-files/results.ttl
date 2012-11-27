@@ -20,7 +20,7 @@
     <http://rubygems.org/gems/rdf-turtle>);
   earl:tests (
     <http://example/manifest.ttl#testeval00>
-    _:g70145044199940) .
+    _:g70304060229600) .
 
     
 
@@ -56,7 +56,7 @@
 #
 <http://example/manifest.ttl#testeval00> a earl:TestCriterion, earl:TestCase;
   dc:title "subm-test-00";
-  dc:description """Blank subject""";
+  dc:description """Blank subject"""@en;
   mf:result <http://example/test-00.out>;
   mf:action <http://example/test-00.ttl>;
   earl:assertions (
@@ -68,14 +68,14 @@
       earl:result [ a earl:TestResult; earl:outcome earl:passed ]]
   ) .
 
-_:g70145044199940 a earl:TestCriterion, earl:TestCase;
+_:g70304060229600 a earl:TestCriterion, earl:TestCase;
   dc:title "subm-test-01";
-  dc:description """@prefix and qnames""";
+  dc:description """@prefix and qnames"""@en;
   mf:result <http://example/test-01.out>;
   mf:action <http://example/test-01.ttl>;
   earl:assertions (
     [ a earl:Assertion;
-      earl:test _:g70145044199940;
+      earl:test _:g70304060229600;
       earl:subject <http://rubygems.org/gems/rdf-turtle>;
       earl:result [ a earl:TestResult; earl:outcome earl:untested ]]
   ) .

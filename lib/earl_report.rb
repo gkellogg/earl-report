@@ -249,7 +249,7 @@ class EarlReport
         'bibRef'        => @options[:bibRef],
         'generatedBy'   => {
           "@id"         => "http://rubygems.org/gems/earl-report",
-          "@type"       => %w(earl:Software doap:Project),
+          "@type"       => "doap:Project",
           "name"        => "earl-report",
           "shortdesc"   => "Earl Report summary generator",
           "doapDesc"    => "EarlReport generates HTML+RDFa rollups of multiple EARL reports",
