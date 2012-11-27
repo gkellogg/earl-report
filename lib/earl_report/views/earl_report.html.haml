@@ -46,7 +46,7 @@
   %head
     %meta{"http-equiv" => "Content-Type", :content => "text/html;charset=utf-8"}
     %title
-      = tests['name']
+      = tests['title']
     %script.remove{:type => "text/javascript", :src => "http://www.w3.org/Tools/respec/respec-w3c-common"}
     :javascript
       var respecConfig = {
@@ -268,7 +268,7 @@
         an
         %a{:property => "doap:license", :href => doap['license']}<="Unlicensed"
         %span{:property => "doap:programming-language"}<="Ruby"
-        package available at
+        application. More information is available at
         %a{:property => "doap:homepage", :href => doap['homepage']}<=doap['homepage']
         = "."
       %p{:property => "doap:developer", :resource => "http://greggkellogg.net/foaf#me", :typeof => "foaf:Person"}

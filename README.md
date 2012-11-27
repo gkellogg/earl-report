@@ -79,25 +79,34 @@ The `earl-report` command may be used to directly create a report from zero or m
     gem install earl-report
     
     earl \
-      --output FILE     # Location for generated report
-      --tempate [FILE]  # Location of report template file; returns default if not specified
-      --bibRef          # The default ReSpec-formatted bibliographic reference for the report
-      --name            # The name of the software being reported upon
-      --manifest FILE   # a test manifest used to define test descriptions
-      --base URI        # Base URI to by applied when parsing test manifest
-      --query FILE      # Alternative SPARQL query for extracting information from manifest
+      --base            # Base URI to use when loading test manifest
+      --bibRef          # ReSpec BibRef of specification being reported upon
+      --format          # Format of output, one of 'ttl', 'json', or 'html'
+      --json            # Input is a JSON-LD formatted result
+      --manifest        # Test manifest
+      --name            # Name of specification
+      --output          # Output report to file
+      --query           # Query, or file containing query for extracting information from Test manifest
+      --rc              # Write options to run-control file
+      --template        # Specify or return default report template
       report*           # one or more EARL report in most RDF formats
+
+Generally, creating a `json` format first is more efficient. Subsequent invocations can then use the `--json` and use the generated JSON-LD file instead of re-parsing each report.
 
 ### Initialization File
 `earl-report` can take defaults for options from an initialization file.
-When run, `earl-report` attempts to open the file `.earl` in the current directory.
-This file is in [YAML][] format with entries for each option.
+When run, `earl-report` attempts to open the file `.earl` in the current directory. This file is in [YAML][] format with entries for each option. Use the `--rc` option to automatically generate it.
+
+## Author
+* [Gregg Kellogg](http://github.com/gkellogg) - <http://greggkellogg.net/>
 
 ## License
 
 This software is licensed using [Unlicense](http://unlicense.org) and is freely available without encumbrance.
 
-[DOAP]: https://github.com/edumbill/doap/wiki
-[EARL]: http://www.w3.org/TR/EARL10-Schema/
-[FOAF]: http://xmlns.com/foaf/spec/
-[Haml]: http://haml.info/
+[DOAP]:   https://github.com/edumbill/doap/wiki
+[EARL]:   http://www.w3.org/TR/EARL10-Schema/
+[FOAF]:   http://xmlns.com/foaf/spec/
+[Haml]:   http://haml.info/
+[YAML]:   http://www.yaml.org/
+[ReSpec]: http://dev.w3.org/2009/dap/ReSpec.js/documentation.html
