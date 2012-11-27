@@ -78,7 +78,7 @@ The `earl-report` command may be used to directly create a report from zero or m
 
     gem install earl-report
     
-    earl \
+    earl-report \
       --base            # Base URI to use when loading test manifest
       --bibRef          # ReSpec BibRef of specification being reported upon
       --format          # Format of output, one of 'ttl', 'json', or 'html'
