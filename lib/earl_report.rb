@@ -11,18 +11,26 @@ class EarlReport
 
   attr_reader :graph
 
+  # Return information about each test, and for the first test in the
+  # manifest, about the manifest itself
   MANIFEST_QUERY = %(
     PREFIX dc: <http://purl.org/dc/terms/>
     PREFIX mf: <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#>
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-    SELECT ?lh ?uri ?title ?description ?testAction ?testResult
+    SELECT ?lh ?uri ?type ?title ?description ?testAction ?testResult ?manUri  ?manComment
     WHERE {
-      ?uri mf:name ?title; mf:action ?testAction.
-      OPTIONAL { ?uri rdfs:comment ?description. }
-      OPTIONAL { ?uri mf:result ?testResult. }
-      OPTIONAL { [ mf:entries ?lh] . ?lh rdf:first ?uri . }
+      ?uri a ?type;
+        mf:name ?title;
+        mf:action ?testAction .
+      OPTIONAL { ?uri rdfs:comment ?description . }
+      OPTIONAL { ?uri mf:result ?testResult . }
+      OPTIONAL {
+        ?manUri a mf:Manifest; mf:entries ?lh .
+        ?lh rdf:first ?uri .
+        OPTIONAL { ?manUri rdfs:comment ?manComment . }
+      }
     }
   ).freeze
 
@@ -37,9 +45,9 @@ class EarlReport
       OPTIONAL { ?uri doap:homepage ?homepage . }
       OPTIONAL { ?uri doap:description ?doapDesc . }
       OPTIONAL { ?uri doap:programming-language ?language . }
+      OPTIONAL { ?developer a ?devType .}
       OPTIONAL { ?developer foaf:name ?devName .}
-      OPTIONAL { ?developer a ?devType . }
-      OPTIONAL { ?developer foaf:homepage ?devHomepage . }
+      OPTIONAL { ?developer foaf:homepage ?devHomepage .}
     }
   ).freeze
 
@@ -101,7 +109,7 @@ class EarlReport
     test:         {"@type" => "@id"},
     testAction:   {"@id" => "mf:action", "@type" => "@id"},
     testResult:   {"@id" => "mf:result", "@type" => "@id"},
-    tests:        {"@type" => "@id", "@container" => "@list"},
+    entries:      {"@id" => "mf:entries", "@type" => "@id", "@container" => "@list"},
     testSubjects: {"@type" => "@id", "@container" => "@list"},
     title:        {"@id" => "dc:title"},
     xsd:          {"@id" => "http://www.w3.org/2001/XMLSchema#"}
@@ -120,14 +128,14 @@ class EarlReport
   # @option options [String] :bibRef
   #   ReSpec bibliography reference for specification being tested
   # @option options [String] :json Result of previous JSON-LD generation
-  # @option options [String] :manifest Test manifest
+  # @option options [String, Array<String>] :manifest Test manifest
   # @option options [String] :name Name of specification
   # @option options [String] :query
-  #   Query, or file containing query for extracting information from Test manifest
+  #   Query, or file containing query for extracting information from Test manifests
   def initialize(*files)
     @options = files.last.is_a?(Hash) ? files.pop.dup : {}
     @options[:query] ||= MANIFEST_QUERY
-    raise "Test Manifest must be specified with :manifest option" unless @options[:manifest] || @options[:json]
+    raise "Test Manifests must be specified with :manifest option" unless @options[:manifest] || @options[:json]
     raise "Require at least one input file" if files.empty?
     @files = files
     @prefixes = {}
@@ -136,12 +144,16 @@ class EarlReport
       return
     end
 
-    # Load manifest, possibly with base URI
+    # Load manifests, possibly with base URI
     status "read #{@options[:manifest]}"
     man_opts = {}
     man_opts[:base_uri] = RDF::URI(@options[:base]) if @options[:base]
-    @graph = RDF::Graph.load(@options[:manifest], man_opts)
-    status "  loaded #{@graph.count} triples"
+    @graph = RDF::Graph.new
+    [@options[:manifest]].flatten.compact.each do |man|
+      g = RDF::Graph.load(man, man_opts)
+      status "  loaded #{g.count} triples from #{man}"
+      @graph << g
+    end
 
     # Read test assertion files
     files.flatten.each do |file|
@@ -244,8 +256,8 @@ class EarlReport
       {
         "@context" => TEST_CONTEXT,
         "@id"           => "",
-        "@type"         => "earl:Report",
-        'title'         => @options[:name],
+        "@type"         => %w(earl:Software doap:Project),
+        'name'          => @options[:name],
         'bibRef'        => @options[:bibRef],
         'generatedBy'   => {
           "@id"         => "http://rubygems.org/gems/earl-report",
@@ -270,9 +282,9 @@ class EarlReport
             "foaf:homepage" => "http://greggkellogg.net/"
           }
         },
-        "assertions"   => @files,
-        'testSubjects' => json_test_subject_info,
-        'tests'        => json_result_info
+        "assertions"    => @files,
+        'testSubjects'  => json_test_subject_info,
+        'entries'        => json_result_info
       }
     end
   end
@@ -319,8 +331,9 @@ class EarlReport
   # Return result information for each test.
   # This counts on hash maintaining insertion order
   #
-  # @return [Array]
+  # @return [Array<Hash>] List of manifests
   def json_result_info
+    manifests = []
     test_cases = {}
     subjects = json_test_subject_info.map {|s| s['@id']}
 
@@ -330,44 +343,67 @@ class EarlReport
       .inject({}) {|memo, soln| memo[soln[:uri]] = soln; memo}
 
     # If test cases are in a list, maintain order
-    solution_list = if first_soln = solutions.values.detect {|s| s[:lh]}
-      RDF::List.new(first_soln[:lh], @graph)
-    else
-      solutions.keys  # Any order will do
-    end
+    solutions.values.select {|s| s[:manUri]}.each do |man_soln|
+      # Get tests for this manifest in list order
+      solution_list = RDF::List.new(man_soln[:lh], @graph)
 
-    # Collect each TestCase
-    solution_list.each do |uri|
-      solution = solutions[uri]
-      tc_hash = {
-        '@id' => uri.to_s,
-        '@type' => %w(earl:TestCriterion earl:TestCase),
-        'title' => solution[:title].to_s,
-        'testAction' => solution[:testAction].to_s,
-        'assertions' => []
-      }
-      tc_hash['description'] = solution[:description].to_s if solution[:description]
-      tc_hash['testResult'] = solution[:testResult].to_s if solution[:testResult]
-      
-      # Pre-initialize results for each subject to untested
-      subjects.each do |siri|
-        tc_hash['assertions'] << {
-          '@type' => 'earl:Assertion',
-          'test'    => uri.to_s,
-          'subject' => siri,
-          'result' => {
-            '@type' => 'earl:TestResult',
-            'outcome' => 'earl:untested'
-          }
+      # Set up basic manifest information
+      man_info = manifests.detect {|m| m['@id'] == man_soln[:manUri].to_s}
+      unless man_info
+        status "manifest: #{man_soln[:manUri]}"
+        man_info = {
+          '@id' => man_soln[:manUri].to_s,
+          "@type" => %w{earl:Report mf:Manifest},
+          'title' => man_soln[:manComment].to_s,
+          'entries' => []
         }
+        manifests << man_info
       end
 
-      test_cases[uri.to_s] = tc_hash
+      # Collect each TestCase
+      solution_list.each do |uri|
+        solution = solutions[uri]
+
+        # Create entry for this test case, if it doesn't already exist
+        tc = man_info['entries'].detect {|t| t['@id'] == uri}
+        unless tc
+          tc = {
+            '@id' => uri.to_s,
+            '@type' => %w(earl:TestCriterion earl:TestCase),
+            'title' => solution[:title].to_s,
+            'testAction' => solution[:testAction].to_s,
+            'assertions' => []
+          }
+          tc['@type'] << solution[:type].to_s if solution[:type]
+          tc['description'] = solution[:description].to_s if solution[:description]
+          tc['testResult'] = solution[:testResult].to_s if solution[:testResult]
+      
+          # Pre-initialize results for each subject to untested
+          subjects.each do |siri|
+            tc['assertions'] << {
+              '@type'   => 'earl:Assertion',
+              'test'    => uri.to_s,
+              'subject' => siri,
+              'mode'    => 'earl:automatic',
+              'result'  => {
+                '@type' => 'earl:TestResult',
+                'outcome' => 'earl:untested'
+              }
+            }
+          end
+
+          test_cases[uri.to_s] = tc
+          man_info['entries'] << tc
+        end
+      end
+
+      raise "No test cases found" if man_info['entries'].empty?
+      status "Test cases:\n  #{man_info['entries'].map {|tc| tc['@id']}.join("\n  ")}"
     end
 
-    raise "No test cases found" if test_cases.empty?
+    raise "No manifests found" if manifests.empty?
+    status "Manifests:\n  #{manifests.map {|m| m['@id']}.join("\n  ")}"
 
-    status "Test cases:\n  #{test_cases.keys.join("\n  ")}"
     # Iterate through assertions and add to appropriate test case
     SPARQL.execute(ASSERTION_QUERY, @graph).each do |solution|
       tc = test_cases[solution[:test].to_s]
@@ -380,7 +416,7 @@ class EarlReport
       ta_hash['result']['outcome'] = "earl:#{solution[:outcome].to_s.split('#').last}"
     end
 
-    test_cases.values
+    manifests.sort_by {|m| m['title']}
   end
 
   ##
@@ -407,18 +443,17 @@ class EarlReport
     io.puts
 
     # Write earl:Software for the report
+    man_defs = json_hash['entries'].map {|defn| as_resource(defn['@id'])}.join("\n    ")
     io.puts %{
       #{as_resource(json_hash['@id'])} a #{[json_hash['@type']].flatten.join(', ')};
-        dc:title "#{json_hash['title']}";
+        doap:name "#{json_hash['name']}";
         dc:bibliographicCitation "#{json_hash['bibRef']}";
         earl:generatedBy #{as_resource json_hash['generatedBy']['@id']};
         earl:assertions
           #{json_hash['assertions'].map {|a| as_resource(a)}.join(",\n          ")};
         earl:testSubjects (
           #{json_hash['testSubjects'].map {|a| as_resource(a['@id'])}.join("\n          ")});
-        earl:tests (
-          #{json_hash['tests'].map {|a| as_resource(a['@id'])}.join("\n          ")}) .
-
+        mf:entries (\n    #{man_defs}) .
     }.gsub(/^      /, '')
 
     # Write generating software information
@@ -435,16 +470,34 @@ class EarlReport
 
     }.gsub(/^      /, '')
 
+    # Output Manifest definitions
+    # along with test cases and assertions
+    test_cases = []
+    io.puts %(\n# Manifests)
+    json_hash['entries'].each do |man|
+      io.puts %(#{as_resource(man['@id'])} a earl:Report, mf:Manifest;)
+      io.puts %(  dc:title "#{man['title']}";)
+      io.puts %(  mf:name "#{man['title']}";)
+      
+      # Test Cases
+      test_defs = man['entries'].map {|defn| as_resource(defn['@id'])}.join("\n    ")
+      io.puts %(  mf:entries (\n    #{test_defs}) .\n\n)
+
+      test_cases += man['entries']
+    end
+
     # Write out each earl:TestSubject
     io.puts %(#\n# Subject Definitions\n#)
     json_hash['testSubjects'].each do |ts_desc|
       io.write(test_subject_turtle(ts_desc))
     end
-    
+
     # Write out each earl:TestCase
     io.puts %(#\n# Test Case Definitions\n#)
-    json_hash['tests'].each do |test_case|
-      io.write(tc_turtle(test_case))
+    json_hash['entries'].each do |manifest|
+      manifest['entries'].each do |test_case|
+        io.write(tc_turtle(test_case))
+      end
     end
   end
   

@@ -10,18 +10,16 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 
-<> a earl:Report;
-  dc:title "";
+<> a earl:Software, doap:Project;
+  doap:name "";
   dc:bibliographicCitation "";
   earl:generatedBy <http://rubygems.org/gems/earl-report>;
   earl:assertions
     <test-files/report-complete.ttl>;
   earl:testSubjects (
     <http://rubygems.org/gems/rdf-turtle>);
-  earl:tests (
-    <http://example/manifest.ttl#testeval00>
-    _:g70304060229600) .
-
+  mf:entries (
+    <http://example/manifest.ttl>) .
     
 
 <http://rubygems.org/gems/earl-report> a earl:Software, doap:Project;
@@ -31,10 +29,19 @@
   doap:homepage <https://github.com/gkellogg/earl-report>;
   doap:programming-language "Ruby";
   doap:license <http://unlicense.org>;
-  doap:release <https://github.com/gkellogg/earl-report/tree/0.1.1>;
+  doap:release <https://github.com/gkellogg/earl-report/tree/0.2.0>;
   doap:developer <http://greggkellogg.net/foaf#me> .
 
     
+
+# Manifests
+<http://example/manifest.ttl> a earl:Report, mf:Manifest;
+  dc:title "Example Test Cases";
+  mf:name "Example Test Cases";
+  mf:entries (
+    <http://example/manifest.ttl#testeval00>
+    _:g70274704517540) .
+
 #
 # Subject Definitions
 #
@@ -54,7 +61,7 @@
 #
 # Test Case Definitions
 #
-<http://example/manifest.ttl#testeval00> a earl:TestCriterion, earl:TestCase;
+<http://example/manifest.ttl#testeval00> a earl:TestCriterion, earl:TestCase, http://www.w3.org/ns/rdftest#TestTurtleEval;
   dc:title "subm-test-00";
   dc:description """Blank subject"""@en;
   mf:result <http://example/test-00.out>;
@@ -68,15 +75,16 @@
       earl:result [ a earl:TestResult; earl:outcome earl:passed ]]
   ) .
 
-_:g70304060229600 a earl:TestCriterion, earl:TestCase;
+_:g70274704517540 a earl:TestCriterion, earl:TestCase, http://www.w3.org/ns/rdftest#TestTurtleEval;
   dc:title "subm-test-01";
   dc:description """@prefix and qnames"""@en;
   mf:result <http://example/test-01.out>;
   mf:action <http://example/test-01.ttl>;
   earl:assertions (
     [ a earl:Assertion;
-      earl:test _:g70304060229600;
+      earl:test _:g70274704517540;
       earl:subject <http://rubygems.org/gems/rdf-turtle>;
+      earl:mode earl:automatic;
       earl:result [ a earl:TestResult; earl:outcome earl:untested ]]
   ) .
 

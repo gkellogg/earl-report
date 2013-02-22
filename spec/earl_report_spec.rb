@@ -3,7 +3,7 @@ $:.unshift "."
 require 'spec_helper'
 
 describe EarlReport do
-  subject {
+  let!(:earl) {
     EarlReport.new(
       File.expand_path("../test-files/report-complete.ttl", __FILE__),
       :bibRef   =>       "[[TURTLE]]",
@@ -11,6 +11,7 @@ describe EarlReport do
       :verbose  => false,
       :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
   }
+  subject {earl}
 
   describe ".new" do
     let(:manifest) {
@@ -33,7 +34,7 @@ describe EarlReport do
     }
 
     it "requires a :manifest option" do
-      lambda {EarlReport.new}.should raise_error("Test Manifest must be specified with :manifest option")
+      lambda {EarlReport.new}.should raise_error("Test Manifests must be specified with :manifest option")
     end
 
     context "with base" do
@@ -162,28 +163,25 @@ describe EarlReport do
   end
   
   describe "#json_hash" do
-    let(:json) {
-      subject.send(:json_hash)
-    }
-    specify {json.should be_a(Hash)}
+    let(:json) {earl.send(:json_hash)}
+    subject {json}
+    it {should be_a(Hash)}
     {
       "@id"    => "",
-      "@type"  => "earl:Report",
+      "@type"  => ["earl:Software", "doap:Project"],
       'bibRef' => "[[TURTLE]]",
-      'title'   => "Turtle Test Results"
+      'name'   => "Turtle Test Results"
     }.each do |prop, value|
-      specify(prop) {json[prop].should == value}
+      specify(prop) {subject[prop].should == value}
     end
 
-    %w(assertions generatedBy testSubjects tests).each do |key|
-      specify {json.keys.should include(key)}
+    %w(assertions generatedBy testSubjects entries).each do |key|
+      its(:keys) {should include(key)}
     end
 
     context "parsing to RDF" do
-      let(:graph) do
-        @graph ||= begin
-          RDF::Graph.new << JSON::LD::Reader.new(json.to_json, :base_uri => "http://example.com/report")
-        end
+      let!(:graph) do
+        RDF::Graph.new << JSON::LD::Reader.new(subject.to_json, :base_uri => "http://example.com/report")
       end
 
       it "has Report" do
@@ -209,9 +207,10 @@ describe EarlReport do
   end
   
   describe "#json_test_subject_info" do
-    let(:json) {subject.send(:json_test_subject_info)}
-    specify {json.should be_a(Array)}
-    specify("have length 1") {json.length.should == 1}
+    let(:json) {earl.send(:json_test_subject_info)}
+    subject {json}
+    it {should be_a(Array)}
+    its(:length) {should == 1}
 
     context "test subject" do
       let(:ts) {json.first}
@@ -240,51 +239,67 @@ describe EarlReport do
       end
     end
   end
-  
+
   describe "#json_result_info" do
-    let(:json) {subject.send(:json_result_info)}
-    specify {json.should be_a(Array)}
-    specify("have 2 entries") {json.length.should == 2}
+    let(:json) {earl.send(:json_result_info)}
+    subject {json}
+    it {should be_a(Array)}
+    its(:length) {should == 1}
 
-    context "test case" do
-      let(:tc) {json.first}
+    context 'entries' do
+      let(:ts) {json.first}
       {
-        "@id" =>      "http://example/manifest.ttl#testeval00",
-        "@type" =>    %w(earl:TestCriterion earl:TestCase),
-        title:         "subm-test-00",
-        description:  "Blank subject",
-        testAction:   "http://example/test-00.ttl",
-        testResult:   "http://example/test-00.out",
+        "@id"   =>  "http://example/manifest.ttl",
+        "@type" =>  %w(earl:Report mf:Manifest),
+        title:      "Example Test Cases"
       }.each do |prop, value|
-        specify(prop) {tc[prop.to_s].should == value}
+        specify(prop) {ts[prop.to_s].should == value}
       end
 
-      context('assertions') do
-        specify { tc['assertions'].should be_a(Array)}
-        specify('has one entry') { tc['assertions'].length.should == 1}
+      it "should have two entries" do
+        ts['entries'].length.should == 2
       end
 
-      context "assertion" do
-        let(:as) {tc['assertions'].first}
-        specify {as.should be_a(Hash)}
+      context "test case" do
+        let(:tc) {ts['entries'].first}
         {
-          "@type" =>  %(earl:Assertion),
-          assertedBy: "http://greggkellogg.net/foaf#me",
-          mode:       "earl:automatic",
-          subject:    "http://rubygems.org/gems/rdf-turtle",
-          test:       "http://example/manifest.ttl#testeval00",
+          "@id" =>      "http://example/manifest.ttl#testeval00",
+          "@type" =>    %w(earl:TestCriterion earl:TestCase http://www.w3.org/ns/rdftest#TestTurtleEval),
+          title:         "subm-test-00",
+          description:  "Blank subject",
+          testAction:   "http://example/test-00.ttl",
+          testResult:   "http://example/test-00.out",
         }.each do |prop, value|
-          specify(prop) {as[prop.to_s].should == value}
+          specify(prop) {tc[prop.to_s].should == value}
         end
 
-        context "result" do
-          let(:rs) {as['result']}
-          specify {rs.should be_a(Hash)}
+        context('assertions') do
+          specify { tc['assertions'].should be_a(Array)}
+          specify('has one entry') { tc['assertions'].length.should == 1}
+        end
+
+        context "assertion" do
+          let(:as) {tc['assertions'].first}
+          specify {as.should be_a(Hash)}
           {
-            "@type" =>  %(earl:TestResult),
-            outcome:    "earl:passed",
+            "@type" =>  %(earl:Assertion),
+            assertedBy: "http://greggkellogg.net/foaf#me",
+            mode:       "earl:automatic",
+            subject:    "http://rubygems.org/gems/rdf-turtle",
+            test:       "http://example/manifest.ttl#testeval00",
           }.each do |prop, value|
-            specify(prop) {rs[prop.to_s].should == value}
+            specify(prop) {as[prop.to_s].should == value}
+          end
+
+          context "result" do
+            let(:rs) {as['result']}
+            specify {rs.should be_a(Hash)}
+            {
+              "@type" =>  %(earl:TestResult),
+              outcome:    "earl:passed",
+            }.each do |prop, value|
+              specify(prop) {rs[prop.to_s].should == value}
+            end
           end
         end
       end
@@ -292,176 +307,152 @@ describe EarlReport do
   end
 
   describe "#test_subject_turtle" do
-    context "test subject" do
-      let(:desc) {{
-        "@id"       => "http://rubygems.org/gems/rdf-turtle",
-        "@type"     => %w(earl:TestSubject doap:Project),
-        'doapDesc'  => "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.",
-        'homepage'  => "http://ruby-rdf.github.com/rdf-turtle",
-        'language'  => "Ruby",
-        'name'      => "RDF::Turtle",
-        'developer' => {
-          '@id'       => "http://greggkellogg.net/foaf#me",
-          '@type'     => %w(foaf:Person earl:Assertor),
-          'foaf:name' => "Gregg Kellogg"
-        }
-      }}
-      let(:ttl) {subject.send(:test_subject_turtle, desc)}
-      specify {ttl.length.should > 0}
-      it "has subject subject" do
-        ttl.should match(/<#{desc['@id']}> a/)
-      end
-      it "has types" do
-        ttl.should match(/ a #{desc['@type'].join(', ')}\s*[;\.]$/)
-      end
-      it "has name" do
-        ttl.should match(/ doap:name "#{desc['name']}"\s*[;\.]$/)
-      end
-      it "has description" do
-        ttl.should match(/ doap:description """#{desc['doapDesc']}"""@en\s*[;\.]$/)
-      end
-      it "has doap:programming-language" do
-        ttl.should match(/ doap:programming-language "#{desc['language']}"\s*[;\.]$/)
-      end
-      it "has doap:developer" do
-        ttl.should match(/ doap:developer <#{desc['developer']['@id']}>/)
-      end
-      
-      context "developer" do
-        let(:dev) {desc['developer']}
-        it "has subject subject" do
-          ttl.should match(/<#{dev['@id']}> a/)
-        end
-        it "has types" do
-          ttl.should match(/ a #{dev['@type'].join(', ')}\s*[;\.]$/)
-        end
-        it "has name" do
-          ttl.should match(/ foaf:name "#{dev['foaf:name']}"\s*[;\.]$/)
-        end
-      end
+    let(:desc) {{
+      "@id"       => "http://rubygems.org/gems/rdf-turtle",
+      "@type"     => %w(earl:TestSubject doap:Project),
+      'doapDesc'  => "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.",
+      'homepage'  => "http://ruby-rdf.github.com/rdf-turtle",
+      'language'  => "Ruby",
+      'name'      => "RDF::Turtle",
+      'developer' => {
+        '@id'       => "http://greggkellogg.net/foaf#me",
+        '@type'     => %w(foaf:Person earl:Assertor),
+        'foaf:name' => "Gregg Kellogg"
+      }
+    }}
+    let(:ttl) {earl.send(:test_subject_turtle, desc)}
+    subject {ttl}
+
+    its(:length) {should > 0}
+    specify {should match(/<#{desc['@id']}> a/)}
+    specify {should match(/ a #{desc['@type'].join(', ')}\s*[;\.]$/)}
+    specify {should match(/ doap:name "#{desc['name']}"\s*[;\.]$/)}
+    specify {should match(/ doap:description """#{desc['doapDesc']}"""@en\s*[;\.]$/)}
+    specify {should match(/ doap:programming-language "#{desc['language']}"\s*[;\.]$/)}
+    specify {should match(/ doap:developer <#{desc['developer']['@id']}>/)}
+
+    context "developer" do
+      let(:dev) {desc['developer']}
+      specify {should match(/<#{dev['@id']}> a/)}
+      specify {should match(/ a #{dev['@type'].join(', ')}\s*[;\.]$/)}
+      specify {should match(/ foaf:name "#{dev['foaf:name']}"\s*[;\.]$/)}
     end
   end
 
   describe "#tc_turtle" do
-    context "test case" do
-      let(:tc) {{
-        "@id"         => "http://example/manifest.ttl#testeval00",
-        "@type"       => %w(earl:TestCriterion earl:TestCase),
-        'title'       => "subm-test-00",
-        'description' => "Blank subject",
-        'testAction'  => "http://example/test-00.ttl",
-        'testResult'  => "http://example/test-00.out",
-        'assertions'  => [{
-          "@type"      =>  %(earl:Assertion),
-          'assertedBy' =>"http://greggkellogg.net/foaf#me",
-          'mode'       => "earl:automatic",
-          'subject'    => "http://rubygems.org/gems/rdf-turtle",
-          'test'       => "http://example/manifest.ttl#testeval00",
-          'result'     => {
-            "@type"    => %(earl:TestResult),
-            'outcome'  => "earl:passed",
-          }
-        }]
-      }}
-      let(:ttl) {subject.send(:tc_turtle, tc)}
-      specify {ttl.length.should > 0}
-      it "has subject subject" do
-        ttl.should match(/<#{tc['@id']}> a/)
-      end
-      it "has types" do
-        ttl.should match(/ a #{tc['@type'].join(', ')}\s*[;\.]$/)
-      end
-      it "has dc:title" do
-        ttl.should match(/ dc:title "#{tc['title']}"\s*[;\.]$/)
-      end
-      it "has dc:description" do
-        ttl.should match(/ dc:description """#{tc['description']}"""@en\s*[;\.]$/)
-      end
-      it "has mf:action" do
-        ttl.should match(/ mf:action <#{tc['testAction']}>\s*[;\.]$/)
-      end
-      it "has mf:result" do
-        ttl.should match(/ mf:result <#{tc['testResult']}>\s*[;\.]$/)
-      end
-      it "has earl:assertions" do
-        ttl.should match(/ earl:assertions \(\s*\[ a earl:Assertion/m)
-      end
-    end
-  end
-
-  describe "#as_turtle" do
-    context "assertion" do
-      let(:as) {{
-        "@type"      =>  %w(earl:Assertion),
-        'assertedBy' => "http://greggkellogg.net/foaf#me",
+    let(:tc) {{
+      "@id"         => "http://example/manifest.ttl#testeval00",
+      "@type"       => %w(earl:TestCriterion earl:TestCase),
+      'title'       => "subm-test-00",
+      'description' => "Blank subject",
+      'testAction'  => "http://example/test-00.ttl",
+      'testResult'  => "http://example/test-00.out",
+      'assertions'  => [{
+        "@type"      =>  %(earl:Assertion),
+        'assertedBy' =>"http://greggkellogg.net/foaf#me",
         'mode'       => "earl:automatic",
         'subject'    => "http://rubygems.org/gems/rdf-turtle",
         'test'       => "http://example/manifest.ttl#testeval00",
         'result'     => {
-          '@type'    => 'earl:TestResult',
-          'outcome'  => 'earl:passed'
+          "@type"    => %(earl:TestResult),
+          'outcome'  => "earl:passed",
         }
-      }}
-      let(:ttl) {subject.send(:as_turtle, as)}
-      specify {ttl.length.should > 0}
-      it "has type" do
-        ttl.should match(/ a #{as['@type'].join(', ')}\s*[;\.]$/)
-      end
-      it "has earl:assertedBy" do
-        ttl.should match(/ earl:assertedBy <#{as['assertedBy']}>\s*[;\.]$/)
-      end
-      it "has earl:test" do
-        ttl.should match(/ earl:test <#{as['test']}>\s*[;\.]$/)
-      end
-      it "has earl:subject" do
-        ttl.should match(/ earl:subject <#{as['subject']}>\s*[;\.]$/)
-      end
-      it "has earl:mode" do
-        ttl.should match(/ earl:mode #{as['mode']}\s*[;\.]$/)
-      end
-      it "has earl:result" do
-        ttl.should match(/ earl:result \[ a #{as['result']['@type']}; earl:outcome #{as['result']['outcome']} \]\]/)
-      end
+      }]
+    }}
+    let(:ttl) {earl.send(:tc_turtle, tc)}
+    subject {ttl}
+    its(:length) {should > 0}
+    specify {should match(/<#{tc['@id']}> a/)}
+    specify {should match(/ a #{tc['@type'].join(', ')}\s*[;\.]$/)}
+    specify {should match(/ dc:title "#{tc['title']}"\s*[;\.]$/)}
+    specify {should match(/ dc:description """#{tc['description']}"""@en\s*[;\.]$/)}
+    specify {should match(/ mf:action <#{tc['testAction']}>\s*[;\.]$/)}
+    specify {should match(/ mf:result <#{tc['testResult']}>\s*[;\.]$/)}
+    specify {should match(/ earl:assertions \(\s*\[ a earl:Assertion/m)}
+  end
+
+  describe "#as_turtle" do
+    let(:as) {{
+      "@type"      =>  %w(earl:Assertion),
+      'assertedBy' => "http://greggkellogg.net/foaf#me",
+      'mode'       => "earl:automatic",
+      'subject'    => "http://rubygems.org/gems/rdf-turtle",
+      'test'       => "http://example/manifest.ttl#testeval00",
+      'result'     => {
+        '@type'    => 'earl:TestResult',
+        'outcome'  => 'earl:passed'
+      }
+    }}
+    let(:ttl) {earl.send(:as_turtle, as)}
+    subject {ttl}
+    its(:length) {should > 0}
+    specify {should match(/ a #{as['@type'].join(', ')}\s*[;\.]$/)}
+    specify {should match(/ earl:assertedBy <#{as['assertedBy']}>\s*[;\.]$/)}
+    specify {should match(/ earl:test <#{as['test']}>\s*[;\.]$/)}
+    specify {should match(/ earl:subject <#{as['subject']}>\s*[;\.]$/)}
+    specify {should match(/ earl:mode #{as['mode']}\s*[;\.]$/)}
+    specify {should match(/ earl:result \[ a #{as['result']['@type']}; earl:outcome #{as['result']['outcome']} \]\]/)}
+    it "has type" do
+      ttl.should match(/ a #{as['@type'].join(', ')}\s*[;\.]$/)
+    end
+    it "has earl:assertedBy" do
+      ttl.should match(/ earl:assertedBy <#{as['assertedBy']}>\s*[;\.]$/)
+    end
+    it "has earl:test" do
+      ttl.should match(/ earl:test <#{as['test']}>\s*[;\.]$/)
+    end
+    it "has earl:subject" do
+      ttl.should match(/ earl:subject <#{as['subject']}>\s*[;\.]$/)
+    end
+    it "has earl:mode" do
+      ttl.should match(/ earl:mode #{as['mode']}\s*[;\.]$/)
+    end
+    it "has earl:result" do
+      ttl.should match(/ earl:result \[ a #{as['result']['@type']}; earl:outcome #{as['result']['outcome']} \]\]/)
     end
   end
 
   describe "#earl_turtle" do
-    let(:json_hash) {subject.send(:json_hash)}
+    let(:json_hash) {earl.send(:json_hash)}
     let(:output) {
       @output ||= begin
         sio = StringIO.new
-        subject.send(:earl_turtle, {io: sio})
+        earl.send(:earl_turtle, {io: sio})
         sio.rewind
         sio.read
       end
     }
+    subject {output}
     let(:ts) {json_hash['testSubjects'].first}
-    let(:tc) {json_hash['tests'].first}
+    let(:tm) {json_hash['entries'].first}
+    let(:tc) {tm['entries'].first}
     let(:as) {tc['assertions'].first}
 
     context "prefixes" do
       %w(dc doap earl foaf mf owl rdf rdfs xsd).each do |pfx|
-        it "should have prefix #{pfx}" do
-          output.should match(/@prefix #{pfx}: </)
-        end
+        specify {should match(/@prefix #{pfx}: </)}
       end
     end
 
     context "earl:Software" do
-      specify {output.should match(/<> a earl:Report\s*[;\.]$/)}
-      specify {output.should match(/  dc:title "#{json_hash['title']}"\s*[;\.]$/)}
+      specify {should match(/<> a earl:Software, doap:Project\s*[;\.]$/)}
+      specify {should match(/  doap:name "#{json_hash['name']}"\s*[;\.]$/)}
     end
 
     context "Subject Definitions" do
-      specify {output.should match(/<#{ts['@id']}> a #{ts['@type'].join(', ')}\s*[;\.]$/)}
+      specify {should match(/<#{ts['@id']}> a #{ts['@type'].join(', ')}\s*[;\.]$/)}
+    end
+
+    context "Manifest Definitions" do
+      specify {should match(/<#{tm['@id']}> a #{tm['@type'].join(', ')}\s*[;\.]$/)}
     end
 
     context "Test Case Definitions" do
-      specify {output.should match(/<#{tc['@id']}> a #{tc['@type'].join(', ')}\s*[;\.]$/)}
+      specify {should match(/<#{tc['@id']}> a #{tc['@type'].join(', ')}\s*[;\.]$/)}
     end
 
     context "Assertion" do
-      specify {output.should match(/\[ a #{as['@type']}\s*[;\.]$/)}
+      specify {should match(/\[ a #{as['@type']}\s*[;\.]$/)}
     end
 
     context "parsing to RDF" do
@@ -533,15 +524,19 @@ describe EarlReport do
     PREFIX dc: <http://purl.org/dc/terms/>
     PREFIX doap: <http://usefulinc.com/ns/doap#>
     PREFIX earl: <http://www.w3.org/ns/earl#>
-          
+    PREFIX mf: <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#>
+
     ASK WHERE {
-      ?uri a earl:Report;
-        dc:title "Turtle Test Results";
+      ?uri a earl:Software, doap:Project;
+        doap:name "Turtle Test Results";
         dc:bibliographicCitation "[[TURTLE]]";
         earl:generatedBy ?generatedBy;
         earl:assertions ?assertionFile;
         earl:testSubjects (<http://rubygems.org/gems/rdf-turtle>);
-        earl:tests (
+        mf:entries (<http://example/manifest.ttl>) .
+
+      <http://example/manifest.ttl> a earl:Report, mf:Manifest;
+        mf:entries (
           <http://example/manifest.ttl#testeval00>
           ?test01
         ) .
@@ -578,7 +573,7 @@ describe EarlReport do
           
     ASK WHERE {
       <http://example/manifest.ttl#testeval00> a earl:TestCriterion, earl:TestCase;
-        dc:title "subm-test-00";
+        #dc:title "subm-test-00";
         dc:description """Blank subject"""@en;
         mf:action <http://example/test-00.ttl>;
         mf:result <http://example/test-00.out>;
