@@ -6,15 +6,12 @@ require 'earl_report'
 require 'getoptlong'
 require 'yaml'
 
-def run(input, options)
-end
-
 OPT_ARGS = [
   ["--base",              GetoptLong::REQUIRED_ARGUMENT,"Base URI to use when loading test manifest"],
   ["--bibRef",            GetoptLong::REQUIRED_ARGUMENT,"ReSpec BibRef of specification being reported upon"],
   ["--format", "-f",      GetoptLong::REQUIRED_ARGUMENT,"Format of output, one of 'ttl', 'json', or 'html'"],
   ["--json",              GetoptLong::NO_ARGUMENT,      "Input is a JSON-LD formatted result"],
-  ["--manifest",          GetoptLong::REQUIRED_ARGUMENT,"Test manifest"],
+  ["--manifest",          GetoptLong::REQUIRED_ARGUMENT,"Test manifest(s)"],
   ["--name",              GetoptLong::REQUIRED_ARGUMENT,"Name of specification"],
   ["--output", "-o",      GetoptLong::REQUIRED_ARGUMENT,"Output report to file"],
   ["--query",             GetoptLong::REQUIRED_ARGUMENT,"Query, or file containing query for extracting information from Test manifest"],
@@ -58,8 +55,8 @@ opts.each do |opt, arg|
   when '--base'         then options[:base] = arg
   when '--bibRef'       then options[:bibRef] = arg
   when '--format'       then options[:format] = arg.to_sym
-  when '--manifest'     then options[:manifest] = arg
-  when '--query'        then options[:manifest] = arg
+  when '--manifest'     then options[:manifest] = arg.split(',').map(&:strip)
+  when '--query'        then options[:query] = arg
   when '--base'         then options[:base] = arg
   when '--json'         then options[:json] = true
   when '--name'         then options[:name] = arg

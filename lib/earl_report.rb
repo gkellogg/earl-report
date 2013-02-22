@@ -145,7 +145,7 @@ class EarlReport
     end
 
     # Load manifests, possibly with base URI
-    status "read #{@options[:manifest]}"
+    status "read #{@options[:manifest].inspect}"
     man_opts = {}
     man_opts[:base_uri] = RDF::URI(@options[:base]) if @options[:base]
     @graph = RDF::Graph.new
@@ -310,7 +310,7 @@ class EarlReport
           dev['foaf:homepage'] = solution[:devHomepage].to_s if solution[:devHomepage]
           (info['developer'] ||= []) << dev
         end
-        info['developer'] = info['developer'].uniq
+        info['developer'] = info['developer'].uniq if info['developer']
       end
 
       # Map ids and values to array entries
