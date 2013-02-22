@@ -38,6 +38,7 @@
 -#      ]
 -#    }]
 -#  }
+- require 'cgi'
 
 !!! 5
 %html{:prefix => "earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap# mf: http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#"}
@@ -177,8 +178,9 @@
         - test_cases = manifest['entries']
         %section{:typeof => manifest['@type'].join(" "), :resource => manifest['@id']}
           %h2<=manifest['title']
-          - [manifest['description']].flatten.each do |desc|
-            %p<= desc
+          - [manifest['description']].flatten.compact.each do |desc|
+            %p<
+              ~ CGI.escapeHTML desc
           %table.report
             - skip_subject = {}
             - passed_tests = []
@@ -198,7 +200,8 @@
               - test_refs[test['@id']] = tid
               %tr{:rel => "mf:entries", :typeof => test['@type'].join(" "), :resource => test['@id'], :inlist => true}
                 %td
-                  %a{:href => "##{tid}"}<= test['title']
+                  %a{:href => "##{tid}"}<
+                    ~ CGI.escapeHTML test['title']
                 - test['assertions'].each_with_index do |assertion, ndx|
                   - next if skip_subject[assertion['subject']]
                   - pass_fail = assertion['result']['outcome'].split(':').last.upcase.sub(/(PASS|FAIL)ED$/, '\1')
@@ -234,14 +237,17 @@
             %dl
               - if subject['doapDesc']
                 %dt= "Description"
-                %dd{:property => "doap:description", :lang => 'en'}<= subject['doapDesc']
+                %dd{:property => "doap:description", :lang => 'en'}<
+                  ~ CGI.escapeHTML subject['doapDesc']
               - if subject['language']
                 %dt= "Programming Language"
-                %dd{:property => "doap:programming-language"}<= subject['language']
+                %dd{:property => "doap:programming-language"}<
+                  ~ CGI.escapeHTML subject['language']
               - if subject['homepage']
                 %dt= "Home Page"
                 %dd{:property => "doap:homepage"}
-                  %a{:href=> subject['homepage']}=subject['homepage']
+                  %a{:href=> subject['homepage']}
+                    ~ CGI.escapeHTML subject['homepage']
               - if subject['developer']
                 %dt= "Developer"
                 %dd{:rel => "doap:developer"}
@@ -249,15 +255,17 @@
                     %div{:resource => dev['@id'], :typeof => [dev['@type']].flatten.join(" ")}
                       - if dev.has_key?('@id')
                         %a{:href => dev['@id']}
-                          %span{:property => "foaf:name"}<= dev['foaf:name']
+                          %span{:property => "foaf:name"}<
+                            ~ CGI.escapeHTML dev['foaf:name']
                       - else
-                        %span{:property => "foaf:name"}<= dev['foaf:name']
+                        %span{:property => "foaf:name"}<
+                          ~ CGI.escapeHTML dev['foaf:name']
                       - if dev['foaf:homepage']
                         %dt
                           Home Page
                         %dd
                           %a{:property => "foaf:homepage", :href=> dev['foaf:homepage']}
-                            = dev['foaf:homepage']
+                            ~ CGI.escapeHTML dev['foaf:homepage']
               %dt
                 Test Suite Compliance
               %dd
@@ -270,7 +278,7 @@
                       - pct = (passed * 100.0) / total
                       %tr
                         %td
-                          = manifest['title']
+                          ~ manifest['title']
                         %td{:class => (pct == 100.0 ? 'passed-all' : (pct >= 85.0 ? 'passed-most' : 'passed-some'))}
                           = "#{passed}/#{total} (#{'%.1f' % pct}%)"
     - unless tests['assertions'].empty?
@@ -292,14 +300,16 @@
             - manifest['entries'].each do |test|
               %dt{:id => test_refs[test['@id']], :resource => test['@id']}
                 Test
-                %span{:property => "dc:title mf:name"}<= test['title']
+                %span{:property => "dc:title mf:name"}<
+                  ~ CGI.escapeHTML test['title']
               %dd{:resource => test['@id']}
-                %p{:property => "dc:description", :lang => 'en'}<= test['description']
+                %p{:property => "dc:description", :lang => 'en'}<
+                  ~ CGI.escapeHTML test['description']
                 %pre{:class => "example actionDoc", :property => "mf:action", :resource => test['testAction'], :title => "#{test['title']} Input"}<
-                  ~ Kernel.open(test['testAction']) {|f| CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testAction']} not loaded"
+                  ~ CGI.escapeHTML Kernel.open(test['testAction']) {|f| CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testAction']} not loaded"
                 - if test['testResult']
                   %pre{:class => "example resultDoc", :property => "mf:result", :resource => test['testResult'], :title => "#{test['title']} Result"}<
-                    ~ Kernel.open(test['testResult']) {|f| CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
+                    ~ CGI.escapeHTML Kernel.open(test['testResult']) {|f| CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
     %section#appendix{:property => "earl:generatedBy", :resource => tests['generatedBy']['@id'], :typeof => tests['generatedBy']['@type']}
       %h2
         Report Generation Software
