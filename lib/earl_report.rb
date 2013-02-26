@@ -69,12 +69,14 @@ class EarlReport
     
     SELECT ?by ?mode ?outcome ?subject ?test
     WHERE {
-      [ a earl:Assertion;
+      ?a a earl:Assertion;
         earl:assertedBy ?by;
-        earl:mode ?mode;
         earl:result [earl:outcome ?outcome];
         earl:subject ?subject;
-        earl:test ?test ] .
+        earl:test ?test .
+      OPTIONAL {
+        ?a earl:mode ?mode .
+      }
     }
     ORDER BY ?subject
   ).freeze
@@ -159,8 +161,12 @@ class EarlReport
     files.flatten.each do |file|
       status "read #{file}"
       file_graph = RDF::Graph.load(file)
-      status "  loaded #{file_graph.count} triples"
-      @graph << file_graph
+      if file_graph.first_object(:predicate => RDF::URI('http://www.w3.org/ns/earl#testSubjects'))
+        status "   skip #{file}, which seems to be a previous rollup earl report"
+      else
+        status "  loaded #{file_graph.count} triples"
+        @graph << file_graph
+      end
     end
 
     # Find or load DOAP descriptions for all subjects
@@ -184,7 +190,7 @@ class EarlReport
     SPARQL.execute(TEST_SUBJECT_QUERY, @graph).each do |solution|
       # Load DOAP definitions
       if solution[:developer] && !solution[:devName] # not loaded
-        status "read description for #{solution[:developer].inspect}"
+        status "read description for developer #{solution[:developer].inspect}"
         begin
           foaf_graph = RDF::Graph.load(solution[:developer])
           status "  loaded #{foaf_graph.count} triples"
@@ -192,6 +198,8 @@ class EarlReport
         rescue
           status "  failed"
         end
+      elsif !solution[:developer]
+        STDERR.puts "No developer identified for #{uri}"
       end
     end
   end
@@ -297,7 +305,7 @@ class EarlReport
     @subject_info ||= begin
       ts_info = {}
       SPARQL.execute(TEST_SUBJECT_QUERY, @graph).each do |solution|
-        status "solution #{solution.to_hash.inspect}"
+        #status "solution #{solution.to_hash.inspect}"
         info = ts_info[solution[:uri].to_s] ||= {}
         %w(name doapDesc homepage language).each do |prop|
           info[prop] = solution[prop.to_sym].to_s if solution[prop.to_sym]
@@ -384,7 +392,7 @@ class EarlReport
               '@type'   => 'earl:Assertion',
               'test'    => uri.to_s,
               'subject' => siri,
-              'mode'    => 'earl:automatic',
+              'mode'    => 'earl:notAvailable',
               'result'  => {
                 '@type' => 'earl:TestResult',
                 'outcome' => 'earl:untested'
@@ -407,12 +415,23 @@ class EarlReport
     # Iterate through assertions and add to appropriate test case
     SPARQL.execute(ASSERTION_QUERY, @graph).each do |solution|
       tc = test_cases[solution[:test].to_s]
-      STDERR.puts "No test case found for #{solution[:test]}: #{tc.inspect}" unless tc
+      unless tc
+        STDERR.puts "Skipping result for #{solution[:test]}, which is not defined in manifests"
+        next
+      end
+      unless solution[:outcome]
+        STDERR.puts "No result found for #{solution[:test]}: #{solution.inspect}"
+        next
+      end
       subject = solution[:subject].to_s
       result_index = subjects.index(subject)
+      unless solution[:outcome]
+        STDERR.puts "No test subject found for #{solution[:test]}: #{solution.inspect}"
+        next
+      end
       ta_hash = tc['assertions'][result_index]
       ta_hash['assertedBy'] = solution[:by].to_s
-      ta_hash['mode'] = "earl:#{solution[:mode].to_s.split('#').last || 'automatic'}"
+      ta_hash['mode'] = "earl:#{solution[:mode].to_s.split('#').last || 'notAvailable'}"
       ta_hash['result']['outcome'] = "earl:#{solution[:outcome].to_s.split('#').last}"
     end
 
@@ -512,7 +531,7 @@ class EarlReport
     res += %(  doap:programming-language "#{desc['language']}";\n) if desc['language']
     res += %( .\n\n)
 
-    [desc['developer']].flatten.each do |developer|
+    [desc['developer']].flatten.compact.each do |developer|
       if developer['@id']
         res += %(<#{desc['@id']}> doap:developer <#{developer['@id']}> .\n\n)
         res += %(<#{developer['@id']}> a #{[developer['@type']].flatten.join(', ')};\n)
