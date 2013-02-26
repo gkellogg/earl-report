@@ -62,7 +62,7 @@ opts.each do |opt, arg|
   when '--name'         then options[:name] = arg
   when '--output'       then options[:io] = File.open(arg, "w")
   when '--rc'           then options[:rc] = true
-  when '--template'     then options[:template] = arg
+  when '--template'     then options[:template] = (File.open(arg, "r") unless arg.empty?)
   when '--verbose'      then options[:verbose] = true
   when '--help'         then usage
   else
@@ -84,7 +84,7 @@ if options.has_key?(:rc)
 end
 
 # If requesting template, just return it
-if options.has_key?(:template) && options[:template].empty?
+if options.has_key?(:template) && options[:template].nil?
   File.open(File.expand_path("../../lib/earl_report/views/earl_report.html.haml", __FILE__)) do |f|
     options[:io].write(f.read)
   end

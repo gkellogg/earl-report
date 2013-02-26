@@ -237,8 +237,12 @@ class EarlReport
         io.read
       end
     when :html
-      template = options[:template] ||
+      template = case options[:template]
+      when String then options[:tempate]
+      when IO, StringIO then options[:template].read
+      else
         File.read(File.expand_path('../earl_report/views/earl_report.html.haml', __FILE__))
+      end
 
       # Generate HTML report
       html = Haml::Engine.new(template, :format => :xhtml).render(self, :tests => json_hash)
