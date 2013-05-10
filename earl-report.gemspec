@@ -28,5 +28,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency     'linkeddata',      '>= 0.3.5'
   gem.add_runtime_dependency     'sparql',          '>= 0.3.0'
   gem.add_development_dependency 'rspec',           '>= 2.8.0'
+  gem.add_development_dependency 'yard' ,           '>= 0.8.3'
+  gem.add_development_dependency 'rake'
   gem.post_install_message  = nil
 end
