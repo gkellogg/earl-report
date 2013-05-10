@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Earl Report : Ruby gem to consolidate multiple EARL reports and generate a rollup conformance report" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Earl Report</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/gkellogg/earl-report">View on GitHub</a>
+
+          <h1 id="project_title">Earl Report</h1>
+          <h2 id="project_tagline">Ruby gem to consolidate multiple EARL reports and generate a rollup conformance report</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/gkellogg/earl-report/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/gkellogg/earl-report/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>earl-report</h1>
+
+<p>Ruby gem to consolidate multiple EARL report and generate a rollup conformance report.</p>
+
+<p><a href="http://badge.fury.io/rb/earl-report"><img src="https://badge.fury.io/rb/earl-report.png" alt="Gem Version"></a>
+<a href="http://travis-ci.org/gkellogg/earl-report"><img src="https://travis-ci.org/gkellogg/earl-report.png?branch=master" alt="Build Status"></a></p>
+
+<h2>Description</h2>
+
+<p>Reads a test manifest in the
+<a href="http://www.w3.org/2011/rdf-wg/wiki/Turtle_Test_Suite">standard RDF WG format</a>
+along with one or more individual EARL reports and generates a rollup report in
+HTML+RDFa in <a href="http://dev.w3.org/2009/dap/ReSpec.js/documentation.html">ReSpec</a> format.</p>
+
+<h2>Individual EARL reports</h2>
+
+<p>Results for individual implementations should be specified in Turtle form, but
+may be specified in an any compatible RDF serialization (JSON-LD is presumed to
+be a cached rollup report). The report is composed of <code>Assertion</code> declarations
+in the following form:</p>
+
+<pre><code>[ a earl:Assertion;
+  earl:assertedBy &lt;http://greggkellogg.net/foaf#me&gt;;
+  earl:subject &lt;http://rubygems.org/gems/rdf-turtle&gt;;
+  earl:test &lt;http://dvcs.w3.org/hg/rdf/raw-file/default/rdf-turtle/tests-ttl/manifest.ttl#turtle-syntax-file-01&gt;;
+  earl:result [
+    a earl:TestResult;
+    earl:outcome earl:passed;
+    dc:date "2012-11-17T15:19:11-05:00"^^xsd:dateTime];
+  earl:mode earl:automatic ] .
+</code></pre>
+
+<p>Additionally, <code>earl:subject</code> is expected to reference a <a href="">DOAP</a> description
+of the reported software, in the following form:</p>
+
+<pre><code>&lt;http://rubygems.org/gems/rdf-turtle&gt; a doap:Project, earl:TestSubject, earl:Software ;
+  doap:name          "RDF::Turtle" ;
+  doap:developer     &lt;http://greggkellogg.net/foaf#me&gt; ;
+  doap:homepage      &lt;http://ruby-rdf.github.com/rdf-turtle&gt; ;
+  doap:description   "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite."@en ;
+  doap:programming-language "Ruby" .
+</code></pre>
+
+<p>The <a href="">DOAP</a> description may be included in the <a href="">EARL</a> report. If not found,
+the IRI identified by <code>earl:subject</code> will be dereferenced and is presumed to
+provide a <a href="">DOAP</a> specification of the test subject.</p>
+
+<p>The <code>doap:developer</code> is expected to reference a <a href="">FOAF</a> profile for the agent
+(user or organization) responsible for the test subject. It is expected to be
+of the following form:</p>
+
+<pre><code>&lt;http://greggkellogg.net/foaf#me&gt; foaf:name "Gregg Kellogg" .
+</code></pre>
+
+<p>If not found, the IRI identified by <code>doap:developer</code>
+will be dereferenced and is presumed to provide a <a href="">FOAF</a> profile of the developer.</p>
+
+<h2>Manifest query</h2>
+
+<p>The test manifest is used to generate <code>earl:TestCase</code> entries for each test
+described in the test manifest. It will also summarize each test, including
+any input and result files associated with the tests. The built-in query
+is based on the <a href="">standard RDF WG format</a>. Alternative manifest formats
+can be used by specifying a customized manifest query. The default query
+is the following:</p>
+
+<pre><code>PREFIX dc: &lt;http://purl.org/dc/terms/&gt;
+PREFIX mf: &lt;http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#&gt;
+PREFIX rdf: &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#&gt;
+PREFIX rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt;
+
+SELECT ?lh ?uri ?title ?description ?testAction ?testResult
+WHERE {
+  ?uri mf:name ?title; mf:action ?testAction.
+  OPTIONAL { ?uri rdfs:comment ?description. }
+  OPTIONAL { ?uri mf:result ?testResult. }
+  OPTIONAL { [ mf:entries ?lh] . ?lh rdf:first ?uri . }
+}
+</code></pre>
+
+<p>If any result has a non-null <code>?lh</code>, it is taken as the list head and used
+to maintain the list order within <code>earl:tests</code>.</p>
+
+<h2>Report generation template</h2>
+
+<p>The report template is in <a href="http://dev.w3.org/2009/dap/ReSpec.js/documentation.html">ReSpec</a> form using <a href="">Haml</a> to generate individual report elements.</p>
+
+<h2>Usage</h2>
+
+<p>The <code>earl-report</code> command may be used to directly create a report from zero or more input files, which are themselves <a href="http://www.w3.org/TR/EARL10-Schema/">EARL</a> report.</p>
+
+<pre><code>gem install earl-report
+
+earl-report \
+  --base            # Base URI to use when loading test manifest
+  --bibRef          # ReSpec BibRef of specification being reported upon
+  --format          # Format of output, one of 'ttl', 'json', or 'html'
+  --json            # Input is a JSON-LD formatted result
+  --manifest        # Test manifest
+  --name            # Name of specification
+  --output          # Output report to file
+  --query           # Query, or file containing query for extracting information from Test manifest
+  --rc              # Write options to run-control file
+  --template        # Specify or return default report template
+  report*           # one or more EARL report in most RDF formats
+</code></pre>
+
+<p>Generally, creating a <code>json</code> format first is more efficient. Subsequent invocations can then use the <code>--json</code> and use the generated JSON-LD file instead of re-parsing each report.</p>
+
+<h3>Initialization File</h3>
+
+<p><code>earl-report</code> can take defaults for options from an initialization file.
+When run, <code>earl-report</code> attempts to open the file <code>.earl</code> in the current directory. This file is in <a href="http://www.yaml.org/">YAML</a> format with entries for each option. Use the <code>--rc</code> option to automatically generate it.</p>
+
+<h2>Author</h2>
+
+<ul>
+<li>
+<a href="http://github.com/gkellogg">Gregg Kellogg</a> - <a href="http://greggkellogg.net/">http://greggkellogg.net/</a>
+</li>
+</ul><h2>License</h2>
+
+<p>This software is licensed using <a href="http://unlicense.org">Unlicense</a> and is freely available without encumbrance.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Earl Report maintained by <a href="https://github.com/gkellogg">gkellogg</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
