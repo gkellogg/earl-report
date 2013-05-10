@@ -1,7 +1,7 @@
 # earl-report
 Ruby gem to consolidate multiple EARL report and generate a rollup conformance report.
 
-[![Gem Version](https://badge.fury.io/rb/rdf-turtle.png)](http://badge.fury.io/rb/earl-report)
+[![Gem Version](https://badge.fury.io/rb/earl-report.png)](http://badge.fury.io/rb/earl-report)
 [![Build Status](https://travis-ci.org/gkellogg/earl-report.png?branch=master)](http://travis-ci.org/gkellogg/earl-report)
 
 ## Description
