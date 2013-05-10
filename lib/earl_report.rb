@@ -40,13 +40,11 @@ class EarlReport
     
     SELECT DISTINCT ?uri ?name ?doapDesc ?homepage ?language ?developer ?devName ?devType ?devHomepage
     WHERE {
-      ?uri a doap:Project; doap:name ?name .
-      OPTIONAL { ?uri doap:developer ?developer .}
+      ?uri a doap:Project; doap:name ?name; doap:developer ?developer .
       OPTIONAL { ?uri doap:homepage ?homepage . }
       OPTIONAL { ?uri doap:description ?doapDesc . }
       OPTIONAL { ?uri doap:programming-language ?language . }
-      OPTIONAL { ?developer a ?devType .}
-      OPTIONAL { ?developer foaf:name ?devName .}
+      OPTIONAL { ?developer a ?devType; foaf:name ?devName .}
       OPTIONAL { ?developer foaf:homepage ?devHomepage .}
     }
   ).freeze
