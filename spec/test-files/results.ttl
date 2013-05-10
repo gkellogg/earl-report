@@ -11,11 +11,11 @@
 
 
 <> a earl:Software, doap:Project;
-  doap:name "";
-  dc:bibliographicCitation "";
+  doap:name "Turtle Test Results";
+  dc:bibliographicCitation "[[TURTLE]]";
   earl:generatedBy <http://rubygems.org/gems/earl-report>;
   earl:assertions
-    <test-files/report-complete.ttl>;
+    </Users/gregg/Projects/earl-report/spec/test-files/report-complete.ttl>;
   earl:testSubjects (
     <http://rubygems.org/gems/rdf-turtle>);
   mf:entries (
@@ -29,7 +29,7 @@
   doap:homepage <https://github.com/gkellogg/earl-report>;
   doap:programming-language "Ruby";
   doap:license <http://unlicense.org>;
-  doap:release <https://github.com/gkellogg/earl-report/tree/0.2.0>;
+  doap:release <https://github.com/gkellogg/earl-report/tree/0.2.3>;
   doap:developer <http://greggkellogg.net/foaf#me> .
 
     
@@ -40,7 +40,7 @@
   mf:name "Example Test Cases";
   mf:entries (
     <http://example/manifest.ttl#testeval00>
-    _:g70274704517540) .
+    _:g70254919171980) .
 
 #
 # Subject Definitions
@@ -61,7 +61,7 @@
 #
 # Test Case Definitions
 #
-<http://example/manifest.ttl#testeval00> a earl:TestCriterion, earl:TestCase, http://www.w3.org/ns/rdftest#TestTurtleEval;
+<http://example/manifest.ttl#testeval00> a earl:TestCriterion, earl:TestCase, <http://www.w3.org/ns/rdftest#TestTurtleEval>;
   dc:title "subm-test-00";
   dc:description """Blank subject"""@en;
   mf:result <http://example/test-00.out>;
@@ -75,16 +75,16 @@
       earl:result [ a earl:TestResult; earl:outcome earl:passed ]]
   ) .
 
-_:g70274704517540 a earl:TestCriterion, earl:TestCase, http://www.w3.org/ns/rdftest#TestTurtleEval;
+_:g70254919171980 a earl:TestCriterion, earl:TestCase, <http://www.w3.org/ns/rdftest#TestTurtleEval>;
   dc:title "subm-test-01";
   dc:description """@prefix and qnames"""@en;
   mf:result <http://example/test-01.out>;
   mf:action <http://example/test-01.ttl>;
   earl:assertions (
     [ a earl:Assertion;
-      earl:test _:g70274704517540;
+      earl:test _:g70254919171980;
       earl:subject <http://rubygems.org/gems/rdf-turtle>;
-      earl:mode earl:automatic;
+      earl:mode earl:notAvailable;
       earl:result [ a earl:TestResult; earl:outcome earl:untested ]]
   ) .
 

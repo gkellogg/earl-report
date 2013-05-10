@@ -554,7 +554,10 @@ class EarlReport
   # @prarm[Hash] desc
   # @return [String]
   def tc_turtle(desc)
-    res = %{#{as_resource desc['@id']} a #{[desc['@type']].flatten.join(', ')};\n}
+    types = [desc['@type']].flatten.compact.map do |t|
+      t.include?("://") ? "<#{t}>" : t
+    end
+    res = %{#{as_resource desc['@id']} a #{types.join(', ')};\n}
     res += %{  dc:title "#{desc['title']}";\n}
     res += %{  dc:description """#{desc['description']}"""@en;\n} if desc.has_key?('description')
     res += %{  mf:result #{as_resource desc['testResult']};\n} if desc.has_key?('testResult')

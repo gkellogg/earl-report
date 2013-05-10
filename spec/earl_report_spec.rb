@@ -184,6 +184,14 @@ describe EarlReport do
         RDF::Graph.new << JSON::LD::Reader.new(subject.to_json, :base_uri => "http://example.com/report")
       end
 
+      it "saves output" do
+        lambda {
+          File.open(File.expand_path("../test-files/results.jsonld", __FILE__), "w") do |f|
+            f.write(subject.to_json)
+          end
+        }.should_not raise_error
+      end
+
       it "has Report" do
         SPARQL.execute(REPORT_QUERY, graph).should == RDF::Literal::TRUE
       end
@@ -448,7 +456,12 @@ describe EarlReport do
     end
 
     context "Test Case Definitions" do
-      specify {should match(/<#{tc['@id']}> a #{tc['@type'].join(', ')}\s*[;\.]$/)}
+      let(:types) {
+        tc['@type'].map do |t|
+          t.include?("://") ? "<#{t}>" : t
+        end
+      }
+      specify {should match(/<#{tc['@id']}> a #{types.join(', ')}\s*[;\.]$/)}
     end
 
     context "Assertion" do
@@ -460,6 +473,14 @@ describe EarlReport do
         @graph ||= begin
           RDF::Graph.new << RDF::Turtle::Reader.new(output, :base_uri => "http://example.com/report")
         end
+      end
+
+      it "saves output" do
+        lambda {
+          File.open(File.expand_path("../test-files/results.ttl", __FILE__), "w") do |f|
+            f.write(output)
+          end
+        }.should_not raise_error
       end
 
       it "has Report" do
@@ -496,6 +517,14 @@ describe EarlReport do
         @graph ||= begin
           RDF::Graph.new << RDF::RDFa::Reader.new(output, :base_uri => "http://example.com/report")
         end
+      end
+
+      it "saves output" do
+        lambda {
+          File.open(File.expand_path("../test-files/results.html", __FILE__), "w") do |f|
+            f.write(output)
+          end
+        }.should_not raise_error
       end
 
       it "has Report" do
@@ -573,7 +602,7 @@ describe EarlReport do
           
     ASK WHERE {
       <http://example/manifest.ttl#testeval00> a earl:TestCriterion, earl:TestCase;
-        #dc:title "subm-test-00";
+        dc:title "subm-test-00";
         dc:description """Blank subject"""@en;
         mf:action <http://example/test-00.ttl>;
         mf:result <http://example/test-00.out>;
