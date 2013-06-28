@@ -149,7 +149,7 @@ class EarlReport
     man_opts = {}
     man_opts[:base_uri] = RDF::URI(@options[:base]) if @options[:base]
     @graph = RDF::Graph.new
-    [@options[:manifest]].flatten.compact.each do |man|
+    Array(@options[:manifest]).compact.each do |man|
       g = RDF::Graph.load(man, man_opts)
       status "  loaded #{g.count} triples from #{man}"
       @graph << g
@@ -466,7 +466,7 @@ class EarlReport
     # Write earl:Software for the report
     man_defs = json_hash['entries'].map {|defn| as_resource(defn['@id'])}.join("\n    ")
     io.puts %{
-      #{as_resource(json_hash['@id'])} a #{[json_hash['@type']].flatten.join(', ')};
+      #{as_resource(json_hash['@id'])} a #{Array(json_hash['@type']).join(', ')};
         doap:name "#{json_hash['name']}";
         dc:bibliographicCitation "#{json_hash['bibRef']}";
         earl:generatedBy #{as_resource json_hash['generatedBy']['@id']};
@@ -536,7 +536,7 @@ class EarlReport
     [desc['developer']].flatten.compact.each do |developer|
       if developer['@id']
         res += %(<#{desc['@id']}> doap:developer <#{developer['@id']}> .\n\n)
-        res += %(<#{developer['@id']}> a #{[developer['@type']].flatten.join(', ')};\n)
+        res += %(<#{developer['@id']}> a #{Array(developer['@type']).join(', ')};\n)
         res += %(  foaf:homepage <#{developer['foaf:homepage']}>;\n) if developer['foaf:homepage']
         res += %(  foaf:name "#{developer['foaf:name']}" .\n\n)
       else
@@ -554,7 +554,7 @@ class EarlReport
   # @prarm[Hash] desc
   # @return [String]
   def tc_turtle(desc)
-    types = [desc['@type']].flatten.compact.map do |t|
+    types = Array(desc['@type']).map do |t|
       t.include?("://") ? "<#{t}>" : t
     end
     res = %{#{as_resource desc['@id']} a #{types.join(', ')};\n}
