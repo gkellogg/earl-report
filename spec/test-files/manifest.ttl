@@ -7,7 +7,8 @@
 @prefix rdft:   <http://www.w3.org/ns/rdftest#> .
 
 <> a mf:Manifest ;
-    rdfs:comment "Example Test Cases" ;
+    mf:name "Example Test Cases" ;
+    rdfs:comment "Description for Example Test Cases" ;
     mf:entries (
       <#testeval00>
       [ a rdft:TestTurtleEval ;
