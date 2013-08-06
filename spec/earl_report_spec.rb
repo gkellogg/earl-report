@@ -565,6 +565,7 @@ describe EarlReport do
         mf:entries (<http://example/manifest.ttl>) .
 
       <http://example/manifest.ttl> a earl:Report, mf:Manifest;
+        dc:title "Example Test Cases";
         mf:entries (
           <http://example/manifest.ttl#testeval00>
           ?test01

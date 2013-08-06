@@ -179,9 +179,9 @@
       - tests['entries'].each do |manifest|
         - test_cases = manifest['entries']
         %section{:typeof => manifest['@type'].join(" "), :resource => manifest['@id']}
-          %h2<=manifest['title']
+          %h2{:property => "dc:title mf:name"}<=manifest['title'] ||  'Test Manifest'
           - Array(manifest['description']).each do |desc|
-            %p<
+            %p{:property => "rdfs:comment"}<
               ~ CGI.escapeHTML desc
           %table.report
             - skip_subject = {}

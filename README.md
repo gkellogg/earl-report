@@ -62,12 +62,19 @@ is the following:
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-    SELECT ?lh ?uri ?title ?description ?testAction ?testResult
+    SELECT ?lh ?uri ?type ?title ?description ?testAction ?testResult ?manUri ?manTitle ?manDescription
     WHERE {
-      ?uri mf:name ?title; mf:action ?testAction.
-      OPTIONAL { ?uri rdfs:comment ?description. }
-      OPTIONAL { ?uri mf:result ?testResult. }
-      OPTIONAL { [ mf:entries ?lh] . ?lh rdf:first ?uri . }
+      ?uri a ?type;
+        mf:name ?title;
+        mf:action ?testAction .
+      OPTIONAL { ?uri rdfs:comment ?description . }
+      OPTIONAL { ?uri mf:result ?testResult . }
+      OPTIONAL {
+        ?manUri a mf:Manifest; mf:entries ?lh .
+        ?lh rdf:first ?uri .
+        OPTIONAL { ?manUri mf:name ?manTitle . }
+        OPTIONAL { ?manUri rdfs:comment ?manDescription . }
+      }
     }
 
 If any result has a non-null `?lh`, it is taken as the list head and used

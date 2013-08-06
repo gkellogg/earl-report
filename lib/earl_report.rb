@@ -19,7 +19,7 @@ class EarlReport
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-    SELECT ?lh ?uri ?type ?title ?description ?testAction ?testResult ?manUri  ?manComment
+    SELECT ?lh ?uri ?type ?title ?description ?testAction ?testResult ?manUri ?manTitle ?manDescription
     WHERE {
       ?uri a ?type;
         mf:name ?title;
@@ -29,7 +29,8 @@ class EarlReport
       OPTIONAL {
         ?manUri a mf:Manifest; mf:entries ?lh .
         ?lh rdf:first ?uri .
-        OPTIONAL { ?manUri rdfs:comment ?manComment . }
+        OPTIONAL { ?manUri mf:name ?manTitle . }
+        OPTIONAL { ?manUri rdfs:comment ?manDescription . }
       }
     }
   ).freeze
@@ -149,7 +150,7 @@ class EarlReport
     man_opts = {}
     man_opts[:base_uri] = RDF::URI(@options[:base]) if @options[:base]
     @graph = RDF::Graph.new
-    Array(@options[:manifest]).compact.each do |man|
+    Array(@options[:manifest]).each do |man|
       g = RDF::Graph.load(man, man_opts)
       status "  loaded #{g.count} triples from #{man}"
       @graph << g
@@ -364,9 +365,10 @@ class EarlReport
         man_info = {
           '@id' => man_soln[:manUri].to_s,
           "@type" => %w{earl:Report mf:Manifest},
-          'title' => man_soln[:manComment].to_s,
           'entries' => []
         }
+        man_info['title'] = man_soln[:manTitle].to_s if man_soln[:manTitle]
+        man_info['description'] = man_soln[:manDescription].to_s if man_soln[:manDescription]
         manifests << man_info
       end
 
@@ -497,8 +499,9 @@ class EarlReport
     io.puts %(\n# Manifests)
     json_hash['entries'].each do |man|
       io.puts %(#{as_resource(man['@id'])} a earl:Report, mf:Manifest;)
-      io.puts %(  dc:title "#{man['title']}";)
-      io.puts %(  mf:name "#{man['title']}";)
+      io.puts %(  dc:title "#{man['title']}";) if man['title']
+      io.puts %(  mf:name "#{man['title']}";) if man['title']
+      io.puts %(  rdfs:comment "#{man['description']}";) if man['description']
       
       # Test Cases
       test_defs = man['entries'].map {|defn| as_resource(defn['@id'])}.join("\n    ")
@@ -559,8 +562,8 @@ class EarlReport
     end
     res = %{#{as_resource desc['@id']} a #{types.join(', ')};\n}
     res += %{  dc:title "#{desc['title']}";\n}
-    res += %{  dc:description """#{desc['description']}"""@en;\n} if desc.has_key?('description')
-    res += %{  mf:result #{as_resource desc['testResult']};\n} if desc.has_key?('testResult')
+    res += %{  dc:description """#{desc['description']}"""@en;\n} if desc['description']
+    res += %{  mf:result #{as_resource desc['testResult']};\n} if desc['testResult']
     res += %{  mf:action #{as_resource desc['testAction']};\n}
     res += %{  earl:assertions (\n}
     desc['assertions'].each do |as_desc|
