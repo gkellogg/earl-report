@@ -2,7 +2,7 @@ source "https://rubygems.org"
 
 gemspec
 
-gem 'json-ld',        :git => "git://github.com/gkellogg/json-ld.git"
+gem 'json-ld',        :git => "git://github.com/ruby-rdf/json-ld.git"
 
 group :test do
   gem "equivalent-xml"

@@ -164,41 +164,51 @@ class EarlReport
         status "   skip #{file}, which seems to be a previous rollup earl report"
       else
         status "  loaded #{file_graph.count} triples"
+
+        # Find or load DOAP descriptions for all subjects
+        SPARQL.execute(DOAP_QUERY, file_graph).each do |solution|
+          subject = solution[:subject]
+
+          # Load DOAP definitions
+          unless solution[:name] # not loaded
+            status "read doap description for #{subject}"
+            begin
+              doap_graph = RDF::Graph.load(subject)
+              status "  loaded #{doap_graph.count} triples"
+              file_graph << doap_graph.to_a
+            rescue
+              warn "\nfailed to load DOAP from #{subject}: #{$!}"
+            end
+          end
+        end
+
+        # Sanity check loaded graph, look for test subject
+        solutions = SPARQL.execute(TEST_SUBJECT_QUERY, file_graph)
+        if solutions.empty?
+          warn "\nTest subject info not found for #{file}, expect DOAP description of project solving the following query:\n" +
+            TEST_SUBJECT_QUERY
+          next
+        end
+
+        # Load developers referenced from Test Subjects
+        solutions.each do |solution|
+          # Load FOAF definitions
+          if solution[:developer] && !solution[:devName] # not loaded
+            status "read description for developer #{solution[:developer].inspect}"
+            begin
+              foaf_graph = RDF::Graph.load(solution[:developer])
+              status "  loaded #{foaf_graph.count} triples"
+              file_graph << foaf_graph.to_a
+            rescue
+              warn "\nfailed to load FOAF #{subject} from #{solution[:developer]}: #{$!}"
+            end
+          elsif !solution[:developer]
+            warn "\nNo developer identified for #{solution[:developer]}"
+          end
+        end
+
+        # Look for test assertions matching test definitions
         @graph << file_graph
-      end
-    end
-
-    # Find or load DOAP descriptions for all subjects
-    SPARQL.execute(DOAP_QUERY, @graph).each do |solution|
-      subject = solution[:subject]
-
-      # Load DOAP definitions
-      unless solution[:name] # not loaded
-        status "read doap description for #{subject}"
-        begin
-          doap_graph = RDF::Graph.load(subject)
-          status "  loaded #{doap_graph.count} triples"
-          @graph << doap_graph.to_a
-        rescue
-          status "  failed"
-        end
-      end
-    end
-
-    # Load developers referenced from Test Subjects
-    SPARQL.execute(TEST_SUBJECT_QUERY, @graph).each do |solution|
-      # Load DOAP definitions
-      if solution[:developer] && !solution[:devName] # not loaded
-        status "read description for developer #{solution[:developer].inspect}"
-        begin
-          foaf_graph = RDF::Graph.load(solution[:developer])
-          status "  loaded #{foaf_graph.count} triples"
-          @graph << foaf_graph.to_a
-        rescue
-          status "  failed"
-        end
-      elsif !solution[:developer]
-        STDERR.puts "No developer identified for #{uri}"
       end
     end
   end
@@ -589,7 +599,11 @@ class EarlReport
     resource[0,2] == '_:' ? resource : "<#{resource}>"
   end
 
+  def warn(message)
+    $stderr.puts message
+  end
+
   def status(message)
-    puts message if @options[:verbose]
+    $stderr.puts message if @options[:verbose]
   end
 end
