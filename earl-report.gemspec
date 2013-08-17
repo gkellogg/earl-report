@@ -25,8 +25,9 @@ Gem::Specification.new do |gem|
 
   gem.required_ruby_version = '>= 1.9.3'
   gem.requirements          = []
-  gem.add_runtime_dependency     'linkeddata',      '>= 0.3.5'
-  gem.add_runtime_dependency     'sparql',          '>= 0.3.0'
+  gem.add_runtime_dependency     'linkeddata',      '>= 1.0.5'
+  gem.add_runtime_dependency     'json-ld',         '>= 1.0.4'
+  gem.add_runtime_dependency     'sparql',          '>= 1.1.0'
   gem.add_development_dependency 'rspec',           '>= 2.8.0'
   gem.add_development_dependency 'yard' ,           '>= 0.8.3'
   gem.add_development_dependency 'rake'
