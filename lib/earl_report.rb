@@ -45,7 +45,8 @@ class EarlReport
       OPTIONAL { ?uri doap:homepage ?homepage . }
       OPTIONAL { ?uri doap:description ?doapDesc . }
       OPTIONAL { ?uri doap:programming-language ?language . }
-      OPTIONAL { ?developer a ?devType; foaf:name ?devName .}
+      OPTIONAL { ?developer a ?devType .}
+      OPTIONAL { ?developer foaf:name ?devName .}
       OPTIONAL { ?developer foaf:homepage ?devHomepage .}
     }
   ).freeze
@@ -200,7 +201,7 @@ class EarlReport
               status "  loaded #{foaf_graph.count} triples"
               file_graph << foaf_graph.to_a
             rescue
-              warn "\nfailed to load FOAF #{subject} from #{solution[:developer]}: #{$!}"
+              warn "\nfailed to load FOAF from #{solution[:developer]}: #{$!}"
             end
           elsif !solution[:developer]
             warn "\nNo developer identified for #{solution[:developer]}"
