@@ -308,10 +308,10 @@
                 %p{:property => "dc:description", :lang => 'en'}<
                   ~ CGI.escapeHTML test['description']
                 %pre{:class => "example actionDoc", :property => "mf:action", :resource => test['testAction'], :title => "#{test['title']} Input"}<
-                  ~ Kernel.open(test['testAction']) {|f| f.set_encoding(); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testAction']} not loaded"
+                  ~ Kernel.open(test['testAction']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testAction']} not loaded"
                 - if test['testResult']
                   %pre{:class => "example resultDoc", :property => "mf:result", :resource => test['testResult'], :title => "#{test['title']} Result"}<
-                    ~ Kernel.open(test['testResult']) {|f| f.set_encoding(); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
+                    ~ Kernel.open(test['testResult']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
     %section#appendix{:property => "earl:generatedBy", :resource => tests['generatedBy']['@id'], :typeof => tests['generatedBy']['@type']}
       %h2
         Report Generation Software
