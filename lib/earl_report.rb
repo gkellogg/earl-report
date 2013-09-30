@@ -163,6 +163,7 @@ class EarlReport
       file_graph = RDF::Graph.load(file)
       if file_graph.first_object(:predicate => RDF::URI('http://www.w3.org/ns/earl#testSubjects'))
         status "   skip #{file}, which seems to be a previous rollup earl report"
+        @files -= [file]
       else
         status "  loaded #{file_graph.count} triples"
 
