@@ -31,21 +31,24 @@
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <h1>earl-report</h1>
+        <h1>
+<a name="earl-report" class="anchor" href="#earl-report"><span class="octicon octicon-link"></span></a>earl-report</h1>
 
 <p>Ruby gem to consolidate multiple EARL report and generate a rollup conformance report.</p>
 
 <p><a href="http://badge.fury.io/rb/earl-report"><img src="https://badge.fury.io/rb/earl-report.png" alt="Gem Version"></a>
 <a href="http://travis-ci.org/gkellogg/earl-report"><img src="https://travis-ci.org/gkellogg/earl-report.png?branch=master" alt="Build Status"></a></p>
 
-<h2>Description</h2>
+<h2>
+<a name="description" class="anchor" href="#description"><span class="octicon octicon-link"></span></a>Description</h2>
 
 <p>Reads a test manifest in the
 <a href="http://www.w3.org/2011/rdf-wg/wiki/Turtle_Test_Suite">standard RDF WG format</a>
 along with one or more individual EARL reports and generates a rollup report in
 HTML+RDFa in <a href="http://dev.w3.org/2009/dap/ReSpec.js/documentation.html">ReSpec</a> format.</p>
 
-<h2>Individual EARL reports</h2>
+<h2>
+<a name="individual-earl-reports" class="anchor" href="#individual-earl-reports"><span class="octicon octicon-link"></span></a>Individual EARL reports</h2>
 
 <p>Results for individual implementations should be specified in Turtle form, but
 may be specified in an any compatible RDF serialization (JSON-LD is presumed to
@@ -88,7 +91,8 @@ of the following form:</p>
 <p>If not found, the IRI identified by <code>doap:developer</code>
 will be dereferenced and is presumed to provide a <a href="">FOAF</a> profile of the developer.</p>
 
-<h2>Manifest query</h2>
+<h2>
+<a name="manifest-query" class="anchor" href="#manifest-query"><span class="octicon octicon-link"></span></a>Manifest query</h2>
 
 <p>The test manifest is used to generate <code>earl:TestCase</code> entries for each test
 described in the test manifest. It will also summarize each test, including
@@ -102,23 +106,32 @@ PREFIX mf: &lt;http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#&gt;
 PREFIX rdf: &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#&gt;
 PREFIX rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt;
 
-SELECT ?lh ?uri ?title ?description ?testAction ?testResult
+SELECT ?lh ?uri ?type ?title ?description ?testAction ?testResult ?manUri ?manTitle ?manDescription
 WHERE {
-  ?uri mf:name ?title; mf:action ?testAction.
-  OPTIONAL { ?uri rdfs:comment ?description. }
-  OPTIONAL { ?uri mf:result ?testResult. }
-  OPTIONAL { [ mf:entries ?lh] . ?lh rdf:first ?uri . }
+  ?uri a ?type;
+    mf:name ?title;
+    mf:action ?testAction .
+  OPTIONAL { ?uri rdfs:comment ?description . }
+  OPTIONAL { ?uri mf:result ?testResult . }
+  OPTIONAL {
+    ?manUri a mf:Manifest; mf:entries ?lh .
+    ?lh rdf:first ?uri .
+    OPTIONAL { ?manUri mf:name ?manTitle . }
+    OPTIONAL { ?manUri rdfs:comment ?manDescription . }
+  }
 }
 </code></pre>
 
 <p>If any result has a non-null <code>?lh</code>, it is taken as the list head and used
 to maintain the list order within <code>earl:tests</code>.</p>
 
-<h2>Report generation template</h2>
+<h2>
+<a name="report-generation-template" class="anchor" href="#report-generation-template"><span class="octicon octicon-link"></span></a>Report generation template</h2>
 
 <p>The report template is in <a href="http://dev.w3.org/2009/dap/ReSpec.js/documentation.html">ReSpec</a> form using <a href="">Haml</a> to generate individual report elements.</p>
 
-<h2>Usage</h2>
+<h2>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
 
 <p>The <code>earl-report</code> command may be used to directly create a report from zero or more input files, which are themselves <a href="http://www.w3.org/TR/EARL10-Schema/">EARL</a> report.</p>
 
@@ -140,18 +153,21 @@ earl-report \
 
 <p>Generally, creating a <code>json</code> format first is more efficient. Subsequent invocations can then use the <code>--json</code> and use the generated JSON-LD file instead of re-parsing each report.</p>
 
-<h3>Initialization File</h3>
+<h3>
+<a name="initialization-file" class="anchor" href="#initialization-file"><span class="octicon octicon-link"></span></a>Initialization File</h3>
 
 <p><code>earl-report</code> can take defaults for options from an initialization file.
 When run, <code>earl-report</code> attempts to open the file <code>.earl</code> in the current directory. This file is in <a href="http://www.yaml.org/">YAML</a> format with entries for each option. Use the <code>--rc</code> option to automatically generate it.</p>
 
-<h2>Author</h2>
+<h2>
+<a name="author" class="anchor" href="#author"><span class="octicon octicon-link"></span></a>Author</h2>
 
 <ul>
 <li>
 <a href="http://github.com/gkellogg">Gregg Kellogg</a> - <a href="http://greggkellogg.net/">http://greggkellogg.net/</a>
 </li>
-</ul><h2>License</h2>
+</ul><h2>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
 
 <p>This software is licensed using <a href="http://unlicense.org">Unlicense</a> and is freely available without encumbrance.</p>
       </section>
