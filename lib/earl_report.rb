@@ -124,17 +124,19 @@ class EarlReport
 
   ##
   # Load test assertions and look for referenced software and developer information
-  # @param [Array<String>] *files Assertions
-  # @param [Hash{Symbol => Object}] options
-  # @option options [Boolean] :verbose (true)
-  # @option options [String] :base Base IRI for loading Manifest
-  # @option options [String] :bibRef
-  #   ReSpec bibliography reference for specification being tested
-  # @option options [String] :json Result of previous JSON-LD generation
-  # @option options [String, Array<String>] :manifest Test manifest
-  # @option options [String] :name Name of specification
-  # @option options [String] :query
-  #   Query, or file containing query for extracting information from Test manifests
+  # @overload initialize(*files)
+  #   @param [Array<String>] files Assertions
+  # @overload initialize(*files, options = {})
+  #   @param [Hash{Symbol => Object}] options
+  #   @option options [Boolean] :verbose (true)
+  #   @option options [String] :base Base IRI for loading Manifest
+  #   @option options [String] :bibRef
+  #     ReSpec bibliography reference for specification being tested
+  #   @option options [String] :json Result of previous JSON-LD generation
+  #   @option options [String, Array<String>] :manifest Test manifest
+  #   @option options [String] :name Name of specification
+  #   @option options [String] :query
+  #     Query, or file containing query for extracting information from Test manifests
   def initialize(*files)
     @options = files.last.is_a?(Hash) ? files.pop.dup : {}
     @options[:query] ||= MANIFEST_QUERY
@@ -467,7 +469,8 @@ class EarlReport
 
   ##
   # Output consoloated EARL report as Turtle
-  # @param [IO, StringIO] io
+  # @param [Hash{Symbol => Object}] options
+  # @option options [IO, StringIO] :io
   # @return [String]
   def earl_turtle(options)
     io = options[:io]
