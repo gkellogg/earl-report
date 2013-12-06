@@ -25,12 +25,12 @@ Gem::Specification.new do |gem|
 
   gem.required_ruby_version = '>= 1.9.3'
   gem.requirements          = []
-  gem.add_runtime_dependency     'linkeddata',      '>= 1.0.5'
-  gem.add_runtime_dependency     'json-ld',         '>= 1.0.4'
+  gem.add_runtime_dependency     'linkeddata',      '>= 1.1.0'
   gem.add_runtime_dependency     'redcarpet',       '>= 3.0.0'
-  gem.add_runtime_dependency     'sparql',          '>= 1.1.0'
-  gem.add_development_dependency 'rspec',           '>= 2.8.0'
-  gem.add_development_dependency 'yard' ,           '>= 0.8.3'
+  gem.add_runtime_dependency     'nokogiri'
+  gem.add_development_dependency 'rspec',           '>= 2.14.0'
+  gem.add_development_dependency "equivalent-xml"
+  gem.add_development_dependency 'yard' ,           '>= 0.8.7'
   gem.add_development_dependency 'rake'
   gem.post_install_message  = nil
 end
