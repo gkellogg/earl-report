@@ -2,6 +2,7 @@
 require 'linkeddata'
 require 'sparql'
 require 'haml'
+require 'open-uri'
 
 ##
 # EARL reporting class.
@@ -123,17 +124,19 @@ class EarlReport
 
   ##
   # Load test assertions and look for referenced software and developer information
-  # @param [Array<String>] *files Assertions
-  # @param [Hash{Symbol => Object}] options
-  # @option options [Boolean] :verbose (true)
-  # @option options [String] :base Base IRI for loading Manifest
-  # @option options [String] :bibRef
-  #   ReSpec bibliography reference for specification being tested
-  # @option options [String] :json Result of previous JSON-LD generation
-  # @option options [String, Array<String>] :manifest Test manifest
-  # @option options [String] :name Name of specification
-  # @option options [String] :query
-  #   Query, or file containing query for extracting information from Test manifests
+  # @overload initialize(*files)
+  #   @param [Array<String>] files Assertions
+  # @overload initialize(*files, options = {})
+  #   @param [Hash{Symbol => Object}] options
+  #   @option options [Boolean] :verbose (true)
+  #   @option options [String] :base Base IRI for loading Manifest
+  #   @option options [String] :bibRef
+  #     ReSpec bibliography reference for specification being tested
+  #   @option options [String] :json Result of previous JSON-LD generation
+  #   @option options [String, Array<String>] :manifest Test manifest
+  #   @option options [String] :name Name of specification
+  #   @option options [String] :query
+  #     Query, or file containing query for extracting information from Test manifests
   def initialize(*files)
     @options = files.last.is_a?(Hash) ? files.pop.dup : {}
     @options[:query] ||= MANIFEST_QUERY
@@ -163,6 +166,7 @@ class EarlReport
       file_graph = RDF::Graph.load(file)
       if file_graph.first_object(:predicate => RDF::URI('http://www.w3.org/ns/earl#testSubjects'))
         status "   skip #{file}, which seems to be a previous rollup earl report"
+        @files -= [file]
       else
         status "  loaded #{file_graph.count} triples"
 
@@ -364,6 +368,7 @@ class EarlReport
       .to_a
       .inject({}) {|memo, soln| memo[soln[:uri]] = soln; memo}
 
+    qst = Time.now
     # If test cases are in a list, maintain order
     solutions.values.select {|s| s[:manUri]}.each do |man_soln|
       # Get tests for this manifest in list order
@@ -423,25 +428,29 @@ class EarlReport
       raise "No test cases found" if man_info['entries'].empty?
       status "Test cases:\n  #{man_info['entries'].map {|tc| tc['@id']}.join("\n  ")}"
     end
+    qnd = Time.now
+    status "\nassertion query: #{(qnd - qst)/1000} secs"
 
     raise "No manifests found" if manifests.empty?
     status "Manifests:\n  #{manifests.map {|m| m['@id']}.join("\n  ")}"
 
     # Iterate through assertions and add to appropriate test case
+    found_solutions = {}
     SPARQL.execute(ASSERTION_QUERY, @graph).each do |solution|
       tc = test_cases[solution[:test].to_s]
       unless tc
-        STDERR.puts "Skipping result for #{solution[:test]}, which is not defined in manifests"
+        $stderr.puts "Skipping result for #{solution[:test]}, which is not defined in manifests"
         next
       end
       unless solution[:outcome]
-        STDERR.puts "No result found for #{solution[:test]}: #{solution.inspect}"
+        $stderr.puts "No result found for #{solution[:test]}: #{solution.inspect}"
         next
       end
       subject = solution[:subject].to_s
+      found_solutions[subject] = true
       result_index = subjects.index(subject)
       unless solution[:outcome]
-        STDERR.puts "No test subject found for #{solution[:test]}: #{solution.inspect}"
+        $stderr.puts "No test subject found for #{solution[:test]}: #{solution.inspect}"
         next
       end
       ta_hash = tc['assertions'][result_index]
@@ -450,12 +459,18 @@ class EarlReport
       ta_hash['result']['outcome'] = "earl:#{solution[:outcome].to_s.split('#').last}"
     end
 
+    # See if any subject did not report results, which indicates a formatting error in the EARL source
+    subjects.reject {|s| found_solutions[s]}.each do |sub|
+      $stderr.puts "No results found for #{sub} using #{ASSERTION_QUERY}"
+    end
+
     manifests.sort_by {|m| m['title']}
   end
 
   ##
   # Output consoloated EARL report as Turtle
-  # @param [IO, StringIO] io
+  # @param [Hash{Symbol => Object}] options
+  # @option options [IO, StringIO] :io
   # @return [String]
   def earl_turtle(options)
     io = options[:io]

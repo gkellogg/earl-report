@@ -46,6 +46,10 @@
   - subjects = tests['testSubjects']
   %head
     %meta{"http-equiv" => "Content-Type", :content => "text/html;charset=utf-8"}
+    %link{:rel => "alternate", :href => "earl.ttl"}
+    %link{:rel => "alternate", :href => "earl.jsonld"}
+    - tests['assertions'].each do |file|
+      %link{:rel => "related", :href => file}
     %title
       = tests['name']
     %script.remove{:type => "text/javascript", :src => "http://www.w3.org/Tools/respec/respec-w3c-common"}
@@ -164,10 +168,10 @@
         according to the requirements of the Evaluation and Report Language (EARL) 1.0 Schema [[EARL10-SCHEMA]].
       %p
         This report is also available in alternate formats:
-        %a{:href => "earl.ttl"}
+        %a{:rel => "xhv:alternate", :href => "earl.ttl"}
           Turtle
         and
-        %a{:href => "earl.jsonld"}
+        %a{:rel => "xhv:alternate", :href => "earl.jsonld"}
           JSON-LD
     %section#sodt
     %section
@@ -263,11 +267,8 @@
                         %span{:property => "foaf:name"}<
                           ~ CGI.escapeHTML dev['foaf:name']
                       - if dev['foaf:homepage']
-                        %dt
-                          Home Page
-                        %dd
-                          %a{:property => "foaf:homepage", :href=> dev['foaf:homepage']}
-                            ~ CGI.escapeHTML dev['foaf:homepage']
+                        %a{:property => "foaf:homepage", :href=> dev['foaf:homepage']}
+                          ~ CGI.escapeHTML dev['foaf:homepage']
               %dt
                 Test Suite Compliance
               %dd
@@ -284,7 +285,7 @@
                         %td{:class => (pct == 100.0 ? 'passed-all' : (pct >= 85.0 ? 'passed-most' : 'passed-some'))}
                           = "#{passed}/#{total} (#{'%.1f' % pct}%)"
     - unless tests['assertions'].empty?
-      %section.appendix{:rel => "earl:assertions"}
+      %section.appendix{:rel => "xhv:related earl:assertions"}
         %h2
           Individual Test Results
         %p
