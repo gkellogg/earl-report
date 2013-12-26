@@ -335,7 +335,7 @@ describe EarlReport do
     specify {should match(/<#{desc['@id']}> a/)}
     specify {should match(/ a #{desc['@type'].join(', ')}\s*[;\.]$/)}
     specify {should match(/ doap:name "#{desc['name']}"\s*[;\.]$/)}
-    specify {should match(/ doap:description """#{desc['doapDesc']}"""@en\s*[;\.]$/)}
+    specify {should match(/ doap:description "#{desc['doapDesc']}"@en\s*[;\.]$/)}
     specify {should match(/ doap:programming-language "#{desc['language']}"\s*[;\.]$/)}
     specify {should match(/ doap:developer <#{desc['developer']['@id']}>/)}
 
@@ -373,7 +373,7 @@ describe EarlReport do
     specify {should match(/<#{tc['@id']}> a/)}
     specify {should match(/ a #{tc['@type'].join(', ')}\s*[;\.]$/)}
     specify {should match(/ dc:title "#{tc['title']}"\s*[;\.]$/)}
-    specify {should match(/ dc:description """#{tc['description']}"""@en\s*[;\.]$/)}
+    specify {should match(/ dc:description "#{tc['description']}"@en\s*[;\.]$/)}
     specify {should match(/ mf:action <#{tc['testAction']}>\s*[;\.]$/)}
     specify {should match(/ mf:result <#{tc['testResult']}>\s*[;\.]$/)}
     specify {should match(/ earl:assertions \(\s*\[ a earl:Assertion/m)}

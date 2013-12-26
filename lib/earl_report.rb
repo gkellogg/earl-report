@@ -495,7 +495,7 @@ class EarlReport
     man_defs = json_hash['entries'].map {|defn| as_resource(defn['@id'])}.join("\n    ")
     io.puts %{
       #{as_resource(json_hash['@id'])} a #{Array(json_hash['@type']).join(', ')};
-        doap:name "#{json_hash['name']}";
+        doap:name #{quoted(json_hash['name'])};
         dc:bibliographicCitation "#{json_hash['bibRef']}";
         earl:generatedBy #{as_resource json_hash['generatedBy']['@id']};
         earl:assertions
@@ -525,9 +525,9 @@ class EarlReport
     io.puts %(\n# Manifests)
     json_hash['entries'].each do |man|
       io.puts %(#{as_resource(man['@id'])} a earl:Report, mf:Manifest;)
-      io.puts %(  dc:title "#{man['title']}";) if man['title']
-      io.puts %(  mf:name "#{man['title']}";) if man['title']
-      io.puts %(  rdfs:comment "#{man['description']}";) if man['description']
+      io.puts %(  dc:title #{quoted(man['title'])};) if man['title']
+      io.puts %(  mf:name #{quoted(man['title'])};) if man['title']
+      io.puts %(  rdfs:comment #{quoted(man['description'])};) if man['description']
       
       # Test Cases
       test_defs = man['entries'].map {|defn| as_resource(defn['@id'])}.join("\n    ")
@@ -557,9 +557,9 @@ class EarlReport
   # @return [String]
   def test_subject_turtle(desc)
     res = %(<#{desc['@id']}> a #{desc['@type'].join(', ')};\n)
-    res += %(  doap:name "#{desc['name']}";\n)
-    res += %(  doap:description """#{desc['doapDesc']}"""@en;\n)     if desc['doapDesc']
-    res += %(  doap:programming-language "#{desc['language']}";\n) if desc['language']
+    res += %(  doap:name #{quoted(desc['name'])};\n)
+    res += %(  doap:description #{quoted(desc['doapDesc'])}@en;\n)     if desc['doapDesc']
+    res += %(  doap:programming-language #{quoted(desc['language'])};\n) if desc['language']
     res += %( .\n\n)
 
     [desc['developer']].flatten.compact.each do |developer|
@@ -567,12 +567,12 @@ class EarlReport
         res += %(<#{desc['@id']}> doap:developer <#{developer['@id']}> .\n\n)
         res += %(<#{developer['@id']}> a #{Array(developer['@type']).join(', ')};\n)
         res += %(  foaf:homepage <#{developer['foaf:homepage']}>;\n) if developer['foaf:homepage']
-        res += %(  foaf:name "#{developer['foaf:name']}" .\n\n)
+        res += %(  foaf:name #{quoted(developer['foaf:name'])} .\n\n)
       else
         res += %(<#{desc['@id']}> doap:developer\n)
         res += %(   [ a #{developer['@type'] || "foaf:Person"};\n)
         res += %(     foaf:homepage <#{developer['foaf:homepage']}>;\n) if developer['foaf:homepage']
-        res += %(     foaf:name "#{developer['foaf:name']}" ] .\n\n)
+        res += %(     foaf:name #{quoted(developer['foaf:name'])} ] .\n\n)
       end
     end
     res + "\n"
@@ -587,8 +587,8 @@ class EarlReport
       t.include?("://") ? "<#{t}>" : t
     end
     res = %{#{as_resource desc['@id']} a #{types.join(', ')};\n}
-    res += %{  dc:title "#{desc['title']}";\n}
-    res += %{  dc:description """#{desc['description']}"""@en;\n} if desc['description']
+    res += %{  dc:title #{quoted(desc['title'])};\n}
+    res += %{  dc:description #{quoted(desc['description'])}@en;\n} if desc['description']
     res += %{  mf:result #{as_resource desc['testResult']};\n} if desc['testResult']
     res += %{  mf:action #{as_resource desc['testAction']};\n}
     res += %{  earl:assertions (\n}
@@ -610,9 +610,13 @@ class EarlReport
     res += %(      earl:mode #{desc['mode']};\n) if desc['mode']
     res += %(      earl:result [ a earl:TestResult; earl:outcome #{desc['result']['outcome']} ]]\n)
   end
-  
+
   def as_resource(resource)
     resource[0,2] == '_:' ? resource : "<#{resource}>"
+  end
+
+  def quoted(string)
+    (@turtle_writer ||= RDF::Turtle::Writer.new).send(:quoted, string)
   end
 
   def warn(message)
