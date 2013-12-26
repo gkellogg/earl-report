@@ -26,6 +26,7 @@ Gem::Specification.new do |gem|
   gem.required_ruby_version = '>= 1.9.3'
   gem.requirements          = []
   gem.add_runtime_dependency     'linkeddata',      '>= 1.1.0'
+  gem.add_runtime_dependency     'rdf-turtle',      '>= 1.1.2'
   gem.add_runtime_dependency     'redcarpet',       '>= 3.0.0'
   gem.add_runtime_dependency     'nokogiri'
   gem.add_development_dependency 'rspec',           '>= 2.14.0'
