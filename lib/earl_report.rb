@@ -342,9 +342,7 @@ class EarlReport
       # Map ids and values to array entries
       ts_info.keys.sort.map do |id|
         info = ts_info[id]
-        subject = Hash.ordered
-        subject["@id"] = id
-        subject["@type"] = %w(earl:TestSubject doap:Project)
+        subject = {"@id" => id, "@type" => %w(earl:TestSubject doap:Project)}
         %w(name developer doapDesc homepage language).each do |prop|
           subject[prop] = info[prop] if info[prop]
         end
