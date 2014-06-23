@@ -444,7 +444,7 @@ class EarlReport
         $stderr.puts "No result found for #{solution[:test]}: #{solution.inspect}"
         next
       end
-s      unless solution[:outcome]
+      unless solution[:outcome]
         $stderr.puts "No test subject found for #{solution[:test]}: #{solution.inspect}"
         next
       end
