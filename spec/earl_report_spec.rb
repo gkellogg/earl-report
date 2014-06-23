@@ -34,15 +34,15 @@ describe EarlReport do
     }
 
     it "requires a :manifest option" do
-      lambda {EarlReport.new}.should raise_error("Test Manifests must be specified with :manifest option")
+      expect {EarlReport.new}.to raise_error("Test Manifests must be specified with :manifest option")
     end
 
     context "with base" do
       it "loads manifest relative to base" do
-        RDF::Graph.should_receive(:load)
+        expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {:base_uri => "http://example.com/base/"})
           .and_return(manifest)
-        RDF::Graph.should_receive(:load)
+        expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/report-complete.ttl", __FILE__))
           .and_return(reportComplete)
         EarlReport.new(
@@ -55,10 +55,10 @@ describe EarlReport do
 
     context "complete report" do
       before(:each) do
-        RDF::Graph.should_receive(:load)
+        expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {})
           .and_return(manifest)
-        RDF::Graph.should_receive(:load)
+        expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/report-complete.ttl", __FILE__))
           .and_return(reportComplete)
       end
@@ -70,32 +70,32 @@ describe EarlReport do
           :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
       }
       it "loads manifest" do
-        subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl"))
-        subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl#testeval00"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://example/manifest.ttl"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://example/manifest.ttl#testeval00"))
       end
 
       it "loads report" do
-        subject.graph.predicates.to_a.should include(RDF::URI("http://www.w3.org/ns/earl#assertedBy"))
+        expect(subject.graph.predicates.to_a).to include(RDF::URI("http://www.w3.org/ns/earl#assertedBy"))
       end
 
       it "loads doap" do
-        subject.graph.subjects.to_a.should include(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
       end
 
       it "loads foaf" do
-        subject.graph.objects.to_a.should include(RDF::FOAF.Person)
+        expect(subject.graph.objects.to_a).to include(RDF::FOAF.Person)
       end
     end
 
     context "no doap report" do
       before(:each) do
-        RDF::Graph.should_receive(:load)
+        expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {})
           .and_return(manifest)
-        RDF::Graph.should_receive(:load)
+        expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/report-no-doap.ttl", __FILE__))
           .and_return(reportNoDoap)
-        RDF::Graph.should_receive(:load)
+        expect(RDF::Graph).to receive(:load)
           .with("http://rubygems.org/gems/rdf-turtle")
           .and_return(doap)
       end
@@ -107,32 +107,32 @@ describe EarlReport do
           :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
       }
       it "loads manifest" do
-        subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl"))
-        subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl#testeval00"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://example/manifest.ttl"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://example/manifest.ttl#testeval00"))
       end
 
       it "loads report" do
-        subject.graph.predicates.to_a.should include(RDF::URI("http://www.w3.org/ns/earl#assertedBy"))
+        expect(subject.graph.predicates.to_a).to include(RDF::URI("http://www.w3.org/ns/earl#assertedBy"))
       end
 
       it "loads doap" do
-        subject.graph.subjects.to_a.should include(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
       end
 
       it "loads foaf" do
-        subject.graph.objects.to_a.should include(RDF::FOAF.Person)
+        expect(subject.graph.objects.to_a).to include(RDF::FOAF.Person)
       end
     end
 
     context "no foaf report" do
       before(:each) do
-        RDF::Graph.should_receive(:load)
+        expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {})
           .and_return(manifest)
-        RDF::Graph.should_receive(:load)
+        expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/report-no-foaf.ttl", __FILE__))
           .and_return(reportNoFoaf)
-        RDF::Graph.should_receive(:load)
+        expect(RDF::Graph).to receive(:load)
           .with("http://greggkellogg.net/foaf#me")
           .and_return(foaf)
       end
@@ -144,20 +144,20 @@ describe EarlReport do
           :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
       }
       it "loads manifest" do
-        subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl"))
-        subject.graph.subjects.to_a.should include(RDF::URI("http://example/manifest.ttl#testeval00"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://example/manifest.ttl"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://example/manifest.ttl#testeval00"))
       end
 
       it "loads report" do
-        subject.graph.predicates.to_a.should include(RDF::URI("http://www.w3.org/ns/earl#assertedBy"))
+        expect(subject.graph.predicates.to_a).to include(RDF::URI("http://www.w3.org/ns/earl#assertedBy"))
       end
 
       it "loads doap" do
-        subject.graph.subjects.to_a.should include(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
       end
 
       it "loads foaf" do
-        subject.graph.objects.to_a.should include(RDF::FOAF.Person)
+        expect(subject.graph.objects.to_a).to include(RDF::FOAF.Person)
       end
     end
   end
@@ -172,7 +172,7 @@ describe EarlReport do
       'bibRef' => "[[TURTLE]]",
       'name'   => "Turtle Test Results"
     }.each do |prop, value|
-      specify(prop) {subject[prop].should == value}
+      specify(prop) {expect(subject[prop]).to eq value}
     end
 
     %w(assertions generatedBy testSubjects entries).each do |key|
@@ -185,31 +185,31 @@ describe EarlReport do
       end
 
       it "saves output" do
-        lambda {
+        expect {
           File.open(File.expand_path("../test-files/results.jsonld", __FILE__), "w") do |f|
             f.write(subject.to_json)
           end
-        }.should_not raise_error
+        }.not_to raise_error
       end
 
       it "has Report" do
-        SPARQL.execute(REPORT_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(REPORT_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Subject" do
-        SPARQL.execute(SUBJECT_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(SUBJECT_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Developer" do
-        SPARQL.execute(DEVELOPER_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(DEVELOPER_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Test Case" do
-        SPARQL.execute(TC_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(TC_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Assertion" do
-        SPARQL.execute(ASSERTION_QUERY, graph).should be_true
+        expect(SPARQL.execute(ASSERTION_QUERY, graph)).to be_truthy
       end
     end
   end
@@ -230,19 +230,19 @@ describe EarlReport do
         language:   "Ruby",
         name:       "RDF::Turtle",
       }.each do |prop, value|
-        specify(prop) {ts[prop.to_s].should == value}
+        specify(prop) {expect(ts[prop.to_s]).to eq value}
       end
       
       context "developer" do
         let(:dev) {ts['developer']}
-        specify {dev.should be_a(Array)}
-        specify {dev.first.should be_a(Hash)}
+        specify {expect(dev).to be_a(Array)}
+        specify {expect(dev.first).to be_a(Hash)}
         {
           "@id"       => "http://greggkellogg.net/foaf#me",
           "@type"     => %(foaf:Person),
           "foaf:name" => "Gregg Kellogg",
         }.each do |prop, value|
-          specify(prop) {dev.first[prop.to_s].should == value}
+          specify(prop) {expect(dev.first[prop.to_s]).to eq value}
         end
       end
     end
@@ -261,11 +261,11 @@ describe EarlReport do
         "@type" =>  %w(earl:Report mf:Manifest),
         title:      "Example Test Cases"
       }.each do |prop, value|
-        specify(prop) {ts[prop.to_s].should == value}
+        specify(prop) {expect(ts[prop.to_s]).to eq value}
       end
 
       it "should have two entries" do
-        ts['entries'].length.should == 2
+        expect(ts['entries'].length).to eq 2
       end
 
       context "test case" do
@@ -278,17 +278,17 @@ describe EarlReport do
           testAction:   "http://example/test-00.ttl",
           testResult:   "http://example/test-00.out",
         }.each do |prop, value|
-          specify(prop) {tc[prop.to_s].should == value}
+          specify(prop) {expect(tc[prop.to_s]).to eq value}
         end
 
         context('assertions') do
-          specify { tc['assertions'].should be_a(Array)}
-          specify('has one entry') { tc['assertions'].length.should == 1}
+          specify { expect(tc['assertions']).to be_a(Array)}
+          specify('has one entry') { expect(tc['assertions'].length).to eq 1}
         end
 
         context "assertion" do
           let(:as) {tc['assertions'].first}
-          specify {as.should be_a(Hash)}
+          specify {expect(as).to be_a(Hash)}
           {
             "@type" =>  %(earl:Assertion),
             assertedBy: "http://greggkellogg.net/foaf#me",
@@ -296,17 +296,17 @@ describe EarlReport do
             subject:    "http://rubygems.org/gems/rdf-turtle",
             test:       "http://example/manifest.ttl#testeval00",
           }.each do |prop, value|
-            specify(prop) {as[prop.to_s].should == value}
+            specify(prop) {expect(as[prop.to_s]).to eq value}
           end
 
           context "result" do
             let(:rs) {as['result']}
-            specify {rs.should be_a(Hash)}
+            specify {expect(rs).to be_a(Hash)}
             {
               "@type" =>  %(earl:TestResult),
               outcome:    "earl:passed",
             }.each do |prop, value|
-              specify(prop) {rs[prop.to_s].should == value}
+              specify(prop) {expect(rs[prop.to_s]).to eq value}
             end
           end
         end
@@ -401,22 +401,22 @@ describe EarlReport do
     specify {should match(/ earl:mode #{as['mode']}\s*[;\.]$/)}
     specify {should match(/ earl:result \[ a #{as['result']['@type']}; earl:outcome #{as['result']['outcome']} \]\]/)}
     it "has type" do
-      ttl.should match(/ a #{as['@type'].join(', ')}\s*[;\.]$/)
+      expect(ttl).to match(/ a #{as['@type'].join(', ')}\s*[;\.]$/)
     end
     it "has earl:assertedBy" do
-      ttl.should match(/ earl:assertedBy <#{as['assertedBy']}>\s*[;\.]$/)
+      expect(ttl).to match(/ earl:assertedBy <#{as['assertedBy']}>\s*[;\.]$/)
     end
     it "has earl:test" do
-      ttl.should match(/ earl:test <#{as['test']}>\s*[;\.]$/)
+      expect(ttl).to match(/ earl:test <#{as['test']}>\s*[;\.]$/)
     end
     it "has earl:subject" do
-      ttl.should match(/ earl:subject <#{as['subject']}>\s*[;\.]$/)
+      expect(ttl).to match(/ earl:subject <#{as['subject']}>\s*[;\.]$/)
     end
     it "has earl:mode" do
-      ttl.should match(/ earl:mode #{as['mode']}\s*[;\.]$/)
+      expect(ttl).to match(/ earl:mode #{as['mode']}\s*[;\.]$/)
     end
     it "has earl:result" do
-      ttl.should match(/ earl:result \[ a #{as['result']['@type']}; earl:outcome #{as['result']['outcome']} \]\]/)
+      expect(ttl).to match(/ earl:result \[ a #{as['result']['@type']}; earl:outcome #{as['result']['outcome']} \]\]/)
     end
   end
 
@@ -476,31 +476,31 @@ describe EarlReport do
       end
 
       it "saves output" do
-        lambda {
+        expect {
           File.open(File.expand_path("../test-files/results.ttl", __FILE__), "w") do |f|
             f.write(output)
           end
-        }.should_not raise_error
+        }.not_to raise_error
       end
 
       it "has Report" do
-        SPARQL.execute(REPORT_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(REPORT_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Subject" do
-        SPARQL.execute(SUBJECT_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(SUBJECT_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Developer" do
-        SPARQL.execute(DEVELOPER_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(DEVELOPER_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Test Case" do
-        SPARQL.execute(TC_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(TC_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Assertion" do
-        SPARQL.execute(ASSERTION_QUERY, graph).should be_true
+        expect(SPARQL.execute(ASSERTION_QUERY, graph)).to be_truthy
       end
     end
   end
@@ -520,31 +520,31 @@ describe EarlReport do
       end
 
       it "saves output" do
-        lambda {
+        expect {
           File.open(File.expand_path("../test-files/results.html", __FILE__), "w") do |f|
             f.write(output)
           end
-        }.should_not raise_error
+        }.not_to raise_error
       end
 
       it "has Report" do
-        SPARQL.execute(REPORT_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(REPORT_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Subject" do
-        SPARQL.execute(SUBJECT_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(SUBJECT_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Developer" do
-        SPARQL.execute(DEVELOPER_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(DEVELOPER_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Test Case" do
-        SPARQL.execute(TC_QUERY, graph).should == RDF::Literal::TRUE
+        expect(SPARQL.execute(TC_QUERY, graph)).to eq RDF::Literal::TRUE
       end
 
       it "has Assertion" do
-        SPARQL.execute(ASSERTION_QUERY, graph).should be_true
+        expect(SPARQL.execute(ASSERTION_QUERY, graph)).to be_truthy
       end
     end
   end

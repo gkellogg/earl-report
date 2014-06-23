@@ -3,6 +3,7 @@ $:.unshift File.dirname(__FILE__)
 
 require "bundler/setup"
 require 'rspec'
+require 'rspec/its'
 require 'earl_report'
 
 JSON_STATE = JSON::State.new(
