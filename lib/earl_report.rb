@@ -342,9 +342,7 @@ class EarlReport
       # Map ids and values to array entries
       ts_info.keys.sort.map do |id|
         info = ts_info[id]
-        subject = {}
-        subject["@id"] = id
-        subject["@type"] = %w(earl:TestSubject doap:Project)
+        subject = {"@id" => id, "@type" => %w(earl:TestSubject doap:Project)}
         %w(name developer doapDesc homepage language).each do |prop|
           subject[prop] = info[prop] if info[prop]
         end
@@ -446,11 +444,15 @@ class EarlReport
         $stderr.puts "No result found for #{solution[:test]}: #{solution.inspect}"
         next
       end
+s      unless solution[:outcome]
+        $stderr.puts "No test subject found for #{solution[:test]}: #{solution.inspect}"
+        next
+      end
       subject = solution[:subject].to_s
       found_solutions[subject] = true
       result_index = subjects.index(subject)
-      unless solution[:outcome]
-        $stderr.puts "No test subject found for #{solution[:test]}: #{solution.inspect}"
+      unless result_index
+        $stderr.puts "No test result subject found for #{subject}: #{solution.inspect}"
         next
       end
       ta_hash = tc['assertions'][result_index]
