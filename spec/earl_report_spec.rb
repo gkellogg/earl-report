@@ -212,6 +212,11 @@ describe EarlReport do
         expect(SPARQL.execute(ASSERTION_QUERY, graph)).to be_truthy
       end
     end
+
+    it "raises error if manifest query returns no solutions" do
+      earl.graph.clear!
+      expect {earl.send(:json_hash)}.to raise_error(%r(no results found querying manifest))
+    end
   end
   
   describe "#json_test_subject_info" do
