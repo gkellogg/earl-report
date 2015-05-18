@@ -25,13 +25,13 @@ class EarlReport
       ?uri a ?type;
         mf:name ?title;
         mf:action ?testAction .
-      OPTIONAL { ?uri rdfs:comment ?description . }
+      OPTIONAL { ?uri rdfs:comment|dc:description ?description . }
       OPTIONAL { ?uri mf:result ?testResult . }
       OPTIONAL {
         ?manUri a mf:Manifest; mf:entries ?lh .
         ?lh rdf:first ?uri .
-        OPTIONAL { ?manUri mf:name ?manTitle . }
-        OPTIONAL { ?manUri rdfs:comment ?manDescription . }
+        OPTIONAL { ?manUri rdfs:label|mf:name ?manTitle . }
+        OPTIONAL { ?manUri rdfs:comment|dc:description ?manDescription . }
       }
     }
   ).freeze
@@ -283,8 +283,8 @@ class EarlReport
         "@context" => TEST_CONTEXT,
         "@id"           => "",
         "@type"         => %w(earl:Software doap:Project),
-        'name'          => @options[:name],
-        'bibRef'        => @options[:bibRef],
+        'name'          => @options.fetch(:name, "Unknown"),
+        'bibRef'        => @options.fetch(:bibRef, "Unknown reference"),
         'generatedBy'   => {
           "@id"         => "http://rubygems.org/gems/earl-report",
           "@type"       => "doap:Project",
@@ -366,6 +366,12 @@ class EarlReport
       .to_a
       .inject({}) {|memo, soln| memo[soln[:uri]] = soln; memo}
 
+    if solutions.empty?
+      raise "no results found querying manifest.\n" +
+            "Results are found using the following query, this can be overridden using the --query option:\n" +
+            "#{@options[:query]}"
+    end
+
     qst = Time.now
     # If test cases are in a list, maintain order
     solutions.values.select {|s| s[:manUri]}.each do |man_soln|
@@ -424,13 +430,13 @@ class EarlReport
       end
 
       raise "No test cases found" if man_info['entries'].empty?
-      status "Test cases:\n  #{man_info['entries'].map {|tc| tc['@id']}.join("\n  ")}"
+      status "Test cases:\n  #{man_info['entries'].map {|tc| tc.fetch('@id')}.join("\n  ")}"
     end
     qnd = Time.now
     status "\nassertion query: #{(qnd - qst)/1000} secs"
 
     raise "No manifests found" if manifests.empty?
-    status "Manifests:\n  #{manifests.map {|m| m['@id']}.join("\n  ")}"
+    status "Manifests:\n  #{manifests.map {|m| m.fetch('@id')}.join("\n  ")}"
 
     # Iterate through assertions and add to appropriate test case
     found_solutions = {}
@@ -466,7 +472,7 @@ class EarlReport
       $stderr.puts "No results found for #{sub} using #{ASSERTION_QUERY}"
     end
 
-    manifests.sort_by {|m| m['title']}
+    manifests.sort_by {|m| m['title'].to_s}
   end
 
   ##
@@ -493,17 +499,21 @@ class EarlReport
     end
     io.puts
 
+    %w(name bibRef generatedBy assertions testSubjects).each do |field|
+      raise "Expected EARL json to have #{field.inspect} entry" unless json_hash[field]
+    end
+
     # Write earl:Software for the report
-    man_defs = json_hash['entries'].map {|defn| as_resource(defn['@id'])}.join("\n    ")
+    man_defs = json_hash['entries'].map {|defn| as_resource(defn.fetch('@id'))}.join("\n    ")
     io.puts %{
-      #{as_resource(json_hash['@id'])} a #{Array(json_hash['@type']).join(', ')};
-        doap:name #{quoted(json_hash['name'])};
-        dc:bibliographicCitation "#{json_hash['bibRef']}";
-        earl:generatedBy #{as_resource json_hash['generatedBy']['@id']};
+      #{as_resource(json_hash.fetch('@id'))} a #{Array(json_hash.fetch('@type')).join(', ')};
+        doap:name #{quoted(json_hash.fetch('name', 'Unknown'))};
+        dc:bibliographicCitation "#{json_hash.fetch('bibRef', 'Unknown reference')}";
+        earl:generatedBy #{as_resource json_hash.fetch('generatedBy').fetch('@id')};
         earl:assertions
-          #{json_hash['assertions'].map {|a| as_resource(a)}.join(",\n          ")};
+          #{json_hash.fetch('assertions').map {|a| as_resource(a)}.join(",\n          ")};
         earl:testSubjects (
-          #{json_hash['testSubjects'].map {|a| as_resource(a['@id'])}.join("\n          ")});
+          #{json_hash.fetch('testSubjects').map {|a| as_resource(a.fetch('@id'))}.join("\n          ")});
         mf:entries (\n    #{man_defs}) .
     }.gsub(/^      /, '')
 
@@ -526,13 +536,13 @@ class EarlReport
     test_cases = []
     io.puts %(\n# Manifests)
     json_hash['entries'].each do |man|
-      io.puts %(#{as_resource(man['@id'])} a earl:Report, mf:Manifest;)
+      io.puts %(#{as_resource(man.fetch('@id'))} a earl:Report, mf:Manifest;)
       io.puts %(  dc:title #{quoted(man['title'])};) if man['title']
       io.puts %(  mf:name #{quoted(man['title'])};) if man['title']
       io.puts %(  rdfs:comment #{quoted(man['description'])};) if man['description']
       
       # Test Cases
-      test_defs = man['entries'].map {|defn| as_resource(defn['@id'])}.join("\n    ")
+      test_defs = man.fetch('entries').map {|defn| as_resource(defn.fetch('@id'))}.join("\n    ")
       io.puts %(  mf:entries (\n    #{test_defs}) .\n\n)
 
       test_cases += man['entries']
@@ -540,14 +550,14 @@ class EarlReport
 
     # Write out each earl:TestSubject
     io.puts %(#\n# Subject Definitions\n#)
-    json_hash['testSubjects'].each do |ts_desc|
+    json_hash.fetch('testSubjects').each do |ts_desc|
       io.write(test_subject_turtle(ts_desc))
     end
 
     # Write out each earl:TestCase
     io.puts %(#\n# Test Case Definitions\n#)
-    json_hash['entries'].each do |manifest|
-      manifest['entries'].each do |test_case|
+    json_hash.fetch('entries').each do |manifest|
+      manifest.fetch('entries').each do |test_case|
         io.write(tc_turtle(test_case))
       end
     end
@@ -558,23 +568,33 @@ class EarlReport
   # @param [Hash] desc
   # @return [String]
   def test_subject_turtle(desc)
-    res = %(<#{desc['@id']}> a #{desc['@type'].join(', ')};\n)
-    res += %(  doap:name #{quoted(desc['name'])};\n)
+    %w(@id @type name).each do |field|
+      raise "Expected test description to have #{field.inspect} entry" unless desc[field]
+    end
+
+    res = %(<#{desc.fetch('@id')}> a #{desc.fetch('@type').join(', ')};\n)
+    res += %(  doap:name #{quoted(desc.fetch('name'))};\n)
     res += %(  doap:description #{quoted(desc['doapDesc'])}@en;\n)     if desc['doapDesc']
     res += %(  doap:programming-language #{quoted(desc['language'])};\n) if desc['language']
     res += %( .\n\n)
 
     [desc['developer']].flatten.compact.each do |developer|
       if developer['@id']
-        res += %(<#{desc['@id']}> doap:developer <#{developer['@id']}> .\n\n)
-        res += %(<#{developer['@id']}> a #{Array(developer['@type']).join(', ')};\n)
+        %w(@id @type foaf:name).each do |field|
+          raise "Expected FOAF description to have #{field.inspect} entry" unless developer[field]
+        end
+        res += %(<#{desc.fetch('@id')}> doap:developer <#{developer.fetch('@id')}> .\n\n)
+        res += %(<#{developer.fetch('@id')}> a #{Array(developer.fetch('@type')).join(', ')};\n)
         res += %(  foaf:homepage <#{developer['foaf:homepage']}>;\n) if developer['foaf:homepage']
-        res += %(  foaf:name #{quoted(developer['foaf:name'])} .\n\n)
+        res += %(  foaf:name #{quoted(developer.fetch('foaf:name'))} .\n\n)
       else
-        res += %(<#{desc['@id']}> doap:developer\n)
-        res += %(   [ a #{developer['@type'] || "foaf:Person"};\n)
+        %w(foaf:name).each do |field|
+          raise "Expected FOAF description to have #{field.inspect} entry" unless developer[field]
+        end
+        res += %(<#{desc.fetch('@id')}> doap:developer\n)
+        res += %(   [ a #{developer.fetch('@type', 'foaf:Person')};\n)
         res += %(     foaf:homepage <#{developer['foaf:homepage']}>;\n) if developer['foaf:homepage']
-        res += %(     foaf:name #{quoted(developer['foaf:name'])} ] .\n\n)
+        res += %(     foaf:name #{quoted(developer.fetch('foaf:name'))} ] .\n\n)
       end
     end
     res + "\n"
@@ -585,14 +605,17 @@ class EarlReport
   # @prarm[Hash] desc
   # @return [String]
   def tc_turtle(desc)
+    %w(@id @type title testAction assertions).each do |field|
+      raise "Expected test case description to have #{field.inspect} entry" unless desc[field]
+    end
     types = Array(desc['@type']).map do |t|
       t.include?("://") ? "<#{t}>" : t
     end
-    res = %{#{as_resource desc['@id']} a #{types.join(', ')};\n}
-    res += %{  dc:title #{quoted(desc['title'])};\n}
+    res = %{#{as_resource desc.fetch('@id')} a #{types.join(', ')};\n}
+    res += %{  dc:title #{quoted(desc.fetch('title'))};\n}
     res += %{  dc:description #{quoted(desc['description'])}@en;\n} if desc['description']
     res += %{  mf:result #{as_resource desc['testResult']};\n} if desc['testResult']
-    res += %{  mf:action #{as_resource desc['testAction']};\n}
+    res += %{  mf:action #{as_resource desc.fetch('testAction')};\n}
     res += %{  earl:assertions (\n}
     desc['assertions'].each do |as_desc|
       res += as_turtle(as_desc)
@@ -605,12 +628,15 @@ class EarlReport
   # @prarm[Hash] desc
   # @return [String]
   def as_turtle(desc)
+    %w(test subject result).each do |field|
+      raise "Expected assertion description to have #{field.inspect} entry" unless desc[field]
+    end
     res =  %(    [ a earl:Assertion;\n)
     res += %(      earl:assertedBy #{as_resource desc['assertedBy']};\n) if desc['assertedBy']
-    res += %(      earl:test #{as_resource desc['test']};\n)
-    res += %(      earl:subject #{as_resource desc['subject']};\n)
+    res += %(      earl:test #{as_resource desc.fetch('test')};\n)
+    res += %(      earl:subject #{as_resource desc.fetch('subject')};\n)
     res += %(      earl:mode #{desc['mode']};\n) if desc['mode']
-    res += %(      earl:result [ a earl:TestResult; earl:outcome #{desc['result']['outcome']} ]]\n)
+    res += %(      earl:result [ a earl:TestResult; earl:outcome #{desc.fetch('result').fetch('outcome')} ]]\n)
   end
 
   def as_resource(resource)

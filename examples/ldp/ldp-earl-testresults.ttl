@@ -1,0 +1,49 @@
+@prefix doap: <http://usefulinc.com/ns/doap#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix earl: <http://www.w3.org/ns/earl#>.
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix mf:     <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
+@prefix rdft:   <http://www.w3.org/ns/rdftest#> .
+@prefix ldpmf:   <http://w3c.github.io/ldp-testsuite#> .
+@prefix dcterms: <http://purl.org/dc/terms/>.
+
+<http://eclipse.org/lyo> a doap:Project, earl:TestSubject, earl:Software ;
+  doap:name          "Eclipse Lyo LDP Reference" ;
+  doap:developer
+                [ a           foaf:Person ;
+                  foaf:mbox   <mailto:sspeiche@gmail.com> ;
+                  foaf:name   "Steve Speicher"
+                ] ;
+  doap:homepage      <http://wiki.eclipse.org/Lyo/LDPImpl> ;
+  doap:description   "A simple LDP reference implementation using Apache CXF and Jena"@en ;
+  doap:programming-language "Java" .
+
+<http://eclipse.org/lyo#res1> a earl:Assertion ;
+  earl:assertedBy  <http://eclipse.org/lyo>;
+  earl:mode earl:automatic ;
+  earl:result
+          [ a       earl:TestResult ;
+            dcterms:description
+                    "java.lang.AssertionError: Resources with interaction model of only ldp:Resources shouldn't allow container POST-create behavior.\n\tat org.w3.ldp.testsuite.test.CommonContainerTest.testRequestedInteractionModelCreateNotAllowed(CommonContainerTest.java:217)\n\tat org.w3.ldp.testsuite.LdpTestSuite.run(LdpTestSuite.java:278)\n\tat org.w3.ldp.testsuite.LdpTestSuite.main(LdpTestSuite.java:353)\n... Removed 23 stack frames"^^<http://www.w3.org/2001/XMLSchema#string> ;
+            dcterms:title "TEST FAILED" ;
+            earl:outcome earl:fail
+          ] ;
+  earl:subject <http://eclipse.org/lyo>;
+  earl:test ldpmf:tc1
+.
+
+<http://eclipse.org/lyo#res2> a       earl:Assertion ;
+  earl:assertedBy <http://eclipse.org/lyo> ;
+  earl:mode earl:automatic ;
+  earl:result
+          [ a       earl:TestResult ;
+            dcterms:description
+                    "java.lang.AssertionError: Resource wrongly advertising itself as a rel='type' of one of the container types. expected [false] but found [true]\n\tat org.w3.ldp.testsuite.test.CommonContainerTest.testRequestedInteractionModelHeaders(CommonContainerTest.java:241)\n\tat org.w3.ldp.testsuite.LdpTestSuite.run(LdpTestSuite.java:278)\n\tat org.w3.ldp.testsuite.LdpTestSuite.main(LdpTestSuite.java:353)\n... Removed 24 stack frames"^^<http://www.w3.org/2001/XMLSchema#string> ;
+            dcterms:title "TEST FAILED" ;
+            earl:outcome earl:fail
+          ] ;
+  earl:subject <http://eclipse.org/lyo> ;
+  earl:test ldpmf:tc2
+ .
+
