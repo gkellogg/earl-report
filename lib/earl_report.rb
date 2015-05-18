@@ -25,13 +25,13 @@ class EarlReport
       ?uri a ?type;
         mf:name ?title;
         mf:action ?testAction .
-      OPTIONAL { ?uri rdfs:comment ?description . }
+      OPTIONAL { ?uri rdfs:comment|dc:description ?description . }
       OPTIONAL { ?uri mf:result ?testResult . }
       OPTIONAL {
         ?manUri a mf:Manifest; mf:entries ?lh .
         ?lh rdf:first ?uri .
-        OPTIONAL { ?manUri mf:name ?manTitle . }
-        OPTIONAL { ?manUri rdfs:comment ?manDescription . }
+        OPTIONAL { ?manUri rdfs:label|mf:name ?manTitle . }
+        OPTIONAL { ?manUri rdfs:comment|dc:description ?manDescription . }
       }
     }
   ).freeze
@@ -472,7 +472,7 @@ class EarlReport
       $stderr.puts "No results found for #{sub} using #{ASSERTION_QUERY}"
     end
 
-    manifests.sort_by {|m| m['title']}
+    manifests.sort_by {|m| m['title'].to_s}
   end
 
   ##
