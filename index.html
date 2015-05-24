@@ -1,38 +1,26 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en-us">
   <head>
-    <meta charset='utf-8' />
-    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="Earl Report : Ruby gem to consolidate multiple EARL reports and generate a rollup conformance report" />
-
-    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
-
-    <title>Earl Report</title>
+    <meta charset="UTF-8">
+    <title>Earl Report by gkellogg</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
   </head>
-
   <body>
+    <section class="page-header">
+      <h1 class="project-name">Earl Report</h1>
+      <h2 class="project-tagline">Ruby gem to consolidate multiple EARL reports and generate a rollup conformance report</h2>
+      <a href="https://github.com/gkellogg/earl-report" class="btn">View on GitHub</a>
+      <a href="https://github.com/gkellogg/earl-report/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/gkellogg/earl-report/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
 
-    <!-- HEADER -->
-    <div id="header_wrap" class="outer">
-        <header class="inner">
-          <a id="forkme_banner" href="https://github.com/gkellogg/earl-report">View on GitHub</a>
-
-          <h1 id="project_title">Earl Report</h1>
-          <h2 id="project_tagline">Ruby gem to consolidate multiple EARL reports and generate a rollup conformance report</h2>
-
-            <section id="downloads">
-              <a class="zip_download_link" href="https://github.com/gkellogg/earl-report/zipball/master">Download this project as a .zip file</a>
-              <a class="tar_download_link" href="https://github.com/gkellogg/earl-report/tarball/master">Download this project as a tar.gz file</a>
-            </section>
-        </header>
-    </div>
-
-    <!-- MAIN CONTENT -->
-    <div id="main_content_wrap" class="outer">
-      <section id="main_content" class="inner">
-        <h1>
-<a name="earl-report" class="anchor" href="#earl-report"><span class="octicon octicon-link"></span></a>earl-report</h1>
+    <section class="main-content">
+      <h1>
+<a id="earl-report" class="anchor" href="#earl-report" aria-hidden="true"><span class="octicon octicon-link"></span></a>earl-report</h1>
 
 <p>Ruby gem to consolidate multiple EARL report and generate a rollup conformance report.</p>
 
@@ -40,7 +28,7 @@
 <a href="http://travis-ci.org/gkellogg/earl-report"><img src="https://travis-ci.org/gkellogg/earl-report.png?branch=master" alt="Build Status"></a></p>
 
 <h2>
-<a name="description" class="anchor" href="#description"><span class="octicon octicon-link"></span></a>Description</h2>
+<a id="description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h2>
 
 <p>Reads a test manifest in the
 <a href="http://www.w3.org/2011/rdf-wg/wiki/Turtle_Test_Suite">standard RDF WG format</a>
@@ -48,11 +36,10 @@ along with one or more individual EARL reports and generates a rollup report in
 HTML+RDFa in <a href="http://dev.w3.org/2009/dap/ReSpec.js/documentation.html">ReSpec</a> format.</p>
 
 <h2>
-<a name="individual-earl-reports" class="anchor" href="#individual-earl-reports"><span class="octicon octicon-link"></span></a>Individual EARL reports</h2>
+<a id="individual-earl-reports" class="anchor" href="#individual-earl-reports" aria-hidden="true"><span class="octicon octicon-link"></span></a>Individual EARL reports</h2>
 
 <p>Results for individual implementations should be specified in Turtle form, but
-may be specified in an any compatible RDF serialization (JSON-LD is presumed to
-be a cached rollup report). The report is composed of <code>Assertion</code> declarations
+may be specified in an any compatible RDF serialization. The report is composed of <code>Assertion</code> declarations
 in the following form:</p>
 
 <pre><code>[ a earl:Assertion;
@@ -92,7 +79,7 @@ of the following form:</p>
 will be dereferenced and is presumed to provide a <a href="">FOAF</a> profile of the developer.</p>
 
 <h2>
-<a name="manifest-query" class="anchor" href="#manifest-query"><span class="octicon octicon-link"></span></a>Manifest query</h2>
+<a id="manifest-query" class="anchor" href="#manifest-query" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manifest query</h2>
 
 <p>The test manifest is used to generate <code>earl:TestCase</code> entries for each test
 described in the test manifest. It will also summarize each test, including
@@ -126,12 +113,12 @@ WHERE {
 to maintain the list order within <code>earl:tests</code>.</p>
 
 <h2>
-<a name="report-generation-template" class="anchor" href="#report-generation-template"><span class="octicon octicon-link"></span></a>Report generation template</h2>
+<a id="report-generation-template" class="anchor" href="#report-generation-template" aria-hidden="true"><span class="octicon octicon-link"></span></a>Report generation template</h2>
 
 <p>The report template is in <a href="http://dev.w3.org/2009/dap/ReSpec.js/documentation.html">ReSpec</a> form using <a href="">Haml</a> to generate individual report elements.</p>
 
 <h2>
-<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
 
 <p>The <code>earl-report</code> command may be used to directly create a report from zero or more input files, which are themselves <a href="http://www.w3.org/TR/EARL10-Schema/">EARL</a> report.</p>
 
@@ -154,34 +141,34 @@ earl-report \
 <p>Generally, creating a <code>json</code> format first is more efficient. Subsequent invocations can then use the <code>--json</code> and use the generated JSON-LD file instead of re-parsing each report.</p>
 
 <h3>
-<a name="initialization-file" class="anchor" href="#initialization-file"><span class="octicon octicon-link"></span></a>Initialization File</h3>
+<a id="initialization-file" class="anchor" href="#initialization-file" aria-hidden="true"><span class="octicon octicon-link"></span></a>Initialization File</h3>
 
 <p><code>earl-report</code> can take defaults for options from an initialization file.
 When run, <code>earl-report</code> attempts to open the file <code>.earl</code> in the current directory. This file is in <a href="http://www.yaml.org/">YAML</a> format with entries for each option. Use the <code>--rc</code> option to automatically generate it.</p>
 
 <h2>
-<a name="author" class="anchor" href="#author"><span class="octicon octicon-link"></span></a>Author</h2>
+<a id="author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h2>
 
 <ul>
 <li>
 <a href="http://github.com/gkellogg">Gregg Kellogg</a> - <a href="http://greggkellogg.net/">http://greggkellogg.net/</a>
 </li>
-</ul><h2>
-<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
+</ul>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
 
 <p>This software is licensed using <a href="http://unlicense.org">Unlicense</a> and is freely available without encumbrance.</p>
-      </section>
-    </div>
 
-    <!-- FOOTER  -->
-    <div id="footer_wrap" class="outer">
-      <footer class="inner">
-        <p class="copyright">Earl Report maintained by <a href="https://github.com/gkellogg">gkellogg</a></p>
-        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/gkellogg/earl-report">Earl Report</a> is maintained by <a href="https://github.com/gkellogg">gkellogg</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
       </footer>
-    </div>
 
-    
+    </section>
 
+  
   </body>
 </html>
+
