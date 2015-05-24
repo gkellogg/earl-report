@@ -25,6 +25,8 @@ def usage
     earl-report version #{EarlReport::VERSION}
     Generate EARL report for mutliple test results against a test manifest.
     
+    See http://gkellogg.github.io/earl-report/ for assumptions on individual reports and test manifests.
+    
     Options are initialized by reading optional run-control file '.earl' in the local directory,
     if it exists.
     
