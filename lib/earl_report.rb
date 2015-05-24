@@ -395,6 +395,13 @@ class EarlReport
       # Collect each TestCase
       solution_list.each do |uri|
         solution = solutions[uri]
+        
+        unless solution
+          $stderr.puts "Expected to find solution for #{uri}\n"
+          "Results are found using the following query, this can be overridden using the --query option:\n" +
+          "#{@options[:query]}"
+          next
+        end
 
         # Create entry for this test case, if it doesn't already exist
         tc = man_info['entries'].detect {|t| t['@id'] == uri}
