@@ -12,8 +12,7 @@ HTML+RDFa in [ReSpec][] format.
 
 ## Individual EARL reports
 Results for individual implementations should be specified in Turtle form, but
-may be specified in an any compatible RDF serialization (JSON-LD is presumed to
-be a cached rollup report). The report is composed of `Assertion` declarations
+may be specified in an any compatible RDF serialization. The report is composed of `Assertion` declarations
 in the following form:
 
     [ a earl:Assertion;
