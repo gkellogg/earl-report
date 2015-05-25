@@ -9,7 +9,7 @@ require 'yaml'
 OPT_ARGS = [
   ["--base",              GetoptLong::REQUIRED_ARGUMENT,"Base URI to use when loading test manifest"],
   ["--bibRef",            GetoptLong::REQUIRED_ARGUMENT,"ReSpec BibRef of specification being reported upon"],
-  ["--format", "-f",      GetoptLong::REQUIRED_ARGUMENT,"Format of output, one of 'ttl', 'json', or 'html'"],
+  ["--format", "-f",      GetoptLong::REQUIRED_ARGUMENT,"Format of output, one of 'ttl', 'json', or 'html'. May also be a different RDF format"],
   ["--json",              GetoptLong::NO_ARGUMENT,      "Input is a JSON-LD formatted result"],
   ["--manifest",          GetoptLong::REQUIRED_ARGUMENT,"Test manifest(s)"],
   ["--name",              GetoptLong::REQUIRED_ARGUMENT,"Name of specification"],
@@ -29,6 +29,8 @@ def usage
     
     Options are initialized by reading optional run-control file '.earl' in the local directory,
     if it exists.
+    
+    Writing with a format other than ttl, json, or html will also write any loaded manifests
     
     Usage: #{$0} [options] test-result ...
   }.gsub(/^    /, '')

@@ -164,7 +164,7 @@ class EarlReport
     files.flatten.each do |file|
       status "read #{file}"
       file_graph = RDF::Graph.load(file)
-      if file_graph.first_object(:predicate => RDF::URI('http://www.w3.org/ns/earl#testSubjects'))
+      if file_graph.first_object(predicate: RDF::URI('http://www.w3.org/ns/earl#testSubjects'))
         status "   skip #{file}, which seems to be a previous rollup earl report"
         @files -= [file]
       else
@@ -217,9 +217,9 @@ class EarlReport
       end
     end
   end
-    
+
   ##
-  # Dump the collesced output graph
+  # Dump the coalesced output graph
   #
   # If no `io` option is provided, the output is returned as a string
   #
@@ -229,7 +229,7 @@ class EarlReport
   #   Optional `IO` to output results
   # @return [String] serialized graph, if `io` is nil
   def generate(options = {})
-    options = {:format => :html}.merge(options)
+    options = {format: :html}.merge(options)
 
     io = options[:io]
 
@@ -246,7 +246,7 @@ class EarlReport
         earl_turtle(options)
       else
         io = StringIO.new
-        earl_turtle(options.merge(:io => io))
+        earl_turtle(options.merge(io: io))
         io.rewind
         io.read
       end
@@ -259,7 +259,7 @@ class EarlReport
       end
 
       # Generate HTML report
-      html = Haml::Engine.new(template, :format => :xhtml).render(self, :tests => json_hash)
+      html = Haml::Engine.new(template, format: :xhtml).render(self, tests: json_hash)
       io.write(html) if io
       html
     else
