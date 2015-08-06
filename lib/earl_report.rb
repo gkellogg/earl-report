@@ -114,7 +114,7 @@ class EarlReport
     },
     "testSubjects" => {
       "@type" => "earl:TestSubject",
-      "developer" => {},
+      "developer" => {"@embed" => "@always"},
       "release" => {}
     },
     "entries" => [{
@@ -123,6 +123,7 @@ class EarlReport
         "@type" => "earl:TestCase",
         "assertions" => {
           "@type" => "earl:Assertion",
+          "assertedBy" => {"@embed" => false},
           "result" => {"@type" => "earl:TestResult"},
           "subject" => {"@embed" => false}
         }
@@ -252,7 +253,13 @@ class EarlReport
 
     # Make sure that each assertion matches a test and add reference from test to assertion
     found_solutions = {}
+
+    # Initialize test assertions with an entry for each test subject
     test_assertion_lists = {}
+    test_assertion_lists = tests.keys.inject({}) do |memo, test|
+      memo.merge(test => Array.new(subjects.length))
+    end
+
     SPARQL.execute(ASSERTION_QUERY, graph).each do |solution|
       subject = solution[:subject]
       unless tests[solution[:test]]
@@ -273,7 +280,19 @@ class EarlReport
 
     # Add ordered assertions for each test
     test_assertion_lists.each do |test, ary|
-      ary = ary.map {|e| e.nil? ? RDF::Node.new : e}
+      # Fill any missing entries with an untested outcome
+      ary.each_with_index do |a, ndx|
+        unless a
+          ary[ndx] = a = RDF::Node.new
+          graph << RDF::Statement(a, RDF.type, EARL.Assertion)
+          graph << RDF::Statement(a, EARL.subject, subjects.keys[ndx])
+          graph << RDF::Statement(a, EARL.test, test)
+          r = RDF::Node.new
+          graph << RDF::Statement(a, EARL.result, r)
+          graph << RDF::Statement(r, RDF.type, EARL.TestResult)
+          graph << RDF::Statement(r, EARL.outcome, EARL.untested)
+        end
+      end
       list = RDF::List.new(nil, graph, ary)
       graph << RDF::Statement(test, EARL.assertions, list)
     end

@@ -202,7 +202,7 @@
                 %td
                   %a{href: "##{tid}"}<
                     ~ CGI.escapeHTML test['title']
-                - test['assertions'] = [] unless test.has_key?('assertions')
+                - # test['assertions'] = [] unless test.has_key?('assertions')
                 - test['assertions'].each_with_index do |assertion, ndx|
                   - next if skip_subject[assertion['subject']]
                   - pass_fail = assertion['result']['outcome'].split(':').last.upcase.sub(/(PASS|FAIL)ED$/, '\1')
@@ -253,7 +253,6 @@
                 %dt= "Developer"
                 %dd{rel: "doap:developer"}
                   - subject['developer'].each do |dev|
-                    - next unless dev.is_a?(Hash)
                     %div{resource: dev['@id'], typeof: Array(dev['@type']).join(" ")}
                       - if dev.has_key?('@id')
                         %a{href: dev['@id']}
