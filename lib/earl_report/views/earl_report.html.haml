@@ -42,17 +42,17 @@
 - require 'digest'
 
 !!! 5
-%html{:prefix => "earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap# mf: http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#"}
+%html{prefix: "earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap# mf: http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#"}
   - subjects = tests['testSubjects']
   %head
-    %meta{"http-equiv" => "Content-Type", :content => "text/html;charset=utf-8"}
-    %link{:rel => "alternate", :href => "earl.ttl"}
-    %link{:rel => "alternate", :href => "earl.jsonld"}
+    %meta{"http-equiv" => "Content-Type", content: "text/html;charset=utf-8"}
+    %link{rel: "alternate", href: "earl.ttl"}
+    %link{rel: "alternate", href: "earl.jsonld"}
     - tests['assertions'].each do |file|
-      %link{:rel => "related", :href => file}
+      %link{rel: "related", href: file}
     %title
       = tests['name']
-    %script.remove{:type => "text/javascript", :src => "http://www.w3.org/Tools/respec/respec-w3c-common"}
+    %script.remove{type: "text/javascript", src: "http://www.w3.org/Tools/respec/respec-w3c-common"}
     :javascript
       var respecConfig = {
           // extend the bibliography entries
@@ -84,12 +84,6 @@
 
           // if this is a LCWD, uncomment and set the end of its review period
           // lcEnd: "2009-08-05",
-
-          // if you want to have extra CSS, append them to this list
-          // it is recommended that the respec.css stylesheet be kept
-          extraCSS:             [
-              "http://dev.w3.org/2009/dap/ReSpec.js/css/respec.css"
-          ],
 
           // editors, add as many as you like
           // only "name" is required
@@ -127,7 +121,7 @@
           ],
       };
     :css
-      span[property='dc:description'] { display: none; }
+      span[property='dc:description rdfs:comment'] { display: none; }
       td.PASS { color: green; }
       td.FAIL { color: red; }
       table.report {
@@ -158,20 +152,20 @@
       td.passed-all {color: green;}
       td.passed-most {color: darkorange;}
       td.passed-some {color: red;}
-  %body{:prefix => "earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap# mf: http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#"}
-    %section#abstract{:about => tests['@id'], :typeof => Array(tests['@type']).join(" ")}
+  %body{prefix: "earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap# mf: http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#", vocab: "http://www.w3.org/ns/earl#"}
+    %section#abstract{about: tests['@id'], typeof: Array(tests['@type']).join(" ")}
       %p
         This document report test subject conformance for and related specifications for
-        %span{:property => "doap:name"}<=tests['name']
-        %span{:property => "dc:bibliographicCitation"}<
+        %span{property: "doap:name"}<=tests['name']
+        %span{property: "dc:bibliographicCitation"}<
           = tests['bibRef']
         according to the requirements of the Evaluation and Report Language (EARL) 1.0 Schema [[EARL10-SCHEMA]].
       %p
         This report is also available in alternate formats:
-        %a{:rel => "xhv:alternate", :href => "earl.ttl"}
+        %a{rel: "xhv:alternate", href: "earl.ttl"}
           Turtle
         and
-        %a{:rel => "xhv:alternate", :href => "earl.jsonld"}
+        %a{rel: "xhv:alternate", href: "earl.jsonld"}
           JSON-LD
     %section#sodt
     %section
@@ -182,10 +176,10 @@
         Test Manifests
       - tests['entries'].each do |manifest|
         - test_cases = manifest['entries']
-        %section{:typeof => manifest['@type'].join(" "), :resource => manifest['@id']}
-          %h2{:property => "dc:title mf:name"}<=manifest['title'] ||  'Test Manifest'
+        %section{typeof: manifest['@type'].join(" "), resource: manifest['@id']}
+          %h2{property: "dc:title mf:name"}<=manifest['title'] ||  'Test Manifest'
           - Array(manifest['description']).each do |desc|
-            %p{:property => "rdfs:comment"}<
+            %p{property: "rdfs:comment"}<
               ~ CGI.escapeHTML desc
           %table.report
             - skip_subject = {}
@@ -199,35 +193,36 @@
                 - skip_subject[subject['@id']] = manifest['entries'].all? {|t| t['assertions'][index]['result']['outcome'] == 'earl:untested'}
                 - unless skip_subject[subject['@id']]
                   %th
-                    %a{:href => '#' + subject_refs[subject['@id']]}<=subject['name']
+                    %a{href: '#' + subject_refs[subject['@id']]}<=subject['name']
             - test_cases.each do |test|
               - tid = "test_#{Digest::MD5.hexdigest(test['@id'])}"
               - (test_info[tid] ||= []) << test
               - test_refs[test['@id']] = tid
-              %tr{:rel => "mf:entries", :typeof => test['@type'].join(" "), :resource => test['@id'], :inlist => true}
+              %tr{rel: "mf:entries", typeof: test['@type'].join(" "), resource: test['@id'], inlist: true}
                 %td
-                  %a{:href => "##{tid}"}<
+                  %a{href: "##{tid}"}<
                     ~ CGI.escapeHTML test['title']
+                - test['assertions'] = [] unless test.has_key?('assertions')
                 - test['assertions'].each_with_index do |assertion, ndx|
                   - next if skip_subject[assertion['subject']]
                   - pass_fail = assertion['result']['outcome'].split(':').last.upcase.sub(/(PASS|FAIL)ED$/, '\1')
                   - passed_tests[ndx] = (passed_tests[ndx] || 0) + (pass_fail == 'PASS' ? 1 : 0)
-                  %td{:class => pass_fail, :property => "earl:assertions", :typeof => assertion['@type'], :inlist => true}
+                  %td{class: pass_fail, property: "earl:assertions", typeof: assertion['@type'], inlist: true}
                     - if assertion['assertedBy']
-                      %link{:property => "earl:assertedBy", :href => assertion['assertedBy']}
-                    %link{:property => "earl:test", :href => assertion['test']}
-                    %link{:property => "earl:subject", :href => assertion['subject']}
+                      %link{property: "earl:assertedBy", href: assertion['assertedBy']}
+                    %link{property: "earl:test", href: assertion['test']}
+                    %link{property: "earl:subject", href: assertion['subject']}
                     - if assertion['mode']
-                      %link{:property => 'earl:mode', :href => assertion['mode']}
-                    %span{:property => "earl:result", :typeof => assertion['result']['@type']}
-                      %span{:property => 'earl:outcome', :resource => assertion['result']['outcome']}
+                      %link{property: 'earl:mode', href: assertion['mode']}
+                    %span{property: "earl:result", typeof: assertion['result']['@type']}
+                      %span{property: 'earl:outcome', resource: assertion['result']['outcome']}
                         = pass_fail
             %tr.summary
               %td
                 = "Percentage passed out of #{manifest['entries'].length} Tests"
               - passed_tests.compact.each do |r|
                 - pct = (r * 100.0) / manifest['entries'].length
-                %td{:class => (pct == 100.0 ? 'passed-all' : (pct >= 95.0 ? 'passed-most' : 'passed-some'))}
+                %td{class: (pct == 100.0 ? 'passed-all' : (pct >= 95.0 ? 'passed-most' : 'passed-some'))}
                   = "#{'%.1f' % pct}%"
     %section.appendix
       %h2
@@ -236,38 +231,39 @@
         This report was tested using the following test subjects:
       %dl
         - subjects.each_with_index do |subject, index|
-          %dt{:id => subject_refs[subject['@id']]}
-            %a{:href => subject['@id']}
-              %span{:about => subject['@id'], :property => "doap:name"}<= subject['name']
-          %dd{:property => "earl:testSubjects", :resource => subject['@id'], :typeof => Array(subject['@type']).join(" "), :inlist => true}
+          %dt{id: subject_refs[subject['@id']]}
+            %a{href: subject['@id']}
+              %span{about: subject['@id'], property: "doap:name"}<= subject['name']
+          %dd{property: "earl:testSubjects", resource: subject['@id'], typeof: Array(subject['@type']).join(" ")}
             %dl
               - if subject['doapDesc']
                 %dt= "Description"
-                %dd{:property => "doap:description", :lang => 'en'}<
+                %dd{property: "doap:description", lang: 'en'}<
                   ~ CGI.escapeHTML subject['doapDesc']
               - if subject['language']
                 %dt= "Programming Language"
-                %dd{:property => "doap:programming-language"}<
+                %dd{property: "doap:programming-language"}<
                   ~ CGI.escapeHTML subject['language']
               - if subject['homepage']
                 %dt= "Home Page"
-                %dd{:property => "doap:homepage"}
-                  %a{:href=> subject['homepage']}
+                %dd{property: "doap:homepage"}
+                  %a{href: subject['homepage']}
                     ~ CGI.escapeHTML subject['homepage']
               - if subject['developer']
                 %dt= "Developer"
-                %dd{:rel => "doap:developer"}
+                %dd{rel: "doap:developer"}
                   - subject['developer'].each do |dev|
-                    %div{:resource => dev['@id'], :typeof => Array(dev['@type']).join(" ")}
+                    - next unless dev.is_a?(Hash)
+                    %div{resource: dev['@id'], typeof: Array(dev['@type']).join(" ")}
                       - if dev.has_key?('@id')
-                        %a{:href => dev['@id']}
-                          %span{:property => "foaf:name"}<
+                        %a{href: dev['@id']}
+                          %span{property: "foaf:name"}<
                             ~ CGI.escapeHTML dev['foaf:name']
                       - else
-                        %span{:property => "foaf:name"}<
+                        %span{property: "foaf:name"}<
                           ~ CGI.escapeHTML dev['foaf:name']
                       - if dev['foaf:homepage']
-                        %a{:property => "foaf:homepage", :href=> dev['foaf:homepage']}
+                        %a{property: "foaf:homepage", href: dev['foaf:homepage']}
                           ~ CGI.escapeHTML dev['foaf:homepage']
               %dt
                 Test Suite Compliance
@@ -275,17 +271,17 @@
                 %table.report
                   %tbody
                     - tests['entries'].each do |manifest|
-                      - passed = manifest['entries'].select {|t| t['assertions'][index]['result']['outcome'] == 'earl:passed' }.length
+                      - passed = manifest['entries'].select {|t| (t['assertions'][index] || {}).fetch('result', {})['outcome'] == 'earl:passed' }.length
                       - next if passed == 0
                       - total = manifest['entries'].length
                       - pct = (passed * 100.0) / total
                       %tr
                         %td
                           ~ manifest['title']
-                        %td{:class => (pct == 100.0 ? 'passed-all' : (pct >= 85.0 ? 'passed-most' : 'passed-some'))}
+                        %td{class: (pct == 100.0 ? 'passed-all' : (pct >= 85.0 ? 'passed-most' : 'passed-some'))}
                           = "#{passed}/#{total} (#{'%.1f' % pct}%)"
     - unless tests['assertions'].empty?
-      %section.appendix{:rel => "xhv:related earl:assertions"}
+      %section.appendix{rel: "xhv:related earl:assertions", inlist: true}
         %h2
           Individual Test Results
         %p
@@ -293,52 +289,52 @@
         %ul
           - tests['assertions'].each do |file|
             %li
-              %a.source{:href => file}<= file
+              %a.source{href: file}<= file
     %section.appendix
       %h2
         Test Definitions
       %dl
         - tests['entries'].each do |manifest|
-          %div{:property => "mf:entries", :inlist => true, :resource => manifest['@id']}
+          %div{property: "mf:entries", inlist: true, resource: manifest['@id']}
             - manifest['entries'].each do |test|
-              %dt{:id => test_refs[test['@id']], :resource => test['@id']}
+              %dt{id: test_refs[test['@id']], resource: test['@id']}
                 Test
-                %span{:property => "dc:title mf:name"}<
+                %span{property: "dc:title mf:name"}<
                   ~ CGI.escapeHTML test['title']
-              %dd{:resource => test['@id']}
-                %p{:property => "dc:description", :lang => 'en'}<
+              %dd{resource: test['@id']}
+                %p{property: "dc:description rdfs:comment", lang: 'en'}<
                   ~ CGI.escapeHTML test['description']
-                %pre{:class => "example actionDoc", :property => "mf:action", :resource => test['testAction'], :title => "#{test['title']} Input"}<
+                %pre{class: "example actionDoc", property: "mf:action", resource: test['testAction'], title: "#{test['title']} Input"}<
                   ~ Kernel.open(test['testAction']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testAction']} not loaded"
                 - if test['testResult']
-                  %pre{:class => "example resultDoc", :property => "mf:result", :resource => test['testResult'], :title => "#{test['title']} Result"}<
+                  %pre{class: "example resultDoc", property: "mf:result", resource: test['testResult'], title: "#{test['title']} Result"}<
                     ~ Kernel.open(test['testResult']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
-    %section#appendix{:property => "earl:generatedBy", :resource => tests['generatedBy']['@id'], :typeof => tests['generatedBy']['@type']}
+    %section#appendix{property: "earl:generatedBy", resource: tests['generatedBy']['@id'], typeof: Array(tests['generatedBy']['@type']).join(' ')}
       %h2
         Report Generation Software
       - doap = tests['generatedBy']
       - rel = doap['release']
       %p
         This report generated by
-        %span{:property => "doap:name"}<
-          %a{:href => tests['generatedBy']['@id']}<
+        %span{property: "doap:name"}<
+          %a{href: tests['generatedBy']['@id']}<
             = doap['name']
-        %meta{:property => "doap:shortdesc", :content => doap['shortdesc'], :lang => 'en'}
-        %meta{:property => "doap:description", :content => doap['doapDesc'], :lang => 'en'}
+        %meta{property: "doap:shortdesc", content: doap['shortdesc'], lang: 'en'}
+        %meta{property: "doap:description", content: doap['doapDesc'], lang: 'en'}
         version
-        %span{:property => "doap:release", :resource => rel['@id'], :typeof => 'doap:Version'}
-          %span{:property => "doap:revision"}<=rel['revision']
-          %meta{:property => "doap:name", :content => rel['name']}
-          %meta{:property => "doap:created", :content => rel['created'], :datatype => "xsd:date"}
+        %span{property: "doap:release", resource: rel['@id'], typeof: 'doap:Version'}
+          %span{property: "doap:revision"}<=rel['revision']
+          %meta{property: "doap:name", content: rel['name']}
+          %meta{property: "doap:created", content: rel['created'], datatype: "xsd:date"}
         an
-        %a{:property => "doap:license", :href => doap['license']}<="Unlicensed"
-        %span{:property => "doap:programming-language"}<="Ruby"
+        %a{property: "doap:license", href: doap['license']}<="Unlicensed"
+        %span{property: "doap:programming-language"}<="Ruby"
         application. More information is available at
-        %a{:property => "doap:homepage", :href => doap['homepage']}<=doap['homepage']
+        %a{property: "doap:homepage", href: doap['homepage']}<=doap['homepage']
         = "."
-      %p{:property => "doap:developer", :resource => "http://greggkellogg.net/foaf#me", :typeof => "foaf:Person"}
+      %p{property: "doap:developer", resource: "http://greggkellogg.net/foaf#me", typeof: "foaf:Person"}
         This software is provided by
-        %a{:property => "foaf:homepage", :href => "http://greggkellogg.net/"}<
-          %span{:aboue => "http://greggkellogg.net/foaf#me", :property => "foaf:name"}<
+        %a{property: "foaf:homepage", href: "http://greggkellogg.net/"}<
+          %span{about: "http://greggkellogg.net/foaf#me", property: "foaf:name"}<
             Gregg Kellogg
         in hopes that it might make the lives of conformance testers easier.

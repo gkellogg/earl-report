@@ -12,26 +12,19 @@ class EarlReport
 
   attr_reader :graph
 
-  # Return information about each test, and for the first test in the
-  # manifest, about the manifest itself
+  # Return information about each test.
+  # Tests all have an mf:action property.
+  # The Manifest lists all actions in list from mf:entries
   MANIFEST_QUERY = %(
-    PREFIX dc: <http://purl.org/dc/terms/>
     PREFIX mf: <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#>
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-    SELECT ?lh ?uri ?type ?title ?description ?testAction ?testResult ?manUri ?manTitle ?manDescription
+    SELECT ?uri ?testAction ?manUri
     WHERE {
-      ?uri a ?type;
-        mf:name ?title;
-        mf:action ?testAction .
-      OPTIONAL { ?uri rdfs:comment|dc:description ?description . }
-      OPTIONAL { ?uri mf:result ?testResult . }
+      ?uri mf:action ?testAction .
       OPTIONAL {
         ?manUri a mf:Manifest; mf:entries ?lh .
         ?lh rdf:first ?uri .
-        OPTIONAL { ?manUri rdfs:label|mf:name ?manTitle . }
-        OPTIONAL { ?manUri rdfs:comment|dc:description ?manDescription . }
       }
     }
   ).freeze
@@ -50,6 +43,7 @@ class EarlReport
       OPTIONAL { ?developer foaf:name ?devName .}
       OPTIONAL { ?developer foaf:homepage ?devHomepage .}
     }
+    ORDER BY ?name
   ).freeze
 
   DOAP_QUERY = %(
@@ -68,54 +62,72 @@ class EarlReport
   ASSERTION_QUERY = %(
     PREFIX earl: <http://www.w3.org/ns/earl#>
     
-    SELECT ?by ?mode ?outcome ?subject ?test
+    SELECT ?assertion ?subject ?test
     WHERE {
-      ?a a earl:Assertion;
-        earl:assertedBy ?by;
-        earl:result [earl:outcome ?outcome];
+      ?assertion a earl:Assertion;
         earl:subject ?subject;
         earl:test ?test .
-      OPTIONAL {
-        ?a earl:mode ?mode .
-      }
     }
     ORDER BY ?subject
   ).freeze
 
-  TEST_CONTEXT = {
-    "@vocab" =>   "http://www.w3.org/ns/earl#",
-    "foaf:homepage" => {"@type" => "@id"},
-    dc:           "http://purl.org/dc/terms/",
-    doap:         "http://usefulinc.com/ns/doap#",
-    earl:         "http://www.w3.org/ns/earl#",
-    mf:           "http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#",
-    foaf:         "http://xmlns.com/foaf/0.1/",
-    rdfs:         "http://www.w3.org/2000/01/rdf-schema#",
-    assertedBy:   {"@type" => "@id"},
-    assertions:   {"@type" => "@id", "@container" => "@list"},
-    bibRef:       {"@id" => "dc:bibliographicCitation"},
-    created:      {"@id" => "doap:created", "@type" => "xsd:date"},
-    description:  {"@id" => "dc:description", "@language" => "en"},
-    developer:    {"@id" => "doap:developer", "@type" => "@id", "@container" => "@set"},
-    doapDesc:     {"@id" => "doap:description", "@language" => "en"},
-    generatedBy:  {"@type" => "@id"},
-    homepage:     {"@id" => "doap:homepage", "@type" => "@id"},
-    label:        {"@id" => "rdfs:label", "@language" => "en"},
-    language:     {"@id" => "doap:programming-language"},
-    license:      {"@id" => "doap:license", "@type" => "@id"},
-    mode:         {"@type" => "@id"},
-    name:         {"@id" => "doap:name"},
-    outcome:      {"@type" => "@id"},
-    release:      {"@id" => "doap:release", "@type" => "@id"},
-    shortdesc:    {"@id" => "doap:shortdesc", "@language" => "en"},
-    subject:      {"@type" => "@id"},
-    test:         {"@type" => "@id"},
-    testAction:   {"@id" => "mf:action", "@type" => "@id"},
-    testResult:   {"@id" => "mf:result", "@type" => "@id"},
-    entries:      {"@id" => "mf:entries", "@type" => "@id", "@container" => "@list"},
-    testSubjects: {"@type" => "@id", "@container" => "@list"},
-    title:        {"@id" => "dc:title"},
-    xsd:          {"@id" => "http://www.w3.org/2001/XMLSchema#"}
+  TEST_FRAME = {
+    "@context" => {
+      "@vocab" =>   "http://www.w3.org/ns/earl#",
+      "foaf:homepage" => {"@type" => "@id"},
+      "dc" =>           "http://purl.org/dc/terms/",
+      "doap" =>         "http://usefulinc.com/ns/doap#",
+      "earl" =>         "http://www.w3.org/ns/earl#",
+      "mf" =>           "http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#",
+      "foaf" =>         "http://xmlns.com/foaf/0.1/",
+      "rdfs" =>         "http://www.w3.org/2000/01/rdf-schema#",
+      "assertedBy" =>   {"@type" => "@id"},
+      "assertions" =>   {"@type" => "@id", "@container" => "@list"},
+      "bibRef" =>       {"@id" => "dc:bibliographicCitation"},
+      "created" =>      {"@id" => "doap:created", "@type" => "xsd:date"},
+      "description" =>  {"@id" => "rdfs:comment"},
+      "developer" =>    {"@id" => "doap:developer", "@type" => "@id", "@container" => "@set"},
+      "doapDesc" =>     {"@id" => "doap:description", "@language" => "en"},
+      "generatedBy" =>  {"@type" => "@id"},
+      "homepage" =>     {"@id" => "doap:homepage", "@type" => "@id"},
+      "language" =>     {"@id" => "doap:programming-language"},
+      "license" =>      {"@id" => "doap:license", "@type" => "@id"},
+      "mode" =>         {"@type" => "@id"},
+      "name" =>         {"@id" => "doap:name"},
+      "outcome" =>      {"@type" => "@id"},
+      "release" =>      {"@id" => "doap:release", "@type" => "@id"},
+      "shortdesc" =>    {"@id" => "doap:shortdesc", "@language" => "en"},
+      "subject" =>      {"@type" => "@id"},
+      "test" =>         {"@type" => "@id"},
+      "testAction" =>   {"@id" => "mf:action", "@type" => "@id"},
+      "testResult" =>   {"@id" => "mf:result", "@type" => "@id"},
+      "title" =>        {"@id" => "mf:name"},
+      "entries" =>      {"@id" => "mf:entries", "@type" => "@id", "@container" => "@list"},
+      "testSubjects" => {"@type" => "@id", "@container" => "@set"},
+      "xsd" =>          {"@id" => "http://www.w3.org/2001/XMLSchema#"}
+    },
+    "assertions" => {},
+    "bibRef" => {},
+    "generatedBy" => {
+      "developer" => {},
+      "release" => {}
+    },
+    "testSubjects" => {
+      "@type" => "earl:TestSubject",
+      "developer" => {},
+      "release" => {}
+    },
+    "entries" => [{
+      "@type" => "mf:Manifest",
+      "entries" => [{
+        "@type" => "earl:TestCase",
+        "assertions" => {
+          "@type" => "earl:Assertion",
+          "result" => {"@type" => "earl:TestResult"},
+          "subject" => {"@embed" => false}
+        }
+      }]
+    }]
   }.freeze
 
   # Convenience vocabularies
@@ -144,8 +156,11 @@ class EarlReport
     raise "Require at least one input file" if files.empty?
     @files = files
     @prefixes = {}
+
+    # If provided :json, it is used for generating all other output forms
     if @options[:json]
       @json_hash = ::JSON.parse(File.read(files.first))
+      JSON::LD::Reader.new(@json_hash) {|r| @graph = RDF::Graph.new << r}
       return
     end
 
@@ -157,8 +172,24 @@ class EarlReport
     Array(@options[:manifest]).each do |man|
       g = RDF::Graph.load(man, man_opts)
       status "  loaded #{g.count} triples from #{man}"
-      @graph << g
+      graph << g
     end
+
+    # Hash test cases by URI
+    tests = SPARQL.execute(@options[:query], graph)
+      .to_a
+      .inject({}) {|memo, soln| memo[soln[:uri]] = soln; memo}
+
+    if tests.empty?
+      raise "no tests found querying manifest.\n" +
+            "Results are found using the following query, this can be overridden using the --query option:\n" +
+            "#{@options[:query]}"
+    end
+
+    # Manifests in graph
+    man_uris = tests.values.map {|v| v[:manUri]}.uniq.compact
+    test_resources = tests.values.map {|v| v[:uri]}.uniq.compact
+    subjects = {}
 
     # Read test assertion files
     files.flatten.each do |file|
@@ -197,6 +228,8 @@ class EarlReport
 
         # Load developers referenced from Test Subjects
         solutions.each do |solution|
+          subjects[solution[:uri]] = RDF::URI(file)
+
           # Load FOAF definitions
           if solution[:developer] && !solution[:devName] # not loaded
             status "read description for developer #{solution[:developer].inspect}"
@@ -213,8 +246,84 @@ class EarlReport
         end
 
         # Look for test assertions matching test definitions
-        @graph << file_graph
+        graph << file_graph
       end
+    end
+
+    # Make sure that each assertion matches a test and add reference from test to assertion
+    found_solutions = {}
+    test_assertion_lists = {}
+    SPARQL.execute(ASSERTION_QUERY, graph).each do |solution|
+      subject = solution[:subject]
+      unless tests[solution[:test]]
+        $stderr.puts "Skipping result for #{solution[:test]} for #{subject}, which is not defined in manifests"
+        next
+      end
+      unless subjects[subject]
+        $stderr.puts "No test result subject found for #{subject}: #{solution.inspect}"
+        next
+      end
+      found_solutions[subject] = true
+
+      # Add this solution at the appropriate index within that list
+      ndx = subjects.keys.find_index(subject)
+      ary = test_assertion_lists[solution[:test]] ||= []
+      ary[ndx] = solution[:assertion]
+    end
+
+    # Add ordered assertions for each test
+    test_assertion_lists.each do |test, ary|
+      ary = ary.map {|e| e.nil? ? RDF::Node.new : e}
+      list = RDF::List.new(nil, graph, ary)
+      graph << RDF::Statement(test, EARL.assertions, list)
+    end
+
+    # See if any subject did not report results, which may indicate a formatting error in the EARL source
+    subjects.reject {|s| found_solutions[s]}.each do |sub|
+      $stderr.puts "No results found for #{sub} using #{ASSERTION_QUERY}"
+    end
+
+    # Add report wrapper to graph
+    ttl = %(
+      @prefix dc:   <http://purl.org/dc/terms/> .
+      @prefix doap: <http://usefulinc.com/ns/doap#> .
+      @prefix earl: <http://www.w3.org/ns/earl#> .
+      @prefix mf:   <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
+
+      <> a earl:Software, doap:Project;
+      doap:name #{quoted(@options.fetch(:name, 'Unknown'))};
+      dc:bibliographicCitation "#{@options.fetch(:bibRef, 'Unknown reference')}";
+      earl:generatedBy <http://rubygems.org/gems/earl-report>;
+      earl:assertions (#{subjects.values.map {|f| f.to_ntriples}.join("\n          ")});
+      earl:testSubjects #{subjects.keys.map {|f| f.to_ntriples}.join(",\n          ")};
+      mf:entries (#{man_uris.map {|f| f.to_ntriples}.join("\n          ")}) .
+
+      <http://rubygems.org/gems/earl-report> a earl:Software, doap:Project;
+         doap:name "earl-report";
+         doap:shortdesc "Earl Report summary generator"@en;
+         doap:description "EarlReport generates HTML+RDFa rollups of multiple EARL reports"@en;
+         doap:homepage <https://github.com/gkellogg/earl-report>;
+         doap:programming-language "Ruby";
+         doap:license <http://unlicense.org>;
+         doap:release <https://github.com/gkellogg/earl-report/tree/#{VERSION}>;
+         doap:developer <http://greggkellogg.net/foaf#me> .
+    ).gsub(/^      /, '')
+    RDF::Turtle::Reader.new(ttl) {|r| graph << r}
+
+    # Each manifest is an earl:Report
+    man_uris.each do |u|
+      graph << RDF::Statement.new(u, RDF.type, EARL.Report)
+    end
+
+    # Each subject is an earl:TestSubject
+    subjects.keys.each do |u|
+      graph << RDF::Statement.new(u, RDF.type, EARL.TestSubject)
+    end
+
+    # Each assertion test is a earl:TestCriterion and earl:TestCase
+    test_resources.each do |u|
+      graph << RDF::Statement.new(u, RDF.type, EARL.TestCriterion)
+      graph << RDF::Statement.new(u, RDF.type, EARL.TestCase)
     end
   end
 
@@ -241,15 +350,6 @@ class EarlReport
       json = json_hash.to_json(JSON::LD::JSON_STATE)
       io.write(json) if io
       json
-    when :turtle, :ttl
-      if io
-        earl_turtle(options)
-      else
-        io = StringIO.new
-        earl_turtle(options.merge(io: io))
-        io.rewind
-        io.read
-      end
     when :html
       template = case options[:template]
       when String then options[:tempate]
@@ -263,11 +363,8 @@ class EarlReport
       io.write(html) if io
       html
     else
-      if io
-        RDF::Writer.for(options[:format]).new(io) {|w| w << graph}
-      else
-        graph.dump(options[:format])
-      end
+      writer = RDF::Writer.for(options[:format])
+      writer.dump(@graph, io, options.merge(standard_prefixes: true))
     end
   end
 
@@ -279,375 +376,14 @@ class EarlReport
   def json_hash
     @json_hash ||= begin
       # Customized JSON-LD output
-      {
-        "@context" => TEST_CONTEXT,
-        "@id"           => "",
-        "@type"         => %w(earl:Software doap:Project),
-        'name'          => @options.fetch(:name, "Unknown"),
-        'bibRef'        => @options.fetch(:bibRef, "Unknown reference"),
-        'generatedBy'   => {
-          "@id"         => "http://rubygems.org/gems/earl-report",
-          "@type"       => "doap:Project",
-          "name"        => "earl-report",
-          "shortdesc"   => "Earl Report summary generator",
-          "doapDesc"    => "EarlReport generates HTML+RDFa rollups of multiple EARL reports",
-          "homepage"    => "https://github.com/gkellogg/earl-report",
-          "language"    => "Ruby",
-          "license"     => "http://unlicense.org",
-          "release"     => {
-            "@id"       => "https://github.com/gkellogg/earl-report/tree/#{VERSION}",
-            "@type"     => "doap:Version",
-            "name"      => "earl-report-#{VERSION}",
-            "created"   => File.mtime(File.expand_path('../../VERSION', __FILE__)).strftime('%Y-%m-%d'),
-            "revision"  => VERSION.to_s
-          },
-          "developer"   => {
-            "@type"     => "foaf:Person",
-            "@id"       => "http://greggkellogg.net/foaf#me",
-            "foaf:name" => "Gregg Kellogg",
-            "foaf:homepage" => "http://greggkellogg.net/"
-          }
-        },
-        "assertions"    => @files,
-        'testSubjects'  => json_test_subject_info,
-        'entries'        => json_result_info
-      }
-    end
-  end
-
-  ##
-  # Return array of test subject information
-  # @return [Array]
-  def json_test_subject_info
-    # Get the set of subjects
-    @subject_info ||= begin
-      ts_info = {}
-      SPARQL.execute(TEST_SUBJECT_QUERY, @graph).each do |solution|
-        #status "solution #{solution.to_hash.inspect}"
-        info = ts_info[solution[:uri].to_s] ||= {}
-        %w(name doapDesc homepage language).each do |prop|
-          info[prop] = solution[prop.to_sym].to_s if solution[prop.to_sym]
-        end
-        if solution[:devName]
-          dev_type = solution[:devType].to_s =~ /Organization/ ? "foaf:Organization" : "foaf:Person"
-          dev = {'@type' => dev_type}
-          dev['@id'] = solution[:developer].to_s if solution[:developer].uri?
-          dev['foaf:name'] = solution[:devName].to_s if solution[:devName]
-          dev['foaf:homepage'] = solution[:devHomepage].to_s if solution[:devHomepage]
-          (info['developer'] ||= []) << dev
-        end
-        info['developer'] = info['developer'].uniq if info['developer']
+      r = JSON::LD::API.fromRDF(graph) do |expanded|
+        JSON::LD::API.frame(expanded, TEST_FRAME, expanded: true)
       end
-
-      # Map ids and values to array entries
-      ts_info.keys.sort.map do |id|
-        info = ts_info[id]
-        subject = {"@id" => id, "@type" => %w(earl:TestSubject doap:Project)}
-        %w(name developer doapDesc homepage language).each do |prop|
-          subject[prop] = info[prop] if info[prop]
-        end
-        subject
+      unless Array(r["@graph"]).length == 1
+        raise "Expected JSON result to have a single entry"
       end
+      {"@context" => r["@context"]}.merge(r["@graph"].first)
     end
-  end
-
-  ##
-  # Return result information for each test.
-  # This counts on hash maintaining insertion order
-  #
-  # @return [Array<Hash>] List of manifests
-  def json_result_info
-    manifests = []
-    test_cases = {}
-    subjects = json_test_subject_info.map {|s| s['@id']}
-
-    # Hash test cases by URI
-    solutions = SPARQL.execute(@options[:query], @graph)
-      .to_a
-      .inject({}) {|memo, soln| memo[soln[:uri]] = soln; memo}
-
-    if solutions.empty?
-      raise "no results found querying manifest.\n" +
-            "Results are found using the following query, this can be overridden using the --query option:\n" +
-            "#{@options[:query]}"
-    end
-
-    qst = Time.now
-    # If test cases are in a list, maintain order
-    solutions.values.select {|s| s[:manUri]}.each do |man_soln|
-      # Get tests for this manifest in list order
-      solution_list = RDF::List.new(man_soln[:lh], @graph)
-
-      # Set up basic manifest information
-      man_info = manifests.detect {|m| m['@id'] == man_soln[:manUri].to_s}
-      unless man_info
-        status "manifest: #{man_soln[:manUri]}"
-        man_info = {
-          '@id' => man_soln[:manUri].to_s,
-          "@type" => %w{earl:Report mf:Manifest},
-          'entries' => []
-        }
-        man_info['title'] = man_soln[:manTitle].to_s if man_soln[:manTitle]
-        man_info['description'] = man_soln[:manDescription].to_s if man_soln[:manDescription]
-        manifests << man_info
-      end
-
-      # Collect each TestCase
-      solution_list.each do |uri|
-        solution = solutions[uri]
-        
-        unless solution
-          $stderr.puts "Expected to find solution for #{uri}\n"
-          "Results are found using the following query, this can be overridden using the --query option:\n" +
-          "#{@options[:query]}"
-          next
-        end
-
-        # Create entry for this test case, if it doesn't already exist
-        tc = man_info['entries'].detect {|t| t['@id'] == uri}
-        unless tc
-          tc = {
-            '@id' => uri.to_s,
-            '@type' => %w(earl:TestCriterion earl:TestCase),
-            'title' => solution[:title].to_s,
-            'testAction' => solution[:testAction].to_s,
-            'assertions' => []
-          }
-          tc['@type'] << solution[:type].to_s if solution[:type]
-          tc['description'] = solution[:description].to_s if solution[:description]
-          tc['testResult'] = solution[:testResult].to_s if solution[:testResult]
-      
-          # Pre-initialize results for each subject to untested
-          subjects.each do |siri|
-            tc['assertions'] << {
-              '@type'   => 'earl:Assertion',
-              'test'    => uri.to_s,
-              'subject' => siri,
-              'mode'    => 'earl:notAvailable',
-              'result'  => {
-                '@type' => 'earl:TestResult',
-                'outcome' => 'earl:untested'
-              }
-            }
-          end
-
-          test_cases[uri.to_s] = tc
-          man_info['entries'] << tc
-        end
-      end
-
-      raise "No test cases found" if man_info['entries'].empty?
-      status "Test cases:\n  #{man_info['entries'].map {|tc| tc.fetch('@id')}.join("\n  ")}"
-    end
-    qnd = Time.now
-    status "\nassertion query: #{(qnd - qst)/1000} secs"
-
-    raise "No manifests found" if manifests.empty?
-    status "Manifests:\n  #{manifests.map {|m| m.fetch('@id')}.join("\n  ")}"
-
-    # Iterate through assertions and add to appropriate test case
-    found_solutions = {}
-    SPARQL.execute(ASSERTION_QUERY, @graph).each do |solution|
-      tc = test_cases[solution[:test].to_s]
-      unless tc
-        $stderr.puts "Skipping result for #{solution[:test]}, which is not defined in manifests"
-        next
-      end
-      unless solution[:outcome]
-        $stderr.puts "No result found for #{solution[:test]}: #{solution.inspect}"
-        next
-      end
-      unless solution[:outcome]
-        $stderr.puts "No test subject found for #{solution[:test]}: #{solution.inspect}"
-        next
-      end
-      subject = solution[:subject].to_s
-      found_solutions[subject] = true
-      result_index = subjects.index(subject)
-      unless result_index
-        $stderr.puts "No test result subject found for #{subject}: #{solution.inspect}"
-        next
-      end
-      ta_hash = tc['assertions'][result_index]
-      ta_hash['assertedBy'] = solution[:by].to_s
-      ta_hash['mode'] = "earl:#{solution[:mode].to_s.split('#').last || 'notAvailable'}"
-      ta_hash['result']['outcome'] = "earl:#{solution[:outcome].to_s.split('#').last}"
-    end
-
-    # See if any subject did not report results, which indicates a formatting error in the EARL source
-    subjects.reject {|s| found_solutions[s]}.each do |sub|
-      $stderr.puts "No results found for #{sub} using #{ASSERTION_QUERY}"
-    end
-
-    manifests.sort_by {|m| m['title'].to_s}
-  end
-
-  ##
-  # Output consoloated EARL report as Turtle
-  # @param [Hash{Symbol => Object}] options
-  # @option options [IO, StringIO] :io
-  # @return [String]
-  def earl_turtle(options)
-    io = options[:io]
-    # Write preamble
-    {
-      :dc       => RDF::DC,
-      :doap     => RDF::DOAP,
-      :earl     => EARL,
-      :foaf     => RDF::FOAF,
-      :mf       => MF,
-      :owl      => RDF::OWL,
-      :rdf      => RDF,
-      :rdfs     => RDF::RDFS,
-      :xhv      => RDF::XHV,
-      :xsd      => RDF::XSD
-    }.each do |prefix, vocab|
-      io.puts("@prefix #{prefix}: <#{vocab.to_uri}> .")
-    end
-    io.puts
-
-    %w(name bibRef generatedBy assertions testSubjects).each do |field|
-      raise "Expected EARL json to have #{field.inspect} entry" unless json_hash[field]
-    end
-
-    # Write earl:Software for the report
-    man_defs = json_hash['entries'].map {|defn| as_resource(defn.fetch('@id'))}.join("\n    ")
-    io.puts %{
-      #{as_resource(json_hash.fetch('@id'))} a #{Array(json_hash.fetch('@type')).join(', ')};
-        doap:name #{quoted(json_hash.fetch('name', 'Unknown'))};
-        dc:bibliographicCitation "#{json_hash.fetch('bibRef', 'Unknown reference')}";
-        earl:generatedBy #{as_resource json_hash.fetch('generatedBy').fetch('@id')};
-        earl:assertions
-          #{json_hash.fetch('assertions').map {|a| as_resource(a)}.join(",\n          ")};
-        earl:testSubjects (
-          #{json_hash.fetch('testSubjects').map {|a| as_resource(a.fetch('@id'))}.join("\n          ")});
-        mf:entries (\n    #{man_defs}) .
-    }.gsub(/^      /, '')
-
-    # Write generating software information
-    io.puts %{
-      <http://rubygems.org/gems/earl-report> a earl:Software, doap:Project;
-        doap:name "earl-report";
-        doap:shortdesc "Earl Report summary generator"@en;
-        doap:description "EarlReport generates HTML+RDFa rollups of multiple EARL reports"@en;
-        doap:homepage <https://github.com/gkellogg/earl-report>;
-        doap:programming-language "Ruby";
-        doap:license <http://unlicense.org>;
-        doap:release <https://github.com/gkellogg/earl-report/tree/#{VERSION}>;
-        doap:developer <http://greggkellogg.net/foaf#me> .
-
-    }.gsub(/^      /, '')
-
-    # Output Manifest definitions
-    # along with test cases and assertions
-    test_cases = []
-    io.puts %(\n# Manifests)
-    json_hash['entries'].each do |man|
-      io.puts %(#{as_resource(man.fetch('@id'))} a earl:Report, mf:Manifest;)
-      io.puts %(  dc:title #{quoted(man['title'])};) if man['title']
-      io.puts %(  mf:name #{quoted(man['title'])};) if man['title']
-      io.puts %(  rdfs:comment #{quoted(man['description'])};) if man['description']
-      
-      # Test Cases
-      test_defs = man.fetch('entries').map {|defn| as_resource(defn.fetch('@id'))}.join("\n    ")
-      io.puts %(  mf:entries (\n    #{test_defs}) .\n\n)
-
-      test_cases += man['entries']
-    end
-
-    # Write out each earl:TestSubject
-    io.puts %(#\n# Subject Definitions\n#)
-    json_hash.fetch('testSubjects').each do |ts_desc|
-      io.write(test_subject_turtle(ts_desc))
-    end
-
-    # Write out each earl:TestCase
-    io.puts %(#\n# Test Case Definitions\n#)
-    json_hash.fetch('entries').each do |manifest|
-      manifest.fetch('entries').each do |test_case|
-        io.write(tc_turtle(test_case))
-      end
-    end
-  end
-  
-  ##
-  # Write out Test Subject definition for each earl:TestSubject
-  # @param [Hash] desc
-  # @return [String]
-  def test_subject_turtle(desc)
-    %w(@id @type name).each do |field|
-      raise "Expected test description to have #{field.inspect} entry" unless desc[field]
-    end
-
-    res = %(<#{desc.fetch('@id')}> a #{desc.fetch('@type').join(', ')};\n)
-    res += %(  doap:name #{quoted(desc.fetch('name'))};\n)
-    res += %(  doap:description #{quoted(desc['doapDesc'])}@en;\n)     if desc['doapDesc']
-    res += %(  doap:programming-language #{quoted(desc['language'])};\n) if desc['language']
-    res += %( .\n\n)
-
-    [desc['developer']].flatten.compact.each do |developer|
-      if developer['@id']
-        %w(@id @type foaf:name).each do |field|
-          raise "Expected FOAF description to have #{field.inspect} entry" unless developer[field]
-        end
-        res += %(<#{desc.fetch('@id')}> doap:developer <#{developer.fetch('@id')}> .\n\n)
-        res += %(<#{developer.fetch('@id')}> a #{Array(developer.fetch('@type')).join(', ')};\n)
-        res += %(  foaf:homepage <#{developer['foaf:homepage']}>;\n) if developer['foaf:homepage']
-        res += %(  foaf:name #{quoted(developer.fetch('foaf:name'))} .\n\n)
-      else
-        %w(foaf:name).each do |field|
-          raise "Expected FOAF description to have #{field.inspect} entry" unless developer[field]
-        end
-        res += %(<#{desc.fetch('@id')}> doap:developer\n)
-        res += %(   [ a #{developer.fetch('@type', 'foaf:Person')};\n)
-        res += %(     foaf:homepage <#{developer['foaf:homepage']}>;\n) if developer['foaf:homepage']
-        res += %(     foaf:name #{quoted(developer.fetch('foaf:name'))} ] .\n\n)
-      end
-    end
-    res + "\n"
-  end
-  
-  ##
-  # Write out each Test Case definition
-  # @prarm[Hash] desc
-  # @return [String]
-  def tc_turtle(desc)
-    %w(@id @type title testAction assertions).each do |field|
-      raise "Expected test case description to have #{field.inspect} entry" unless desc[field]
-    end
-    types = Array(desc['@type']).map do |t|
-      t.include?("://") ? "<#{t}>" : t
-    end
-    res = %{#{as_resource desc.fetch('@id')} a #{types.join(', ')};\n}
-    res += %{  dc:title #{quoted(desc.fetch('title'))};\n}
-    res += %{  dc:description #{quoted(desc['description'])}@en;\n} if desc['description']
-    res += %{  mf:result #{as_resource desc['testResult']};\n} if desc['testResult']
-    res += %{  mf:action #{as_resource desc.fetch('testAction')};\n}
-    res += %{  earl:assertions (\n}
-    desc['assertions'].each do |as_desc|
-      res += as_turtle(as_desc)
-    end
-    res += %{  ) .\n\n}
-  end
-
-  ##
-  # Write out each Assertion definition
-  # @prarm[Hash] desc
-  # @return [String]
-  def as_turtle(desc)
-    %w(test subject result).each do |field|
-      raise "Expected assertion description to have #{field.inspect} entry" unless desc[field]
-    end
-    res =  %(    [ a earl:Assertion;\n)
-    res += %(      earl:assertedBy #{as_resource desc['assertedBy']};\n) if desc['assertedBy']
-    res += %(      earl:test #{as_resource desc.fetch('test')};\n)
-    res += %(      earl:subject #{as_resource desc.fetch('subject')};\n)
-    res += %(      earl:mode #{desc['mode']};\n) if desc['mode']
-    res += %(      earl:result [ a earl:TestResult; earl:outcome #{desc.fetch('result').fetch('outcome')} ]]\n)
-  end
-
-  def as_resource(resource)
-    resource[0,2] == '_:' ? resource : "<#{resource}>"
   end
 
   def quoted(string)
