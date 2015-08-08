@@ -82,7 +82,7 @@ class EarlReport
       "foaf" =>         "http://xmlns.com/foaf/0.1/",
       "rdfs" =>         "http://www.w3.org/2000/01/rdf-schema#",
       "assertedBy" =>   {"@type" => "@id"},
-      "assertions" =>   {"@type" => "@id", "@container" => "@list"},
+      "assertions" =>   {"@type" => "@id", "@container" => "@set"},
       "bibRef" =>       {"@id" => "dc:bibliographicCitation"},
       "created" =>      {"@id" => "doap:created", "@type" => "xsd:date"},
       "description" =>  {"@id" => "rdfs:comment"},
@@ -161,7 +161,7 @@ class EarlReport
     # If provided :json, it is used for generating all other output forms
     if @options[:json]
       @json_hash = ::JSON.parse(File.read(files.first))
-      JSON::LD::Reader.new(@json_hash) {|r| @graph = RDF::Graph.new << r}
+      JSON::LD::Reader.open(files.first) {|r| @graph = RDF::Graph.new << r}
       return
     end
 
@@ -292,9 +292,10 @@ class EarlReport
           graph << RDF::Statement(r, RDF.type, EARL.TestResult)
           graph << RDF::Statement(r, EARL.outcome, EARL.untested)
         end
+
+        # This counts on order being preserved in default repository so we can avoid using an rdf:List
+        graph << RDF::Statement(test, EARL.assertions, a)
       end
-      list = RDF::List.new(nil, graph, ary)
-      graph << RDF::Statement(test, EARL.assertions, list)
     end
 
     # See if any subject did not report results, which may indicate a formatting error in the EARL source
@@ -313,7 +314,7 @@ class EarlReport
       doap:name #{quoted(@options.fetch(:name, 'Unknown'))};
       dc:bibliographicCitation "#{@options.fetch(:bibRef, 'Unknown reference')}";
       earl:generatedBy <http://rubygems.org/gems/earl-report>;
-      earl:assertions (#{subjects.values.map {|f| f.to_ntriples}.join("\n          ")});
+      earl:assertions #{subjects.values.map {|f| f.to_ntriples}.join(",\n          ")};
       earl:testSubjects #{subjects.keys.map {|f| f.to_ntriples}.join(",\n          ")};
       mf:entries (#{man_uris.map {|f| f.to_ntriples}.join("\n          ")}) .
 
@@ -398,7 +399,7 @@ class EarlReport
       r = JSON::LD::API.fromRDF(graph) do |expanded|
         JSON::LD::API.frame(expanded, TEST_FRAME, expanded: true)
       end
-      unless Array(r["@graph"]).length == 1
+      unless r.is_a?(Hash) && r.has_key?('@graph') && Array(r["@graph"]).length == 1
         raise "Expected JSON result to have a single entry"
       end
       {"@context" => r["@context"]}.merge(r["@graph"].first)

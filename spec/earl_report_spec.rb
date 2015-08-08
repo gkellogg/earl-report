@@ -281,7 +281,7 @@ describe EarlReport do
         doap:name "Turtle Test Results";
         dc:bibliographicCitation "[[TURTLE]]";
         earl:generatedBy ?generatedBy;
-        earl:assertions (?assertionFile);
+        earl:assertions ?assertionFile;
         earl:testSubjects <http://rubygems.org/gems/rdf-turtle>;
         mf:entries (<http://example/manifest.ttl>) .
 
@@ -327,7 +327,7 @@ describe EarlReport do
         mf:name "subm-test-00";
         mf:action <http://example/test-00.ttl>;
         mf:result <http://example/test-00.out>;
-        earl:assertions ([ a earl:Assertion; earl:subject <http://rubygems.org/gems/rdf-turtle> ]) .
+        earl:assertions [ a earl:Assertion; earl:subject <http://rubygems.org/gems/rdf-turtle> ] .
     }
   )
 
