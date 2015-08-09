@@ -217,6 +217,82 @@ describe EarlReport do
       fail
     end
   end
+
+  describe "#earl_turtle" do
+    let(:json_hash) {earl.send(:json_hash)}
+    let(:output) {
+      @output ||= begin
+        sio = StringIO.new
+        earl.send(:earl_turtle, {io: sio})
+        sio.rewind
+        sio.read
+      end
+    }
+    subject {output}
+    let(:ts) {json_hash['testSubjects'].first}
+    let(:tm) {json_hash['entries'].first}
+    let(:tc) {tm['entries'].first}
+    let(:as) {tc['assertions'].first}
+
+    context "prefixes" do
+      %w(dc doap earl foaf mf rdf rdfs xsd).each do |pfx|
+        specify {should match(/@prefix #{pfx}: </)}
+      end
+    end
+
+    context "earl:Software" do
+      specify {should match(/<> a earl:Software,\s+doap:Project\s*[;\.]$/m)}
+      specify {should match(/  doap:name "#{json_hash['name']}"\s*[;\.]$/)}
+    end
+
+    context "Subject Definitions" do
+      specify {should match(/<#{ts['@id']}> a doap:Project,\s+earl:TestSubject,\s+earl:Software;$/m)}
+    end
+
+    context "Manifest Definitions" do
+      specify {should match(/<#{tm['@id']}> a mf:Manifest,\s+earl:Report\s*[;\.]$/m)}
+    end
+
+    context "Assertion" do
+      specify {should match(/\sa earl:Assertion;$/)}
+    end
+
+    context "parsing to RDF" do
+      let(:graph) do
+        @graph ||= begin
+          RDF::Graph.new << RDF::Turtle::Reader.new(output, :base_uri => "http://example.com/report")
+        end
+      end
+
+      it "saves output" do
+        expect {
+          File.open(File.expand_path("../test-files/results.ttl", __FILE__), "w") do |f|
+            f.write(output)
+          end
+        }.not_to raise_error
+      end
+
+      it "has Report" do
+        expect(SPARQL.execute(REPORT_QUERY, graph)).to eq RDF::Literal::TRUE
+      end
+
+      it "has Subject" do
+        expect(SPARQL.execute(SUBJECT_QUERY, graph)).to eq RDF::Literal::TRUE
+      end
+
+      it "has Developer" do
+        expect(SPARQL.execute(DEVELOPER_QUERY, graph)).to eq RDF::Literal::TRUE
+      end
+
+      it "has Test Case" do
+        expect(SPARQL.execute(TC_QUERY, graph)).to eq RDF::Literal::TRUE
+      end
+
+      it "has Assertion" do
+        expect(SPARQL.execute(ASSERTION_QUERY, graph)).to be_truthy
+      end
+    end
+  end
   
   describe "#generate" do
     let(:output) {
@@ -224,14 +300,6 @@ describe EarlReport do
         subject.generate()
       end
     }
-
-    it "saves output as Turtle" do
-      expect {
-        File.open(File.expand_path("../test-files/results.ttl", __FILE__), "w") do |f|
-          subject.generate(format: :ttl, io: f)
-        end
-      }.not_to raise_error
-    end
 
     context "parsing to RDF" do
       let(:graph) do
@@ -301,7 +369,7 @@ describe EarlReport do
     ASK WHERE {
       <http://rubygems.org/gems/rdf-turtle> a earl:TestSubject, doap:Project;
         doap:name "RDF::Turtle";
-        doap:description """RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite."""@en;
+        doap:description """RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.""";
         doap:programming-language "Ruby";
         doap:developer <http://greggkellogg.net/foaf#me> .
     }

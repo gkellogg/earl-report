@@ -32,7 +32,7 @@ class EarlReport
   TEST_SUBJECT_QUERY = %(
     PREFIX doap: <http://usefulinc.com/ns/doap#>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-    
+
     SELECT DISTINCT ?uri ?name ?doapDesc ?homepage ?language ?developer ?devName ?devType ?devHomepage
     WHERE {
       ?uri a doap:Project; doap:name ?name; doap:developer ?developer .
@@ -62,11 +62,16 @@ class EarlReport
   ASSERTION_QUERY = %(
     PREFIX earl: <http://www.w3.org/ns/earl#>
     
-    SELECT ?assertion ?subject ?test
+    SELECT ?test ?subject ?by ?mode ?outcome
     WHERE {
-      ?assertion a earl:Assertion;
+      ?a a earl:Assertion;
+        earl:assertedBy ?by;
+        earl:result [earl:outcome ?outcome];
         earl:subject ?subject;
         earl:test ?test .
+      OPTIONAL {
+        ?a earl:mode ?mode .
+      }
     }
     ORDER BY ?subject
   ).freeze
@@ -109,13 +114,15 @@ class EarlReport
     "assertions" => {},
     "bibRef" => {},
     "generatedBy" => {
+      "@embed" => "@always",
       "developer" => {},
       "release" => {}
     },
     "testSubjects" => {
+      "@embed" => "@always",
       "@type" => "earl:TestSubject",
       "developer" => {"@embed" => "@always"},
-      "release" => {}
+      "homepage" => {"@embed" => false}
     },
     "entries" => [{
       "@type" => "mf:Manifest",
@@ -192,7 +199,8 @@ class EarlReport
     test_resources = tests.values.map {|v| v[:uri]}.uniq.compact
     subjects = {}
 
-    # Read test assertion files
+    assertion_graph = RDF::Graph.new
+    # Read test assertion files into assertion graph
     files.flatten.each do |file|
       status "read #{file}"
       file_graph = RDF::Graph.load(file)
@@ -228,26 +236,44 @@ class EarlReport
         end
 
         # Load developers referenced from Test Subjects
-        solutions.each do |solution|
-          subjects[solution[:uri]] = RDF::URI(file)
-
-          # Load FOAF definitions
-          if solution[:developer] && !solution[:devName] # not loaded
-            status "read description for developer #{solution[:developer].inspect}"
-            begin
-              foaf_graph = RDF::Graph.load(solution[:developer])
-              status "  loaded #{foaf_graph.count} triples"
-              file_graph << foaf_graph.to_a
-            rescue
-              warn "\nfailed to load FOAF from #{solution[:developer]}: #{$!}"
-            end
-          elsif !solution[:developer]
-            warn "\nNo developer identified for #{solution[:developer]}"
+        if !solutions.first[:developer]
+          warn "\nNo developer identified for #{solutions.first[:uri]}"
+        elsif !solutions.first[:devName]
+          status "read description for developer #{solutions.first[:developer].inspect}"
+          begin
+            foaf_graph = RDF::Graph.load(solutions.first[:developer])
+            status "  loaded #{foaf_graph.count} triples"
+            file_graph << foaf_graph.to_a
+            # Reload solutions
+            solutions = SPARQL.execute(TEST_SUBJECT_QUERY, file_graph)
+          rescue
+            warn "\nfailed to load FOAF from #{solutions.first[:developer]}: #{$!}"
           end
         end
 
-        # Look for test assertions matching test definitions
-        graph << file_graph
+        solutions.each do |solution|
+          # Kepp track of subjects
+          subjects[solution[:uri]] = RDF::URI(file)
+
+          # Add TestSubject information to main graph
+          name = solution[:name].to_s if solution[:name]
+          language = solution[:language].to_s if solution[:language]
+          doapDesc = solution[:doapDesc].to_s if solution[:doapDesc]
+          devName = solution[:devName].to_s if solution[:devName]
+          graph << RDF::Statement(solution[:uri], RDF.type, RDF::DOAP.Project)
+          graph << RDF::Statement(solution[:uri], RDF.type, EARL.TestSubject)
+          graph << RDF::Statement(solution[:uri], RDF.type, EARL.Software)
+          graph << RDF::Statement(solution[:uri], RDF::DOAP.name, name)
+          graph << RDF::Statement(solution[:uri], RDF::DOAP.developer, solution[:developer])
+          graph << RDF::Statement(solution[:uri], RDF::DOAP.homepage, solution[:homepage]) if solution[:homepage]
+          graph << RDF::Statement(solution[:uri], RDF::DOAP.description, doapDesc) if doapDesc
+          graph << RDF::Statement(solution[:uri], RDF::DOAP[:"programming-language"], language) if solution[:language]
+          graph << RDF::Statement(solution[:developer], RDF.type, solution[:devType]) if solution[:devType]
+          graph << RDF::Statement(solution[:developer], RDF::FOAF.name, devName) if devName
+          graph << RDF::Statement(solution[:developer], RDF::FOAF.homepage, solution[:devHomepage]) if solution[:devHomepage]
+        end
+
+        assertion_graph << file_graph
       end
     end
 
@@ -260,7 +286,8 @@ class EarlReport
       memo.merge(test => Array.new(subjects.length))
     end
 
-    SPARQL.execute(ASSERTION_QUERY, graph).each do |solution|
+    status "query assertions"
+    SPARQL.execute(ASSERTION_QUERY, assertion_graph).each do |solution|
       subject = solution[:subject]
       unless tests[solution[:test]]
         $stderr.puts "Skipping result for #{solution[:test]} for #{subject}, which is not defined in manifests"
@@ -275,7 +302,17 @@ class EarlReport
       # Add this solution at the appropriate index within that list
       ndx = subjects.keys.find_index(subject)
       ary = test_assertion_lists[solution[:test]] ||= []
-      ary[ndx] = solution[:assertion]
+
+      ary[ndx] = a = RDF::Node.new
+      graph << RDF::Statement(a, RDF.type, EARL.Assertion)
+      graph << RDF::Statement(a, EARL.subject, subject)
+      graph << RDF::Statement(a, EARL.test, solution[:test])
+      graph << RDF::Statement(a, EARL.assertedBy, solution[:by])
+      graph << RDF::Statement(a, EARL.mode, solution[:mode]) if solution[:mode]
+      r = RDF::Node.new
+      graph << RDF::Statement(a, EARL.result, r)
+      graph << RDF::Statement(r, RDF.type, EARL.TestResult)
+      graph << RDF::Statement(r, EARL.outcome, solution[:outcome])
     end
 
     # Add ordered assertions for each test
@@ -370,6 +407,15 @@ class EarlReport
       json = json_hash.to_json(JSON::LD::JSON_STATE)
       io.write(json) if io
       json
+    when :turtle, :ttl
+      if io
+        earl_turtle(options)
+      else
+        io = StringIO.new
+        earl_turtle(options.merge(io: io))
+        io.rewind
+        io.read
+      end
     when :html
       template = case options[:template]
       when String then options[:tempate]
@@ -403,6 +449,55 @@ class EarlReport
         raise "Expected JSON result to have a single entry"
       end
       {"@context" => r["@context"]}.merge(r["@graph"].first)
+    end
+  end
+
+  ##
+  # Output consoloated EARL report as Turtle
+  # @param [Hash{Symbol => Object}] options
+  # @option options [IO, StringIO] :io
+  # @return [String]
+  def earl_turtle(options)
+    io = options[:io]
+
+    top_level = graph.first_subject(predicate: EARL.generatedBy)
+
+    # Write starting with the entire graph to get preamble
+    writer = RDF::Turtle::Writer.new(io, standard_prefixes: true)
+    writer << graph
+
+    writer.send(:preprocess)
+    writer.send(:start_document)
+
+    # Write top-level object referencing manifests and subjects
+    writer.send(:statement, top_level)
+
+    # Write each manifest
+    io.puts "\n# Manifests"
+    RDF::List.new(graph.first_object(subject: top_level, predicate: MF[:entries]), graph).each do |manifest|
+      writer.send(:statement, manifest)
+
+      # Write each test case
+      RDF::List.new(graph.first_object(subject: manifest, predicate: MF[:entries]), graph).each do |tc|
+        writer.send(:statement, tc)
+      end
+    end
+
+    # Write test subjects
+    io.puts "\n# Test Subjects"
+    graph.query(subject: top_level, predicate: EARL.testSubjects).each do |s|
+      writer.send(:statement, s.object)
+
+      # Write each developer
+      graph.query(subject: s.object, predicate: RDF::DOAP.developer).each do |d|
+        writer.send(:statement, d.object)
+      end
+    end
+
+    # Write generator
+    io.puts "\n# Report Generation Software"
+    graph.query(subject: top_level, predicate: EARL.generatedBy).each do |s|
+      writer.send(:statement, s.object)
     end
   end
 

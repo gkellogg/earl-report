@@ -180,7 +180,7 @@
           %h2{property: "dc:title mf:name"}<=manifest['title'] ||  'Test Manifest'
           - Array(manifest['description']).each do |desc|
             %p{property: "rdfs:comment"}<
-              ~ CGI.escapeHTML desc
+              ~ CGI.escapeHTML desc.to_s
           %table.report
             - skip_subject = {}
             - passed_tests = []
@@ -201,7 +201,7 @@
               %tr{rel: "mf:entries", typeof: test['@type'].join(" "), resource: test['@id'], inlist: true}
                 %td
                   %a{href: "##{tid}"}<
-                    ~ CGI.escapeHTML test['title']
+                    ~ CGI.escapeHTML test['title'].to_s
                 - # test['assertions'] = [] unless test.has_key?('assertions')
                 - test['assertions'].each_with_index do |assertion, ndx|
                   - next if skip_subject[assertion['subject']]
@@ -239,28 +239,27 @@
               - if subject['doapDesc']
                 %dt= "Description"
                 %dd{property: "doap:description", lang: 'en'}<
-                  ~ CGI.escapeHTML subject['doapDesc']
+                  ~ CGI.escapeHTML subject['doapDesc'].to_s
               - if subject['language']
                 %dt= "Programming Language"
                 %dd{property: "doap:programming-language"}<
-                  ~ CGI.escapeHTML subject['language']
+                  ~ CGI.escapeHTML subject['language'].to_s
               - if subject['homepage']
                 %dt= "Home Page"
                 %dd{property: "doap:homepage"}
                   %a{href: subject['homepage']}
-                    ~ CGI.escapeHTML subject['homepage']
+                    ~ CGI.escapeHTML subject['homepage'].to_s
               - if subject['developer']
                 %dt= "Developer"
-                %dd{rel: "doap:developer"}
-                  - subject['developer'].each do |dev|
+                - subject['developer'].each do |dev|
+                  %dd{rel: "doap:developer"}
                     %div{resource: dev['@id'], typeof: Array(dev['@type']).join(" ")}
                       - if dev.has_key?('@id')
                         %a{href: dev['@id']}
                           %span{property: "foaf:name"}<
-                            ~ CGI.escapeHTML dev['foaf:name']
+                            ~ CGI.escapeHTML dev['foaf:name'].to_s
                       - else
                         %span{property: "foaf:name"}<
-                          ~ CGI.escapeHTML dev['foaf:name']
                       - if dev['foaf:homepage']
                         %a{property: "foaf:homepage", href: dev['foaf:homepage']}
                           ~ CGI.escapeHTML dev['foaf:homepage']
@@ -299,15 +298,15 @@
               %dt{id: test_refs[test['@id']], resource: test['@id']}
                 Test
                 %span{property: "dc:title mf:name"}<
-                  ~ CGI.escapeHTML test['title']
+                  ~ CGI.escapeHTML test['title'].to_s
               %dd{resource: test['@id']}
                 %p{property: "dc:description rdfs:comment", lang: 'en'}<
-                  ~ CGI.escapeHTML test['description']
+                  ~ CGI.escapeHTML test['description'].to_s
                 %pre{class: "example actionDoc", property: "mf:action", resource: test['testAction'], title: "#{test['title']} Input"}<
-                  ~ Kernel.open(test['testAction']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testAction']} not loaded"
+                  ~ Kernel.open(test['testAction']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).to_s.gsub(/\n/, '<br/>')} rescue "#{test['testAction']} not loaded"
                 - if test['testResult']
                   %pre{class: "example resultDoc", property: "mf:result", resource: test['testResult'], title: "#{test['title']} Result"}<
-                    ~ Kernel.open(test['testResult']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
+                    ~ Kernel.open(test['testResult']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).to_s.gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
     %section#appendix{property: "earl:generatedBy", resource: tests['generatedBy']['@id'], typeof: Array(tests['generatedBy']['@type']).join(' ')}
       %h2
         Report Generation Software
