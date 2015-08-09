@@ -369,7 +369,7 @@ describe EarlReport do
     ASK WHERE {
       <http://rubygems.org/gems/rdf-turtle> a earl:TestSubject, doap:Project;
         doap:name "RDF::Turtle";
-        doap:description """RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite.""";
+        doap:description """RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite."""@en;
         doap:programming-language "Ruby";
         doap:developer <http://greggkellogg.net/foaf#me> .
     }

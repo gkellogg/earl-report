@@ -90,7 +90,7 @@ class EarlReport
       "assertions" =>   {"@type" => "@id", "@container" => "@set"},
       "bibRef" =>       {"@id" => "dc:bibliographicCitation"},
       "created" =>      {"@id" => "doap:created", "@type" => "xsd:date"},
-      "description" =>  {"@id" => "rdfs:comment"},
+      "description" =>  {"@id" => "rdfs:comment", "@language" => "en"},
       "developer" =>    {"@id" => "doap:developer", "@type" => "@id", "@container" => "@set"},
       "doapDesc" =>     {"@id" => "doap:description", "@language" => "en"},
       "generatedBy" =>  {"@type" => "@id"},
@@ -258,7 +258,8 @@ class EarlReport
           # Add TestSubject information to main graph
           name = solution[:name].to_s if solution[:name]
           language = solution[:language].to_s if solution[:language]
-          doapDesc = solution[:doapDesc].to_s if solution[:doapDesc]
+          doapDesc = solution[:doapDesc] if solution[:doapDesc]
+          doapDesc.language ||= :en
           devName = solution[:devName].to_s if solution[:devName]
           graph << RDF::Statement(solution[:uri], RDF.type, RDF::DOAP.Project)
           graph << RDF::Statement(solution[:uri], RDF.type, EARL.TestSubject)

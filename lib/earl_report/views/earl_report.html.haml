@@ -179,7 +179,8 @@
         %section{typeof: manifest['@type'].join(" "), resource: manifest['@id']}
           %h2{property: "dc:title mf:name"}<=manifest['title'] ||  'Test Manifest'
           - Array(manifest['description']).each do |desc|
-            %p{property: "rdfs:comment"}<
+            - desc = desc['@value'] if desc.is_a?(Hash)
+            %p{property: "rdfs:comment", lang: 'en'}<
               ~ CGI.escapeHTML desc.to_s
           %table.report
             - skip_subject = {}
@@ -237,10 +238,12 @@
           %dd{property: "earl:testSubjects", resource: subject['@id'], typeof: Array(subject['@type']).join(" ")}
             %dl
               - if subject['doapDesc']
+                - subject['doapDesc'] = subject['doapDesc']['@value'] if subject['doapDesc'].is_a?(Hash)
                 %dt= "Description"
                 %dd{property: "doap:description", lang: 'en'}<
-                  ~ CGI.escapeHTML subject['doapDesc'].to_s
+                  ~ CGI.escapeHTML subject['doapDesc']
               - if subject['language']
+                - subject['language'] = subject['language']['@value'] if subject['language'].is_a?(Hash)
                 %dt= "Programming Language"
                 %dd{property: "doap:programming-language"}<
                   ~ CGI.escapeHTML subject['language'].to_s
@@ -295,18 +298,19 @@
         - tests['entries'].each do |manifest|
           %div{property: "mf:entries", inlist: true, resource: manifest['@id']}
             - manifest['entries'].each do |test|
+              - test['description'] = test['description']['@value'] if test['description'].is_a?(Hash)
               %dt{id: test_refs[test['@id']], resource: test['@id']}
                 Test
                 %span{property: "dc:title mf:name"}<
                   ~ CGI.escapeHTML test['title'].to_s
               %dd{resource: test['@id']}
-                %p{property: "dc:description rdfs:comment", lang: 'en'}<
+                %p{property: "dc:description rdfs:comment"}<
                   ~ CGI.escapeHTML test['description'].to_s
                 %pre{class: "example actionDoc", property: "mf:action", resource: test['testAction'], title: "#{test['title']} Input"}<
-                  ~ Kernel.open(test['testAction']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).to_s.gsub(/\n/, '<br/>')} rescue "#{test['testAction']} not loaded"
+                  ~ Kernel.open(test['testAction']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testAction']} not loaded"
                 - if test['testResult']
                   %pre{class: "example resultDoc", property: "mf:result", resource: test['testResult'], title: "#{test['title']} Result"}<
-                    ~ Kernel.open(test['testResult']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).to_s.gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
+                    ~ Kernel.open(test['testResult']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
     %section#appendix{property: "earl:generatedBy", resource: tests['generatedBy']['@id'], typeof: Array(tests['generatedBy']['@type']).join(' ')}
       %h2
         Report Generation Software
@@ -317,8 +321,8 @@
         %span{property: "doap:name"}<
           %a{href: tests['generatedBy']['@id']}<
             = doap['name']
-        %meta{property: "doap:shortdesc", content: doap['shortdesc'], lang: 'en'}
-        %meta{property: "doap:description", content: doap['doapDesc'], lang: 'en'}
+        %meta{property: "doap:shortdesc", content: doap['shortdesc']}
+        %meta{property: "doap:description", content: doap['doapDesc']}
         version
         %span{property: "doap:release", resource: rel['@id'], typeof: 'doap:Version'}
           %span{property: "doap:revision"}<=rel['revision']
