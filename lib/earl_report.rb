@@ -101,6 +101,7 @@ class EarlReport
       "name" =>         {"@id" => "doap:name"},
       "outcome" =>      {"@type" => "@id"},
       "release" =>      {"@id" => "doap:release", "@type" => "@id"},
+      "revision" =>     {"@id" => "doap:revision"},
       "shortdesc" =>    {"@id" => "doap:shortdesc", "@language" => "en"},
       "subject" =>      {"@type" => "@id"},
       "test" =>         {"@type" => "@id"},
@@ -116,7 +117,9 @@ class EarlReport
     "generatedBy" => {
       "@embed" => "@always",
       "developer" => {},
-      "release" => {}
+      "release" => {
+        "@embed" => "@always"
+      }
     },
     "testSubjects" => {
       "@embed" => "@always",
@@ -347,6 +350,7 @@ class EarlReport
       @prefix doap: <http://usefulinc.com/ns/doap#> .
       @prefix earl: <http://www.w3.org/ns/earl#> .
       @prefix mf:   <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
+      @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
       <> a earl:Software, doap:Project;
       doap:name #{quoted(@options.fetch(:name, 'Unknown'))};
@@ -365,6 +369,11 @@ class EarlReport
          doap:license <http://unlicense.org>;
          doap:release <https://github.com/gkellogg/earl-report/tree/#{VERSION}>;
          doap:developer <http://greggkellogg.net/foaf#me> .
+
+      <https://github.com/gkellogg/earl-report/tree/#{VERSION}> a doap:Version;
+        doap:name "earl-report-#{VERSION}";
+        doap:created "#{File.mtime(File.expand_path('../../VERSION', __FILE__)).strftime('%Y-%m-%d')}"^^xsd:date;
+        doap:revision "#{VERSION}" .
     ).gsub(/^      /, '')
     RDF::Turtle::Reader.new(ttl) {|r| graph << r}
 
@@ -497,9 +506,8 @@ class EarlReport
 
     # Write generator
     io.puts "\n# Report Generation Software"
-    graph.query(subject: top_level, predicate: EARL.generatedBy).each do |s|
-      writer.send(:statement, s.object)
-    end
+    writer.send(:statement, RDF::URI("http://rubygems.org/gems/earl-report"))
+    writer.send(:statement, RDF::URI("https://github.com/gkellogg/earl-report/tree/#{VERSION}"))
   end
 
   def quoted(string)
