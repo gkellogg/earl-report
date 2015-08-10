@@ -48,39 +48,58 @@ of the following form:
 If not found, the IRI identified by `doap:developer`
 will be dereferenced and is presumed to provide a [FOAF]() profile of the developer.
 
-## Manifest query
-The test manifest is used to generate `earl:TestCase` entries for each test
-described in the test manifest. It will also summarize each test, including
-any input and result files associated with the tests. The built-in query
-is based on the [standard RDF WG format](). Alternative manifest formats
-can be used by specifying a customized manifest query. The default query
-is the following:
+Assertions are added to each test entry based on that test being referenced from the assertion.
 
-    PREFIX dc: <http://purl.org/dc/terms/>
+## Manifest query
+The test manifest is used to find test entries and a manifest. The built-in
+query is based on the [standard RDF WG format](). Alternative manifest formats
+can be used by specifying a customized manifest query, but may require a custom
+[Haml]() template for report generation. The default query is the following:
+
     PREFIX mf: <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#>
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-    SELECT ?lh ?uri ?type ?title ?description ?testAction ?testResult ?manUri ?manTitle ?manDescription
+    SELECT ?uri ?testAction ?manUri
     WHERE {
-      ?uri a ?type;
-        mf:name ?title;
-        mf:action ?testAction .
-      OPTIONAL { ?uri rdfs:comment ?description . }
-      OPTIONAL { ?uri mf:result ?testResult . }
+      ?uri mf:action ?testAction .
       OPTIONAL {
         ?manUri a mf:Manifest; mf:entries ?lh .
         ?lh rdf:first ?uri .
-        OPTIONAL { ?manUri mf:name ?manTitle . }
-        OPTIONAL { ?manUri rdfs:comment ?manDescription . }
       }
     }
 
-If any result has a non-null `?lh`, it is taken as the list head and used
-to maintain the list order within `earl:tests`.
-
 ## Report generation template
 The report template is in [ReSpec][] form using [Haml]() to generate individual report elements.
+
+## Changes from previous versions
+Version 0.3 and prior re-constructed the test manifest used to create the body of the report, which caused information not described within the query to be lost. Starting with 0.4, all manifests and assertions are read into a single graph, and each test references a list of assertions against it using a list referenced by `earl:assertions`. Additionally, all included manifests are included in a top-level entity referenced via `mf:entries`. For example:
+
+    <> a earl:Software, doap:Project;
+       mf:entries (<http://example/manifest.ttl>);
+       earl:assertions (<spec/test-files/report-complete.ttl>)  .
+
+    <http://example/manifest.ttl> a mf:Manifest, earl:Report;
+       mf:name "Example Test Cases";
+       rdfs:comment "Description for Example Test Cases";
+       mf:entries (<http://example/manifest.ttl#testeval00>) .
+
+    <http://example/manifest.ttl#testeval00> a earl:TestCriterion, earl:TestCase;
+       mf:name "subm-test-00";
+       rdfs:comment "Blank subject";
+       mf:action <http://example/test-00.ttl>;
+       mf:result <http://example/test-00.out>;
+       earl:assertions ([
+           a earl:Assertion;
+           earl:assertedBy <http://greggkellogg.net/foaf#me>;
+           earl:mode earl:automatic;
+           earl:result [
+             a earl:TestResult;
+             dc:date "2012-11-06T19:23:29-08:00"^^xsd:dateTime;
+             earl:outcome earl:passed
+           ];
+           earl:subject <http://rubygems.org/gems/rdf-turtle>;
+           earl:test <http://example/manifest.ttl#testeval00>
+         ]) .
 
 ## Usage
 The `earl-report` command may be used to directly create a report from zero or more input files, which are themselves [EARL][] report.
