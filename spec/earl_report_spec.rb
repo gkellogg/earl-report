@@ -316,6 +316,30 @@ describe EarlReport do
         }.not_to raise_error
       end
 
+      it "saves output as Turtle" do
+        output = subject.generate(format: :turtle)
+        expect {
+          File.open(File.expand_path("../test-files/results.ttl", __FILE__), "w") do |f|
+            f.write(output)
+          end
+        }.not_to raise_error
+      end
+
+      context "output as JSON-LD" do
+        let(:output) {subject.generate(format: :jsonld)}
+        it "saves output" do
+          expect {
+            File.open(File.expand_path("../test-files/results.jsonld", __FILE__), "w") do |f|
+              f.write(output)
+            end
+          }.not_to raise_error
+        end
+
+        it "reads a previously generated JSON-LD file" do
+          expect {EarlReport.new(File.expand_path("../test-files/results.jsonld", __FILE__), json: true)}.not_to raise_error
+        end
+      end
+
       it "has Report" do
         expect(SPARQL.execute(REPORT_QUERY, graph)).to eq RDF::Literal::TRUE
       end
