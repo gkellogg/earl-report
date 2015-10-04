@@ -7,7 +7,13 @@ gem 'rdf-turtle', git: "git://github.com/ruby-rdf/rdf-turtle.git", branch: "deve
 gem 'json-ld', git: "git://github.com/ruby-rdf/json-ld.git", branch: "develop"
 gem 'ebnf', git: "git://github.com/gkellogg/ebnf.git", branch: "develop"
 
-group :debug do
+group :develop do
   gem "wirble"
   gem "byebug", platforms: [:mri_20, :mri_21]
+end
+
+group :develop, :test do
+  gem 'simplecov', require: false
+  gem 'coveralls', require: false
+  gem 'psych', :platforms => [:mri, :rbx]
 end

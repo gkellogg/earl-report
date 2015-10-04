@@ -171,7 +171,15 @@ class EarlReport
     # If provided :json, it is used for generating all other output forms
     if @options[:json]
       @json_hash = ::JSON.parse(File.read(files.first))
-      JSON::LD::Reader.open(files.first) {|r| @graph = RDF::Graph.new << r}
+      # Add a base_uri so relative subjects aren't dropped
+      JSON::LD::Reader.open(files.first, base_uri: "http://example.org/report") do |r|
+        @graph = RDF::Graph.new
+        r.each_statement do |statement|
+          # restore relative subject
+          statement.subject = RDF::URI("") if statement.subject == "http://example.org/report"
+          @graph << statement
+        end
+      end
       return
     end
 
