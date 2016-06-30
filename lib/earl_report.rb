@@ -270,19 +270,19 @@ class EarlReport
           name = solution[:name].to_s if solution[:name]
           language = solution[:language].to_s if solution[:language]
           doapDesc = solution[:doapDesc] if solution[:doapDesc]
-          doapDesc.language ||= :en
+          doapDesc.language ||= :en if doapDesc
           devName = solution[:devName].to_s if solution[:devName]
-          graph << RDF::Statement(solution[:uri], RDF.type, RDF::DOAP.Project)
+          graph << RDF::Statement(solution[:uri], RDF.type, RDF::Vocab::DOAP.Project)
           graph << RDF::Statement(solution[:uri], RDF.type, EARL.TestSubject)
           graph << RDF::Statement(solution[:uri], RDF.type, EARL.Software)
-          graph << RDF::Statement(solution[:uri], RDF::DOAP.name, name)
-          graph << RDF::Statement(solution[:uri], RDF::DOAP.developer, solution[:developer])
-          graph << RDF::Statement(solution[:uri], RDF::DOAP.homepage, solution[:homepage]) if solution[:homepage]
-          graph << RDF::Statement(solution[:uri], RDF::DOAP.description, doapDesc) if doapDesc
-          graph << RDF::Statement(solution[:uri], RDF::DOAP[:"programming-language"], language) if solution[:language]
+          graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.name, name)
+          graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.developer, solution[:developer])
+          graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.homepage, solution[:homepage]) if solution[:homepage]
+          graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.description, doapDesc) if doapDesc
+          graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP[:"programming-language"], language) if solution[:language]
           graph << RDF::Statement(solution[:developer], RDF.type, solution[:devType]) if solution[:devType]
-          graph << RDF::Statement(solution[:developer], RDF::FOAF.name, devName) if devName
-          graph << RDF::Statement(solution[:developer], RDF::FOAF.homepage, solution[:devHomepage]) if solution[:devHomepage]
+          graph << RDF::Statement(solution[:developer], RDF::Vocab::FOAF.name, devName) if devName
+          graph << RDF::Statement(solution[:developer], RDF::Vocab::FOAF.homepage, solution[:devHomepage]) if solution[:devHomepage]
         end
 
         assertion_graph << file_graph
@@ -492,11 +492,11 @@ class EarlReport
 
     # Write each manifest
     io.puts "\n# Manifests"
-    RDF::List.new(graph.first_object(subject: top_level, predicate: MF[:entries]), graph).each do |manifest|
+    RDF::List.new(subject: graph.first_object(subject: top_level, predicate: MF[:entries]), graph: graph).each do |manifest|
       writer.send(:statement, manifest)
 
       # Write each test case
-      RDF::List.new(graph.first_object(subject: manifest, predicate: MF[:entries]), graph).each do |tc|
+      RDF::List.new(subject: graph.first_object(subject: manifest, predicate: MF[:entries]), graph: graph).each do |tc|
         writer.send(:statement, tc)
       end
     end
@@ -507,7 +507,7 @@ class EarlReport
       writer.send(:statement, s.object)
 
       # Write each developer
-      graph.query(subject: s.object, predicate: RDF::DOAP.developer).each do |d|
+      graph.query(subject: s.object, predicate: RDF::Vocab::DOAP.developer).each do |d|
         writer.send(:statement, d.object)
       end
     end

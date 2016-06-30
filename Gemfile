@@ -9,7 +9,7 @@ gem 'ebnf', git: "git://github.com/gkellogg/ebnf.git", branch: "develop"
 
 group :develop do
   gem "wirble"
-  gem "byebug", platforms: [:mri_20, :mri_21]
+  gem "byebug", platforms: :mri
 end
 
 group :develop, :test do
