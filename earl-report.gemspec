@@ -6,7 +6,7 @@ Gem::Specification.new do |gem|
 
   gem.name                  = "earl-report"
   gem.homepage              = "http://github.com/gkellogg/earl-report"
-  gem.license               = 'Public Domain' if gem.respond_to?(:license=)
+  gem.license               = 'Unlicense'
   gem.summary               = "Earl Report summary generator"
   gem.description           = "EarlReport generates HTML+RDFa rollups of multiple EARL reports."
 
