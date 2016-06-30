@@ -83,7 +83,7 @@ describe EarlReport do
       end
 
       it "loads foaf" do
-        expect(subject.graph.objects.to_a).to include(RDF::FOAF.Person)
+        expect(subject.graph.objects.to_a).to include(RDF::Vocab::FOAF.Person)
       end
     end
 
@@ -120,7 +120,7 @@ describe EarlReport do
       end
 
       it "loads foaf" do
-        expect(subject.graph.objects.to_a).to include(RDF::FOAF.Person)
+        expect(subject.graph.objects.to_a).to include(RDF::Vocab::FOAF.Person)
       end
     end
 
@@ -157,7 +157,7 @@ describe EarlReport do
       end
 
       it "loads foaf" do
-        expect(subject.graph.objects.to_a).to include(RDF::FOAF.Person)
+        expect(subject.graph.objects.to_a).to include(RDF::Vocab::FOAF.Person)
       end
     end
   end
@@ -172,7 +172,11 @@ describe EarlReport do
       'bibRef' => "[[TURTLE]]",
       'name'   => "Turtle Test Results"
     }.each do |prop, value|
-      specify(prop) {expect(subject[prop]).to eq value}
+      if value.is_a?(Array)
+        specify(prop) {expect(subject[prop]).to include(*value)}
+      else
+        specify(prop) {expect(subject[prop]).to eq value}
+      end
     end
 
     %w(assertions generatedBy testSubjects entries).each do |key|
@@ -241,16 +245,20 @@ describe EarlReport do
     end
 
     context "earl:Software" do
-      specify {should match(/<> a earl:Software,\s+doap:Project\s*[;\.]$/m)}
+      specify {should match(%r{<> a [^;]*earl:Software[^;]*;$}m)}
+      specify {should match(%r{<> a [^;]*doap:Project[^;]*;$}m)}
       specify {should match(/  doap:name "#{json_hash['name']}"\s*[;\.]$/)}
     end
 
     context "Subject Definitions" do
-      specify {should match(/<#{ts['@id']}> a doap:Project,\s+earl:TestSubject,\s+earl:Software;$/m)}
+      specify {should match(%r{<#{ts['@id']}> a [^;]*doap:Project[^;]*;$}m)}
+      specify {should match(%r{<#{ts['@id']}> a [^;]*earl:TestSubject[^;]*;$}m)}
+      specify {should match(%r{<#{ts['@id']}> a [^;]*earl:Software[^;]*;$}m)}
     end
 
     context "Manifest Definitions" do
-      specify {should match(/<#{tm['@id']}> a mf:Manifest,\s+earl:Report\s*[;\.]$/m)}
+      specify {should match(%r{<#{tm['@id']}> a [^;]*mf:Manifest[^;]*;$}m)}
+      specify {should match(%r{<#{tm['@id']}> a [^;]*earl:Report[^;]*;$}m)}
     end
 
     context "Assertion" do
