@@ -4,9 +4,7 @@ script: "bundle exec rspec spec"
 env:
   - CI=true
 rvm:
-  - 2.0
-  - 2.1
-  - 2.2.4
+  - 2.2.5
   - 2.3.1
   - rbx
 cache: bundler

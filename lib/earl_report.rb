@@ -112,30 +112,35 @@ class EarlReport
       "testSubjects" => {"@type" => "@id", "@container" => "@set"},
       "xsd" =>          {"@id" => "http://www.w3.org/2001/XMLSchema#"}
     },
+    "@embed" => "@always",
     "assertions" => {},
     "bibRef" => {},
     "generatedBy" => {
       "@embed" => "@always",
-      "developer" => {},
-      "release" => {
-        "@embed" => "@always"
-      }
+      "developer" => {"@embed" => "@always"},
+      "release" => {"@embed" => "@always"}
     },
     "testSubjects" => {
       "@embed" => "@always",
       "@type" => "earl:TestSubject",
       "developer" => {"@embed" => "@always"},
-      "homepage" => {"@embed" => false}
+      "homepage" => {"@embed" => "@never"}
     },
     "entries" => [{
+      "@embed" => "@always",
       "@type" => "mf:Manifest",
       "entries" => [{
+        "@embed" => "@always",
         "@type" => "earl:TestCase",
         "assertions" => {
+          "@embed" => "@always",
           "@type" => "earl:Assertion",
-          "assertedBy" => {"@embed" => false},
-          "result" => {"@type" => "earl:TestResult"},
-          "subject" => {"@embed" => false}
+          "assertedBy" => {"@embed" => "@never"},
+          "result" => {
+            "@embed" => "@always",
+            "@type" => "earl:TestResult"
+          },
+          "subject" => {"@embed" => "@never"}
         }
       }]
     }]
@@ -306,7 +311,7 @@ class EarlReport
         next
       end
       unless subjects[subject]
-        $stderr.puts "No test result subject found for #{subject}: #{solution.inspect}"
+        $stderr.puts "No test result subject found for #{subject}: in #{subjects.keys.join(', ')}"
         next
       end
       found_solutions[subject] = true
@@ -461,7 +466,7 @@ class EarlReport
     @json_hash ||= begin
       # Customized JSON-LD output
       r = JSON::LD::API.fromRDF(graph) do |expanded|
-        JSON::LD::API.frame(expanded, TEST_FRAME, expanded: true)
+        JSON::LD::API.frame(expanded, TEST_FRAME, expanded: true, embed: '@never')
       end
       unless r.is_a?(Hash) && r.has_key?('@graph') && Array(r["@graph"]).length == 1
         raise "Expected JSON result to have a single entry"
