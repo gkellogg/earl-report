@@ -165,7 +165,7 @@ describe EarlReport do
   describe "#json_hash" do
     let(:json) {earl.send(:json_hash)}
     subject {json}
-    it {should be_a(Hash)}
+    it {is_expected.to be_a(Hash)}
     {
       "@id"    => "",
       "@type"  => ["Software", "doap:Project"],
@@ -180,7 +180,7 @@ describe EarlReport do
     end
 
     %w(assertions generatedBy testSubjects entries).each do |key|
-      its(:keys) {should include(key)}
+      its(:keys) {is_expected.to include(key)}
     end
 
     context "parsing to RDF" do
@@ -240,29 +240,31 @@ describe EarlReport do
 
     context "prefixes" do
       %w(dc doap earl foaf mf rdf rdfs xsd).each do |pfx|
-        specify {should match(/@prefix #{pfx}: </)}
+        specify {is_expected.to match(/@prefix #{pfx}: </)}
       end
     end
 
     context "earl:Software" do
-      specify {should match(%r{<> a [^;]*earl:Software[^;]*;$}m)}
-      specify {should match(%r{<> a [^;]*doap:Project[^;]*;$}m)}
-      specify {should match(/  doap:name "#{json_hash['name']}"\s*[;\.]$/)}
+      specify {is_expected.to match(%r{<> a [^;]*earl:Software[^;]*;$}m)}
+      specify {is_expected.to match(%r{<> a [^;]*doap:Project[^;]*;$}m)}
+      specify {is_expected.to match(/  doap:name "#{json_hash['name']}"\s*[;\.]$/)}
     end
 
     context "Subject Definitions" do
-      specify {should match(%r{<#{ts['@id']}> a [^;]*doap:Project[^;]*;$}m)}
-      specify {should match(%r{<#{ts['@id']}> a [^;]*earl:TestSubject[^;]*;$}m)}
-      specify {should match(%r{<#{ts['@id']}> a [^;]*earl:Software[^;]*;$}m)}
+      specify {is_expected.to match(%r{<#{ts['@id']}> a [^;]*doap:Project[^;]*;$}m)}
+      specify {is_expected.to match(%r{<#{ts['@id']}> a [^;]*earl:TestSubject[^;]*;$}m)}
+      specify {is_expected.to match(%r{<#{ts['@id']}> a [^;]*earl:Software[^;]*;$}m)}
     end
 
     context "Manifest Definitions" do
-      specify {should match(%r{<#{tm['@id']}> a [^;]*mf:Manifest[^;]*;$}m)}
-      specify {should match(%r{<#{tm['@id']}> a [^;]*earl:Report[^;]*;$}m)}
+      specify {
+        json_hash
+        is_expected.to match(%r{<#{tm['@id']}> a [^;]*mf:Manifest[^;]*;$}m)}
+      specify {is_expected.to match(%r{<#{tm['@id']}> a [^;]*earl:Report[^;]*;$}m)}
     end
 
     context "Assertion" do
-      specify {should match(/\sa earl:Assertion;$/)}
+      specify {is_expected.to match(/\sa earl:Assertion;$/)}
     end
 
     context "parsing to RDF" do
