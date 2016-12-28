@@ -40,86 +40,22 @@
 -#  }
 - require 'cgi'
 - require 'digest'
+- editors = [{ name: "Gregg Kellogg", url: "http://greggkellogg.net/"}]
+- foaf = {name: "Gregg Kellogg", url: "http://greggkellogg.net/foaf#me" }
 
 !!! 5
-%html{prefix: "earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap# mf: http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#"}
-  - subjects = tests['testSubjects']
+%html
+  - subjects = tests['testSubjects'].sort_by {|s| s['name'].to_s.downcase}
   %head
     %meta{"http-equiv" => "Content-Type", content: "text/html;charset=utf-8"}
     %link{rel: "alternate", href: "earl.ttl"}
     %link{rel: "alternate", href: "earl.jsonld"}
+    %link{rel: "stylesheet", href: "https://www.w3.org/StyleSheets/TR/base"}
     - tests['assertions'].each do |file|
       %link{rel: "related", href: file}
     %title
       = tests['name']
-    %script.remove{type: "text/javascript", src: "http://www.w3.org/Tools/respec/respec-w3c-common"}
-    :javascript
-      var respecConfig = {
-          // extend the bibliography entries
-          localBiblio: {
-              TURTLE: "Eric Prud'hommeaux, Gavin Carothers. <cite><a href=\"http://www.w3.org/TR/2011/WD-turtle-20110809/\">Turtle: Terse RDF Triple Language.</a></cite> 09 August 2011. W3C Working Draft. URL: <a href=\"http://www.w3.org/TR/2011/WD-turtle-20110809/\">http://www.w3.org/TR/2011/WD-turtle-20110809/</a>",
-              DOAP: "Ed Dumbill. <cite><a href=\"https://github.com/edumbill/doap/wiki\">Turtle: Terse RDF Triple Language.</a></cite> Community Specification. URL: <a href=\"https://github.com/edumbill/doap/wiki\">https://github.com/edumbill/doap/wiki</a>",
-          },
-
-          // specification status (e.g. WD, LCWD, NOTE, etc.). If in doubt use ED.
-          specStatus:           "unofficial",
-          copyrightStart:       "2010",
-          doRDFa:               "1.1",
-
-          // the specification's short name, as in http://www.w3.org/TR/short-name/
-          shortName:            "turtle-earl",
-          subtitle:             "Turtle Implementation Conformance Report",
-          // if you wish the publication date to be other than today, set this
-          publishDate:  "#{Time.now.strftime("%Y/%m/%d")}",
-
-          // if there is a previously published draft, uncomment this and set its YYYY-MM-DD date
-          // and its maturity status
-          //previousPublishDate:  "2011-10-23",
-          //previousMaturity:     "ED",
-          //previousDiffURI:      "http://json-ld.org/spec/ED/json-ld-syntax/20111023/index.html",
-          //diffTool:             "http://www.aptest.com/standards/htmldiff/htmldiff.pl",
-
-          // if there a publicly available Editor's Draft, this is the link
-          //edDraftURI:           "",
-
-          // if this is a LCWD, uncomment and set the end of its review period
-          // lcEnd: "2009-08-05",
-
-          // editors, add as many as you like
-          // only "name" is required
-          editors:  [
-              { name: "Gregg Kellogg", url: "http://greggkellogg.net/",
-                company: "Kellogg Associates" },
-              { name: "Andy Seaborne",
-                company: "The Apache Software Foundation"}
-          ],
-
-          // authors, add as many as you like.
-          // This is optional, uncomment if you have authors as well as editors.
-          // only "name" is required. Same format as editors.
-          //authors:  [
-          //RDF Working Group],
-
-          // name of the WG
-          wg:           "RDF Working Group",
-
-          // URI of the public WG page
-          wgURI:        "http://www.w3.org/2011/rdf-wg/",
-
-          // name (with the @w3c.org) of the public mailing to which comments are due
-          wgPublicList: "public-rdf-comments",
-
-          // URI of the patent status for this WG, for Rec-track documents
-          // !!!! IMPORTANT !!!!
-          // This is important for Rec-track documents, do not copy a patent URI from a random
-          // document unless you know what you're doing. If in doubt ask your friendly neighbourhood
-          // Team Contact.
-          wgPatentURI:  "http://www.w3.org/2004/01/pp-impl/46168/status",
-          alternateFormats: [
-            {uri: "earl.ttl", label: "Turtle"},
-            {uri: "earl.jsonld", label: "JSON-LD"}
-          ],
-      };
+      Implementation Report
     :css
       span[property='dc:description rdfs:comment'] { display: none; }
       td.PASS { color: green; }
@@ -152,8 +88,80 @@
       td.passed-all {color: green;}
       td.passed-most {color: darkorange;}
       td.passed-some {color: red;}
-  %body{prefix: "earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap# mf: http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#", vocab: "http://www.w3.org/ns/earl#"}
+      em.rfc2119 { 
+        text-transform: lowercase;
+        font-variant:   small-caps;
+        font-style:     normal;
+        color:          #900;
+      }
+      a.testlink {
+        color: inherit;
+        text-decoration: none;
+      }
+      a.testlink:hover {
+        text-decoration: underline;
+      }
+      pre > code {
+        color: #C83500;
+      }
+  %body{prefix: "bibo: http://purl.org/ontology/bibo/ earl: http://www.w3.org/ns/earl# doap: http://usefulinc.com/ns/doap# mf: http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#", vocab: "http://www.w3.org/ns/earl#"}
+    - test_info = {}
+    - test_refs = {}
+    - subject_refs = {}
+    - tests['entries'].each {|m| m['title'] ||= m['rdfs:label'] || m['description'] || m['rdfs:comment']}
+    - subjects.each_with_index do |subject, index|
+      - subject_refs[subject['@id']] = "subj_#{index}"
+    %div.head{role: :contentinfo}
+      %p
+        %a{href: "http://www.w3.org/"}
+          %img{width: 72, height: 48, src: "https://www.w3.org/Icons/w3c_home", alt: "W3C"}
+      %h1.title.p-name#title{property: "dc:title"}=tests['name']
+      %h2#w3c-document-28-october-2015
+        %abbr{title: "World Wide Web Consortium"}="W3C"
+        Document
+        %time.dt-published{property: "dc:issued", datetime: Time.now.strftime('%Y-%m-%d')}
+          = Time.now.strftime("%d %B %Y")
+      %dl
+        %dt="Editor:"
+        - editors.each do |ed|
+          %dd.p-author.h-card.vcard{property: "bibo:editor", inlist: true}<>
+            %span{property: "rdf:first", typeof: "foaf:Person"}<>
+              %meta{property: "foaf:name", content: ed[:name]}<>
+              %a.url.fn.u-url.p-name{property: "foaf:homepage", href: ed[:url]}<>
+                = ed[:name]
+      %p
+        This document is also available in these non-normative formats:
+        %a{re: "alternate", href: "earl.ttl"}
+        and
+        %a{re: "alternate", href: "earl.jsonld"}
+        = "."
+      %p.copyright
+        %a{href: "http://www.w3.org/Consortium/Legal/ipr-notice#Copyright"}
+          Copyright
+        © 2010-2015
+        %a{href: "http://www.w3.org/"}
+          %sup="®"
+        (
+        %a{href: "http://www.csail.mit.edu/"}<>
+          %abbr{title: "Massachusetts Institute of Technology"}<>="MIT"
+        = ", "
+        %a{href: "http://www.ercim.eu/"}<>
+          %abbr{title: "European Research Consortium for Informatics and Mathematics"}<>="ERCIM"
+        = ", "
+        %a{href: "http://www.keio.ac.jp/"}<>="Keio"
+        = ", "
+        %a{href: "http://ev.buaa.edu.cn/"}<>="Beihang"
+        ).
+        %abbr{title: "World Wide Web Consortium"}="W3C"
+        %a{href: "http://www.w3.org/Consortium/Legal/ipr-notice#Legal_Disclaimer"}="liability"
+        = ","
+        %a{href: "http://www.w3.org/Consortium/Legal/ipr-notice#W3C_Trademarks"}="trademark"
+        and
+        %a{rel: "license", href: "http://www.w3.org/Consortium/Legal/copyright-documents"}="document use"
+        rules apply.
+      %hr
     %section#abstract{about: tests['@id'], typeof: Array(tests['@type']).join(" ")}
+      %h2="Abstract"
       %p
         This document report test subject conformance for and related specifications for
         %span{property: "doap:name"}<=tests['name']
@@ -168,16 +176,130 @@
         %a{rel: "xhv:alternate", href: "earl.jsonld"}
           JSON-LD
     %section#sodt
-    %section
-      - test_info = {}
-      - test_refs = {}
-      - subject_refs = {}
+      %h2#h-sotd{resource: "#h-sotd"}
+        %span{property: "xhv:role", resource: "xhv:heading"}
+          Status of This Document
+      %p
+        This document is merely a
+        %abbr{title: "World Wide Web Consortium"}<>="W3C"
+        ="-internal  document."
+        It has no official standing of any kind and does not represent consensus of the
+        %abbr{title: "World Wide Web Consortium"}="W3C"
+        Membership.
+      %p
+        This report describes the state of implementation conformance at the time of publication.
+    %section#toc
+      %h2.introductory#h-toc{resource: "#h-toc"}
+        %span{property: "xhv:role", resource: "xhv:heading"}
+          Table of Contents
+      %ul.toc#respecContents{role: "directory"}
+        %li.tocline
+          %a.tocxref{href: "#instructions-for-submitting-implementation-reports"}
+            %span.secno="1."
+            Instructions for submitting implementation reports
+        %li.tocline
+          %a.tocxref{href: "#test-manifests"}
+            %span.secno="2."
+            Test Manifests
+          %ul.toc
+            - tests['entries'].sort_by {|m| m['title'].to_s.downcase}.each_with_index do |manifest, ndx|
+              %li.tocline
+                %span.secno="2.#{ndx+1}"
+                %a.tocxref{href: "##{manifest['rdfs:comment'].gsub(' ', '-')}"}
+                  ~ manifest['rdfs:comment']
+        %li.tocline
+          %a.tocxref{href: "#test-subjects"}
+            %span.secno="A."
+            Test Subjects
+          %ul.toc
+            - subjects.each_with_index do |subject, ndx|
+              %li.tocline
+                %span.secno="A.#{ndx+1}"
+                %a.tocxref{href: "#" + subject_refs[subject['@id']]}= subject['name']
+        %li.tocline
+          %a.tocxref{href: "#individual-test-results"}
+            %span.secno="B."
+            Individual Test Results
+        %li.tocline
+          %a.tocxref{href: "#test-definitions"}
+            %span.secno="C."
+            Test Definitions
+        %li.tocline
+          %a.tocxref{href: "#report-generation-software"}
+            %span.secno="D."
+            Report Generation Software
+    %section#instructions-for-submitting-implementation-reports
+      :markdown
+        ## Instructions for submitting implementation reports
+
+          Tests should be run using the test manifests defined in the 
+          [Test Manifests](#test-manifests) Section.
+
+          The assumed base URI for the tests is `<http://example/base/>` if needed.
+
+          Reports should be submitted in Turtle format to [xxx](xxx)
+          and include an `earl:Assertion`
+          for each test, referencing the test resource from the associated manifest
+          and the test subject being reported upon. An example test entry is be the following:
+
+              [ a earl:Assertion;
+                earl:assertedBy <#{foaf[:url]}>;
+                earl:subject <--your-software-identifier-->;
+                earl:test <--uri-of-test-from-manifest>;
+                earl:result [
+                  a earl:TestResult;
+                  earl:outcome earl:passed;
+                  dc:date "2016-12-26T10:18:04-08:00"^^xsd:dateTime];
+                earl:mode earl:automatic ] .
+
+          The Test Subject should be defined as a `doap:Project`, including the name,
+          homepage and developer(s) of the software (see [DOAP](https://github.com/edumbill/doap/wiki)). Optionally, including the
+          project description and programming language. An example test subject description is the following:
+
+              <> foaf:primaryTopic <--your-software-identifier--> ;
+                dc:issued "2016-12-26T10:18:04-08:00"^^xsd:dateTime ;
+                foaf:maker <#{foaf[:url]}> .
+
+              <--your-software-identifier--> a doap:Project, earl:TestSubject, earl:Software ;
+                doap:name          "#{foaf[:name]}" ;
+                doap:homepage      <--your-software-homepace--> ;
+                doap:license       <--license-for-your-software--> ;
+                doap:shortdesc     "--your-short-project-description--"@en ;
+                doap:description   "--your-project-description--"@en ;
+                doap:created       "2016-12-09"^^xsd:date ;
+                doap:programming-language "--your-implementation-language--" ;
+                doap:implements    <--specification-uri--> ;
+                doap:category      <--category-uris-for-specification-framework-and-implementation-language--> ;
+                doap:download-page <--your-project-repository--> ;
+                doap:mailing-list  <--specification-public-mailing-list--@w3.org> ;
+                doap:bug-database  <--your-project-repository--/issues> ;
+                doap:blog          <--your-blog--> ;
+                doap:developer     <#{foaf[:url]}> ;
+                foaf:maker         <#{foaf[:url]}> ;
+                dc:title           "--your-project-name--" ;
+                dc:description     "--your-project-description--"@en ;
+                dc:date            "2016-12-09"^^xsd:date ;
+                dc:creator         <#{foaf[:url]}> ;
+                dc:isPartOf        <--your-implementation-framework--> .
+
+          The software developer, either an organization or one or more individuals SHOULD be
+          referenced from `doap:developer` using [FOAF](http://xmlns.com/foaf/spec). For example:
+
+              <--your-software-identifier--> a foaf:Person, earl:Assertor;
+                foaf:name "#{foaf[:name]}";
+                foaf:title "Implementor";
+                foaf:homepage <#{foaf[:url]}> .
+    %section#test-manifests
       %h2
+        %span.secno="2."
         Test Manifests
-      - tests['entries'].each do |manifest|
+      - tests['entries'].each_with_index do |manifest, ndx2|
         - test_cases = manifest['entries']
-        %section{typeof: manifest['@type'].join(" "), resource: manifest['@id']}
-          %h2{property: "dc:title mf:name"}<=manifest['title'] ||  'Test Manifest'
+        %section{id: manifest['rdfs:comment'].gsub(' ', '-'), typeof: manifest['@type'].join(" "), resource: manifest['@id']}
+          %h2
+            %span.secno="2.#{ndx2+1}"
+            %span{property: "dc:title mf:name"}<
+              = manifest['title'] ||  'Test Manifest'
           - Array(manifest['description']).each do |desc|
             - desc = desc['@value'] if desc.is_a?(Hash)
             %p{property: "rdfs:comment", lang: 'en'}<
@@ -189,13 +311,14 @@
               %th
                 Test
               - subjects.each_with_index do |subject, index|
-                - subject_refs[subject['@id']] = "subj_#{index}"
                 -# If subject is untested for every test in this manifest, skip it
                 - skip_subject[subject['@id']] = manifest['entries'].all? {|t| t['assertions'][index]['result']['outcome'] == 'earl:untested'}
                 - unless skip_subject[subject['@id']]
                   %th
                     %a{href: '#' + subject_refs[subject['@id']]}<=subject['name']
             - test_cases.each do |test|
+              - test['title'] ||= test['rdfs:label']
+              - test['title'] = Array(test['title']).first
               - tid = "test_#{Digest::MD5.hexdigest(test['@id'])}"
               - (test_info[tid] ||= []) << test
               - test_refs[test['@id']] = tid
@@ -225,14 +348,16 @@
                 - pct = (r * 100.0) / manifest['entries'].length
                 %td{class: (pct == 100.0 ? 'passed-all' : (pct >= 95.0 ? 'passed-most' : 'passed-some'))}
                   = "#{'%.1f' % pct}%"
-    %section.appendix
+    %section.appendix#test-subjects
       %h2
+        %span.secno="A."
         Test Subjects
       %p
         This report was tested using the following test subjects:
       %dl
         - subjects.each_with_index do |subject, index|
           %dt{id: subject_refs[subject['@id']]}
+            %span.secno="A.#{index+1}"
             %a{href: subject['@id']}
               %span{about: subject['@id'], property: "doap:name"}<= subject['name']
           %dd{property: "earl:testSubjects", resource: subject['@id'], typeof: Array(subject['@type']).join(" ")}
@@ -249,8 +374,8 @@
                   ~ CGI.escapeHTML subject['language'].to_s
               - if subject['homepage']
                 %dt= "Home Page"
-                %dd{property: "doap:homepage"}
-                  %a{href: subject['homepage']}
+                %dd
+                  %a{property: "doap:homepage", href: subject['homepage']}
                     ~ CGI.escapeHTML subject['homepage'].to_s
               - if subject['developer']
                 %dt= "Developer"
@@ -282,8 +407,9 @@
                         %td{class: (pct == 100.0 ? 'passed-all' : (pct >= 85.0 ? 'passed-most' : 'passed-some'))}
                           = "#{passed}/#{total} (#{'%.1f' % pct}%)"
     - unless tests['assertions'].empty?
-      %section.appendix{rel: "xhv:related earl:assertions"}
+      %section.appendix#individual-test-results{rel: "xhv:related earl:assertions"}
         %h2
+          %span.secno="B."
           Individual Test Results
         %p
           Individual test results used to construct this report are available here:
@@ -291,8 +417,9 @@
           - tests['assertions'].each do |file|
             %li
               %a.source{href: file}<= file
-    %section.appendix
+    %section.appendix#test-definitions
       %h2
+        %span.secno="C."
         Test Definitions
       %dl
         - tests['entries'].each do |manifest|
@@ -311,8 +438,9 @@
                 - if test['testResult']
                   %pre{class: "example resultDoc", property: "mf:result", resource: test['testResult'], title: "#{test['title']} Result"}<
                     ~ Kernel.open(test['testResult']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
-    %section#appendix{property: "earl:generatedBy", resource: tests['generatedBy']['@id'], typeof: Array(tests['generatedBy']['@type']).join(' ')}
+    %section.appendix#report-generation-software{property: "earl:generatedBy", resource: tests['generatedBy']['@id'], typeof: tests['generatedBy']['@type'].join(' ')}
       %h2
+        %span.secno="D."
         Report Generation Software
       - doap = tests['generatedBy']
       - rel = doap['release']

@@ -28,6 +28,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency     'linkeddata',      '~> 2.0'
   gem.add_runtime_dependency     'sparql',          '~> 2.0'
   gem.add_runtime_dependency     'rdf-turtle',      '~> 2.0'
+  gem.add_runtime_dependency     'json-ld',         '~> 2.1', '>= 2.1.1'
   gem.add_runtime_dependency     'redcarpet',       '~> 3.0'
   gem.add_runtime_dependency     'nokogiri',        '~> 1.6'
   gem.add_development_dependency 'rspec',           '~> 3.0'
