@@ -40,7 +40,7 @@ describe EarlReport do
     context "with base" do
       it "loads manifest relative to base" do
         expect(RDF::Graph).to receive(:load)
-          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {:base_uri => "http://example.com/base/"})
+          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {unique_bnodes: true, base_uri: "http://example.com/base/"})
           .and_return(manifest)
         expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/report-complete.ttl", __FILE__))
@@ -56,7 +56,7 @@ describe EarlReport do
     context "complete report" do
       before(:each) do
         expect(RDF::Graph).to receive(:load)
-          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {})
+          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {unique_bnodes: true, })
           .and_return(manifest)
         expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/report-complete.ttl", __FILE__))
@@ -90,7 +90,7 @@ describe EarlReport do
     context "no doap report" do
       before(:each) do
         expect(RDF::Graph).to receive(:load)
-          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {})
+          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {unique_bnodes: true, })
           .and_return(manifest)
         expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/report-no-doap.ttl", __FILE__))
@@ -127,7 +127,7 @@ describe EarlReport do
     context "no foaf report" do
       before(:each) do
         expect(RDF::Graph).to receive(:load)
-          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {})
+          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {unique_bnodes: true, })
           .and_return(manifest)
         expect(RDF::Graph).to receive(:load)
           .with(File.expand_path("../test-files/report-no-foaf.ttl", __FILE__))

@@ -1,11 +1,6 @@
 #!/usr/bin/env ruby
 require 'rubygems'
 $:.unshift(File.expand_path("../../lib", __FILE__))
-begin
-  require "bundler/setup"
-rescue LoadError
-  #skip
-end
 require 'earl_report'
 require 'getoptlong'
 require 'yaml'
