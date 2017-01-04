@@ -195,7 +195,7 @@ class EarlReport
     man_opts[:base_uri] = RDF::URI(@options[:base]) if @options[:base]
     @graph = RDF::Graph.new
     Array(@options[:manifest]).each do |man|
-      g = RDF::Graph.load(man, man_opts)
+      g = RDF::Graph.load(man, unique_bnodes: true, **man_opts)
       status "  loaded #{g.count} triples from #{man}"
       graph << g
     end
@@ -305,17 +305,21 @@ class EarlReport
     end
 
     status "query assertions"
+    assertion_stats = {}
     SPARQL.execute(ASSERTION_QUERY, assertion_graph).each do |solution|
       subject = solution[:subject]
       unless tests[solution[:test]]
+        assertion_stats["Skipped"] = assertion_stats["Skipped"].to_i + 1
         $stderr.puts "Skipping result for #{solution[:test]} for #{subject}, which is not defined in manifests"
         next
       end
       unless subjects[subject]
+        assertion_stats["Missing Subject"] = assertion_stats["Missing Subject"].to_i + 1
         $stderr.puts "No test result subject found for #{subject}: in #{subjects.keys.join(', ')}"
         next
       end
       found_solutions[subject] = true
+      assertion_stats["Found"] = assertion_stats["Found"].to_i + 1
 
       # Add this solution at the appropriate index within that list
       ndx = subjects.keys.find_index(subject)
@@ -338,6 +342,7 @@ class EarlReport
       # Fill any missing entries with an untested outcome
       ary.each_with_index do |a, ndx|
         unless a
+          assertion_stats["Untested"] = assertion_stats["Untested"].to_i + 1
           ary[ndx] = a = RDF::Node.new
           graph << RDF::Statement(a, RDF.type, EARL.Assertion)
           graph << RDF::Statement(a, EARL.subject, subjects.keys[ndx])
@@ -352,6 +357,8 @@ class EarlReport
         graph << RDF::Statement(test, EARL.assertions, a)
       end
     end
+
+    assertion_stats.each {|stat, count| status("Assertions #{stat}: #{count}")}
 
     # See if any subject did not report results, which may indicate a formatting error in the EARL source
     subjects.reject {|s| found_solutions[s]}.each do |sub|
