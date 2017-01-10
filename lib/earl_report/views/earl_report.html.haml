@@ -108,6 +108,7 @@
     - test_info = {}
     - test_refs = {}
     - subject_refs = {}
+    - passed_tests = []
     - tests['entries'].each {|m| m['title'] ||= m['rdfs:label'] || m['description'] || m['rdfs:comment']}
     - subjects.each_with_index do |subject, index|
       - subject_refs[subject['@id']] = "subj_#{index}"
@@ -306,7 +307,7 @@
               ~ CGI.escapeHTML desc.to_s
           %table.report
             - skip_subject = {}
-            - passed_tests = []
+            - passed_tests[ndx2] = []
             %tr
               %th
                 Test
@@ -326,11 +327,12 @@
                 %td
                   %a{href: "##{tid}"}<
                     ~ CGI.escapeHTML test['title'].to_s
-                - # test['assertions'] = [] unless test.has_key?('assertions')
-                - test['assertions'].each_with_index do |assertion, ndx|
-                  - next if skip_subject[assertion['subject']]
+                -# Order assertions by subject name
+                - subjects.each_with_index do |subject, ndx|
+                  - next if skip_subject[subject['@id']]
+                  - assertion = test['assertions'].detect {|a| a['subject'] == subject['@id']}
                   - pass_fail = assertion['result']['outcome'].split(':').last.upcase.sub(/(PASS|FAIL)ED$/, '\1')
-                  - passed_tests[ndx] = (passed_tests[ndx] || 0) + (pass_fail == 'PASS' ? 1 : 0)
+                  - passed_tests[ndx2][ndx] = (passed_tests[ndx2][ndx] || 0) + (pass_fail == 'PASS' ? 1 : 0)
                   %td{class: pass_fail, property: "earl:assertions", typeof: assertion['@type']}
                     - if assertion['assertedBy']
                       %link{property: "earl:assertedBy", href: assertion['assertedBy']}
@@ -344,7 +346,7 @@
             %tr.summary
               %td
                 = "Percentage passed out of #{manifest['entries'].length} Tests"
-              - passed_tests.compact.each do |r|
+              - passed_tests[ndx2].compact.each do |r|
                 - pct = (r * 100.0) / manifest['entries'].length
                 %td{class: (pct == 100.0 ? 'passed-all' : (pct >= 95.0 ? 'passed-most' : 'passed-some'))}
                   = "#{'%.1f' % pct}%"
@@ -396,8 +398,8 @@
               %dd
                 %table.report
                   %tbody
-                    - tests['entries'].each do |manifest|
-                      - passed = manifest['entries'].select {|t| (t['assertions'][index] || {}).fetch('result', {})['outcome'] == 'earl:passed' }.length
+                    - tests['entries'].each_with_index do |manifest, ndx|
+                      - passed = passed_tests[ndx][index].to_i
                       - next if passed == 0
                       - total = manifest['entries'].length
                       - pct = (passed * 100.0) / total
