@@ -23,18 +23,19 @@ Gem::Specification.new do |gem|
   gem.test_files            = Dir.glob('spec/**/*.rb') + Dir.glob('spec/test-files/*')
   gem.has_rdoc              = false
 
-  gem.required_ruby_version = '>= 2.0'
+  gem.required_ruby_version = '>= 2.2.2'
   gem.requirements          = []
-  gem.add_runtime_dependency     'linkeddata',      '~> 2.0'
-  gem.add_runtime_dependency     'sparql',          '~> 2.0'
-  gem.add_runtime_dependency     'rdf-turtle',      '~> 2.0'
-  gem.add_runtime_dependency     'json-ld',         '~> 2.1', '>= 2.1.1'
-  gem.add_runtime_dependency     'redcarpet',       '~> 3.0'
-  gem.add_runtime_dependency     'nokogiri',        '~> 1.6'
-  gem.add_development_dependency 'rspec',           '~> 3.0'
-  gem.add_development_dependency 'rspec-its',       '~> 1.0'
+  gem.add_runtime_dependency     'linkeddata',      '~> 2.2'
+  gem.add_runtime_dependency     'sparql',          '~> 2.2'
+  gem.add_runtime_dependency     'rdf-turtle',      '~> 2.2'
+  gem.add_runtime_dependency     'json-ld',         '~> 2.1'
+  gem.add_runtime_dependency     'haml',            '~> 4.0'
+  gem.add_runtime_dependency     'kramdown',        '~> 1.13'
+  gem.add_runtime_dependency     'nokogiri',        '~> 1.7'
+  gem.add_development_dependency 'rspec',           '~> 3.5'
+  gem.add_development_dependency 'rspec-its',       '~> 1.2'
   gem.add_development_dependency "equivalent-xml",  '~> 0.6'
-  gem.add_development_dependency 'yard' ,           '~> 0.8'
-  gem.add_development_dependency 'rake',            '~> 11.0'
+  gem.add_development_dependency 'yard' ,           '~> 0.9'
+  gem.add_development_dependency 'rake',            '~> 12.0'
   gem.post_install_message  = nil
 end
