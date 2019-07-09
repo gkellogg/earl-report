@@ -17,25 +17,19 @@ Gem::Specification.new do |gem|
   gem.files                 = %w(README.md VERSION) + Dir.glob('lib/**/*')
   gem.bindir               = %q(bin)
   gem.executables          = %w(earl-report)
-  gem.default_executable   = gem.executables.first
   gem.require_paths         = %w(lib)
-  gem.extensions            = %w()
   gem.test_files            = Dir.glob('spec/**/*.rb') + Dir.glob('spec/test-files/*')
-  gem.has_rdoc              = false
 
-  gem.required_ruby_version = '>= 2.2.2'
+  gem.required_ruby_version = '>= 2.4'
   gem.requirements          = []
-  gem.add_runtime_dependency     'linkeddata',      '~> 2.2'
-  gem.add_runtime_dependency     'sparql',          '~> 2.2'
-  gem.add_runtime_dependency     'rdf-turtle',      '~> 2.2'
-  gem.add_runtime_dependency     'json-ld',         '~> 2.1'
+  gem.add_runtime_dependency     'linkeddata',      '~> 3.0'
   gem.add_runtime_dependency     'haml',            '~> 5.0'
   gem.add_runtime_dependency     'kramdown',        '~> 1.14'
-  gem.add_runtime_dependency     'nokogiri',        '~> 1.8'
-  gem.add_development_dependency 'rspec',           '~> 3.6'
-  gem.add_development_dependency 'rspec-its',       '~> 1.2'
+  gem.add_runtime_dependency     'nokogiri',        '~> 1.10'
+  gem.add_development_dependency 'rspec',           '~> 3.8'
+  gem.add_development_dependency 'rspec-its',       '~> 1.3'
   gem.add_development_dependency "equivalent-xml",  '~> 0.6'
   gem.add_development_dependency 'yard' ,           '~> 0.9'
-  gem.add_development_dependency 'rake',            '~> 12.0'
+  gem.add_development_dependency 'rake',            '~> 12.3'
   gem.post_install_message  = nil
 end
