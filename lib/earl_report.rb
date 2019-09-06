@@ -79,8 +79,9 @@ class EarlReport
 
   TEST_FRAME = {
     "@context" => {
-      "@vocab" =>   "http://www.w3.org/ns/earl#",
-      "foaf:homepage" => {"@type" => "@id"},
+      "@version" =>     1.1,
+      "@vocab" =>       "http://www.w3.org/ns/earl#",
+      "foaf:homepage"=> {"@type" => "@id"},
       "dc" =>           "http://purl.org/dc/terms/",
       "doap" =>         "http://usefulinc.com/ns/doap#",
       "earl" =>         "http://www.w3.org/ns/earl#",
@@ -483,10 +484,10 @@ class EarlReport
       result = JSON::LD::API.fromRDF(graph) do |expanded|
         JSON::LD::API.frame(expanded, TEST_FRAME, expanded: true, embed: '@never')
       end
-      unless result.is_a?(Hash) && result.has_key?('@graph') && Array(result["@graph"]).length == 1
-        raise "Expected JSON result to have a single entry, it had #{Array(result["@graph"]).length rescue 'unknown'} entries"
+      unless result.is_a?(Hash)
+        raise "Expected JSON result to have a single entry, it had #{result.length rescue 'unknown'} entries"
       end
-      {"@context" => result["@context"]}.merge(result["@graph"].first)
+      result
     end
   end
 
