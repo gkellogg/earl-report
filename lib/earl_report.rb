@@ -33,12 +33,13 @@ class EarlReport
     PREFIX doap: <http://usefulinc.com/ns/doap#>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
-    SELECT DISTINCT ?uri ?name ?doapDesc ?homepage ?language ?developer ?devName ?devType ?devHomepage
+    SELECT DISTINCT ?uri ?name ?doapDesc ?revision ?homepage ?language ?developer ?devName ?devType ?devHomepage
     WHERE {
       ?uri a doap:Project; doap:name ?name; doap:developer ?developer .
       OPTIONAL { ?uri doap:homepage ?homepage . }
       OPTIONAL { ?uri doap:description ?doapDesc . }
       OPTIONAL { ?uri doap:programming-language ?language . }
+      OPTIONAL { ?uri doap:release [ doap:revision ?revision] .}
       OPTIONAL { ?developer a ?devType .}
       OPTIONAL { ?developer foaf:name ?devName .}
       OPTIONAL { ?developer foaf:homepage ?devHomepage .}
@@ -123,8 +124,10 @@ class EarlReport
     },
     "testSubjects" => {
       "@embed" => "@always",
+      "@requireAll" => false,
       "@type" => "earl:TestSubject",
       "developer" => {"@embed" => "@always"},
+      "release" => {"@embed" => "@always"},
       "homepage" => {"@embed" => "@never"}
     },
     "entries" => [{
@@ -289,6 +292,10 @@ class EarlReport
           graph << RDF::Statement(solution[:developer], RDF.type, solution[:devType]) if solution[:devType]
           graph << RDF::Statement(solution[:developer], RDF::Vocab::FOAF.name, devName) if devName
           graph << RDF::Statement(solution[:developer], RDF::Vocab::FOAF.homepage, solution[:devHomepage]) if solution[:devHomepage]
+
+          rev = RDF::Node.new
+          graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.release, rev)
+          graph << RDF::Statement(rev, RDF::Vocab::DOAP.revision, (solution[:revision] || "unknown"))
         end
 
         assertion_graph << file_graph
@@ -473,13 +480,13 @@ class EarlReport
   def json_hash
     @json_hash ||= begin
       # Customized JSON-LD output
-      r = JSON::LD::API.fromRDF(graph) do |expanded|
+      result = JSON::LD::API.fromRDF(graph) do |expanded|
         JSON::LD::API.frame(expanded, TEST_FRAME, expanded: true, embed: '@never')
       end
-      unless r.is_a?(Hash) && r.has_key?('@graph') && Array(r["@graph"]).length == 1
-        raise "Expected JSON result to have a single entry, it had #{Array(r["@graph"]).length rescue 'unknown'} entries"
+      unless result.is_a?(Hash) && result.has_key?('@graph') && Array(result["@graph"]).length == 1
+        raise "Expected JSON result to have a single entry, it had #{Array(result["@graph"]).length rescue 'unknown'} entries"
       end
-      {"@context" => r["@context"]}.merge(r["@graph"].first)
+      {"@context" => result["@context"]}.merge(result["@graph"].first)
     end
   end
 
