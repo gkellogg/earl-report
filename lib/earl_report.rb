@@ -482,7 +482,18 @@ class EarlReport
     @json_hash ||= begin
       # Customized JSON-LD output
       result = JSON::LD::API.fromRDF(graph) do |expanded|
-        JSON::LD::API.frame(expanded, TEST_FRAME, expanded: true, embed: '@never')
+        framed = JSON::LD::API.frame(expanded, TEST_FRAME, expanded: true, embed: '@never')
+        # Reorder test subjects by @id
+        #require 'byebug'; byebug
+        framed['testSubjects'] = framed['testSubjects'].sort_by {|t| t['@id']}
+
+        # Reorder test assertions to make them consistent with subject order
+        framed['entries'].each do |manifest|
+          manifest['entries'].each do |test|
+            test['assertions'] = test['assertions'].sort_by {|a| a['subject']}
+          end
+        end
+        framed
       end
       unless result.is_a?(Hash)
         raise "Expected JSON result to have a single entry, it had #{result.length rescue 'unknown'} entries"
