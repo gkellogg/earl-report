@@ -34,6 +34,11 @@ of the reported software, in the following form:
       doap:developer     <http://greggkellogg.net/foaf#me> ;
       doap:homepage      <http://ruby-rdf.github.com/rdf-turtle> ;
       doap:description   "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite."@en ;
+      doap:release [
+                         doap:name "RDF::Turtle 3.1.0" ;
+                         doap:created "2015-09-27"^^xsd:date ;
+                         doap:revision "3.1.0"
+      ] ;
       doap:programming-language "Ruby" .
 
 The [DOAP]() description may be included in the [EARL]() report. If not found,
