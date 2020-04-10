@@ -334,10 +334,12 @@
                   - pass_fail = assertion['result']['outcome'].split(':').last.upcase.sub(/(PASS|FAIL)ED$/, '\1')
                   - passed_tests[ndx2][ndx] = (passed_tests[ndx2][ndx] || 0) + (pass_fail == 'PASS' ? 1 : 0)
                   %td{class: pass_fail, property: "earl:assertions", typeof: assertion['@type']}
-                    - if assertion['assertedBy']
+                    - if assertion['assertedBy'] && !assertion['assertedBy'].start_with?('_:')
                       %link{property: "earl:assertedBy", href: assertion['assertedBy']}
-                    %link{property: "earl:test", href: assertion['test']}
-                    %link{property: "earl:subject", href: assertion['subject']}
+                    - if assertion['test'] && !assertion['test'].start_with?('_:')
+                      %link{property: "earl:test", href: assertion['test']}
+                    - if assertion['subject'] && !assertion['subject'].start_with?('_:')
+                      %link{property: "earl:subject", href: assertion['subject']}
                     - if assertion['mode']
                       %link{property: 'earl:mode', href: assertion['mode']}
                     %span{property: "earl:result", typeof: assertion['result']['@type']}
@@ -443,10 +445,10 @@
                 %p{property: "dc:description rdfs:comment"}<
                   ~ CGI.escapeHTML test['description'].to_s
                 %pre{class: "example actionDoc", property: "mf:action", resource: test['testAction'], title: "#{test['title']} Input"}<
-                  ~ Kernel.open(test['testAction']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testAction']} not loaded"
+                  ~ URI.open(test['testAction']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testAction']} not loaded"
                 - if test['testResult']
                   %pre{class: "example resultDoc", property: "mf:result", resource: test['testResult'], title: "#{test['title']} Result"}<
-                    ~ Kernel.open(test['testResult']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
+                    ~ URI.open(test['testResult']) {|f| f.set_encoding(Encoding::UTF_8); CGI.escapeHTML(f.read).gsub(/\n/, '<br/>')} rescue "#{test['testResult']} not loaded"
     %section.appendix#report-generation-software{property: "earl:generatedBy", resource: tests['generatedBy']['@id'], typeof: tests['generatedBy']['@type'].join(' ')}
       %h2
         %span.secno="D."
@@ -464,7 +466,8 @@
         %span{property: "doap:release", resource: rel['@id'], typeof: 'doap:Version'}
           %span{property: "doap:revision"}<=rel['revision']
           %meta{property: "doap:name", content: rel['name']}
-          %meta{property: "doap:created", content: rel['created'], datatype: "xsd:date"}
+          - if rel['created']
+            %meta{property: "doap:created", content: rel['created'], datatype: "xsd:date"}
         an
         %a{property: "doap:license", href: doap['license']}<="Unlicensed"
         %span{property: "doap:programming-language"}<="Ruby"

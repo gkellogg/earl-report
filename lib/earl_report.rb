@@ -33,13 +33,14 @@ class EarlReport
     PREFIX doap: <http://usefulinc.com/ns/doap#>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
-    SELECT DISTINCT ?uri ?name ?doapDesc ?revision ?homepage ?language ?developer ?devName ?devType ?devHomepage
+    SELECT DISTINCT ?uri ?name ?doapDesc ?release ?revision ?homepage ?language ?developer ?devName ?devType ?devHomepage
     WHERE {
       ?uri a doap:Project; doap:name ?name; doap:developer ?developer .
       OPTIONAL { ?uri doap:homepage ?homepage . }
       OPTIONAL { ?uri doap:description ?doapDesc . }
       OPTIONAL { ?uri doap:programming-language ?language . }
-      OPTIONAL { ?uri doap:release [ doap:revision ?revision] .}
+      OPTIONAL { ?uri doap:release ?release . }
+      OPTIONAL { ?release doap:revision ?revision .}
       OPTIONAL { ?developer a ?devType .}
       OPTIONAL { ?developer foaf:name ?devName .}
       OPTIONAL { ?developer foaf:homepage ?devHomepage .}
@@ -220,7 +221,14 @@ class EarlReport
     test_resources = tests.values.map {|v| v[:uri]}.uniq.compact
     subjects = {}
 
-    assertion_graph = RDF::Graph.new
+    # Initialize test assertions with an entry for each test subject
+    test_assertion_lists = {}
+    test_assertion_lists = tests.keys.inject({}) do |memo, test|
+      memo.merge(test => [])
+    end
+
+    assertion_stats = {}
+
     # Read test assertion files into assertion graph
     files.flatten.each do |file|
       status "read #{file}"
@@ -237,10 +245,10 @@ class EarlReport
 
           # Load DOAP definitions
           unless solution[:name] # not loaded
-            status "read doap description for #{subject}"
+            status "  read doap description for #{subject}"
             begin
               doap_graph = RDF::Graph.load(subject)
-              status "  loaded #{doap_graph.count} triples"
+              status "    loaded #{doap_graph.count} triples"
               file_graph << doap_graph.to_a
             rescue
               warn "\nfailed to load DOAP from #{subject}: #{$!}"
@@ -260,10 +268,10 @@ class EarlReport
         if !solutions.first[:developer]
           warn "\nNo developer identified for #{solutions.first[:uri]}"
         elsif !solutions.first[:devName]
-          status "read description for developer #{solutions.first[:developer].inspect}"
+          status "  read description for developer #{solutions.first[:developer].inspect}"
           begin
             foaf_graph = RDF::Graph.load(solutions.first[:developer])
-            status "  loaded #{foaf_graph.count} triples"
+            status "    loaded #{foaf_graph.count} triples"
             file_graph << foaf_graph.to_a
             # Reload solutions
             solutions = SPARQL.execute(TEST_SUBJECT_QUERY, file_graph)
@@ -272,6 +280,7 @@ class EarlReport
           end
         end
 
+        release = nil
         solutions.each do |solution|
           # Kepp track of subjects
           subjects[solution[:uri]] = RDF::URI(file)
@@ -294,59 +303,55 @@ class EarlReport
           graph << RDF::Statement(solution[:developer], RDF::Vocab::FOAF.name, devName) if devName
           graph << RDF::Statement(solution[:developer], RDF::Vocab::FOAF.homepage, solution[:devHomepage]) if solution[:devHomepage]
 
-          rev = RDF::Node.new
-          graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.release, rev)
-          graph << RDF::Statement(rev, RDF::Vocab::DOAP.revision, (solution[:revision] || "unknown"))
+          release ||= solution[:release] || RDF::Node.new
+          graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.release, release)
+          graph << RDF::Statement(release, RDF::Vocab::DOAP.revision, (solution[:revision] || "unknown"))
         end
 
-        assertion_graph << file_graph
+        # Make sure that each assertion matches a test and add reference from test to assertion
+        found_solutions = false
+        subject = nil
+
+        status "  query assertions"
+        SPARQL.execute(ASSERTION_QUERY, file_graph).each do |solution|
+          subject = solution[:subject]
+          unless tests[solution[:test]]
+            assertion_stats["Skipped"] = assertion_stats["Skipped"].to_i + 1
+            $stderr.puts "Skipping result for #{solution[:test]} for #{subject}, which is not defined in manifests"
+            next
+          end
+          unless subjects[subject]
+            assertion_stats["Missing Subject"] = assertion_stats["Missing Subject"].to_i + 1
+            $stderr.puts "No test result subject found for #{subject}: in #{subjects.keys.join(', ')}"
+            next
+          end
+          found_solutions ||= true
+          assertion_stats["Found"] = assertion_stats["Found"].to_i + 1
+
+          # Add this solution at the appropriate index within that list
+          ndx = subjects.keys.find_index(subject)
+          ary = test_assertion_lists[solution[:test]]
+
+          ary[ndx] = a = RDF::Node.new
+          graph << RDF::Statement(a, RDF.type, EARL.Assertion)
+          graph << RDF::Statement(a, EARL.subject, subject)
+          graph << RDF::Statement(a, EARL.test, solution[:test])
+          graph << RDF::Statement(a, EARL.assertedBy, solution[:by])
+          graph << RDF::Statement(a, EARL.mode, solution[:mode]) if solution[:mode]
+          r = RDF::Node.new
+          graph << RDF::Statement(a, EARL.result, r)
+          graph << RDF::Statement(r, RDF.type, EARL.TestResult)
+          graph << RDF::Statement(r, EARL.outcome, solution[:outcome])
+        end
+
+        # See if subject did not report results, which may indicate a formatting error in the EARL source
+        $stderr.puts "No results found for #{subject} using #{ASSERTION_QUERY}" unless found_solutions
       end
-    end
-
-    # Make sure that each assertion matches a test and add reference from test to assertion
-    found_solutions = {}
-
-    # Initialize test assertions with an entry for each test subject
-    test_assertion_lists = {}
-    test_assertion_lists = tests.keys.inject({}) do |memo, test|
-      memo.merge(test => Array.new(subjects.length))
-    end
-
-    status "query assertions"
-    assertion_stats = {}
-    SPARQL.execute(ASSERTION_QUERY, assertion_graph).each do |solution|
-      subject = solution[:subject]
-      unless tests[solution[:test]]
-        assertion_stats["Skipped"] = assertion_stats["Skipped"].to_i + 1
-        $stderr.puts "Skipping result for #{solution[:test]} for #{subject}, which is not defined in manifests"
-        next
-      end
-      unless subjects[subject]
-        assertion_stats["Missing Subject"] = assertion_stats["Missing Subject"].to_i + 1
-        $stderr.puts "No test result subject found for #{subject}: in #{subjects.keys.join(', ')}"
-        next
-      end
-      found_solutions[subject] = true
-      assertion_stats["Found"] = assertion_stats["Found"].to_i + 1
-
-      # Add this solution at the appropriate index within that list
-      ndx = subjects.keys.find_index(subject)
-      ary = test_assertion_lists[solution[:test]] ||= []
-
-      ary[ndx] = a = RDF::Node.new
-      graph << RDF::Statement(a, RDF.type, EARL.Assertion)
-      graph << RDF::Statement(a, EARL.subject, subject)
-      graph << RDF::Statement(a, EARL.test, solution[:test])
-      graph << RDF::Statement(a, EARL.assertedBy, solution[:by])
-      graph << RDF::Statement(a, EARL.mode, solution[:mode]) if solution[:mode]
-      r = RDF::Node.new
-      graph << RDF::Statement(a, EARL.result, r)
-      graph << RDF::Statement(r, RDF.type, EARL.TestResult)
-      graph << RDF::Statement(r, EARL.outcome, solution[:outcome])
     end
 
     # Add ordered assertions for each test
     test_assertion_lists.each do |test, ary|
+      ary[subjects.length - 1] ||= nil # extend for all subjects
       # Fill any missing entries with an untested outcome
       ary.each_with_index do |a, ndx|
         unless a
@@ -367,11 +372,6 @@ class EarlReport
     end
 
     assertion_stats.each {|stat, count| status("Assertions #{stat}: #{count}")}
-
-    # See if any subject did not report results, which may indicate a formatting error in the EARL source
-    subjects.reject {|s| found_solutions[s]}.each do |sub|
-      $stderr.puts "No results found for #{sub} using #{ASSERTION_QUERY}"
-    end
 
     # Add report wrapper to graph
     ttl = %(
@@ -482,9 +482,11 @@ class EarlReport
     @json_hash ||= begin
       # Customized JSON-LD output
       result = JSON::LD::API.fromRDF(graph) do |expanded|
-        framed = JSON::LD::API.frame(expanded, TEST_FRAME, expanded: true, embed: '@never')
+        framed = JSON::LD::API.frame(expanded, TEST_FRAME,
+          expanded: true,
+          embed: '@never',
+          pruneBlankNodeIdentifiers: false)
         # Reorder test subjects by @id
-        #require 'byebug'; byebug
         framed['testSubjects'] = framed['testSubjects'].sort_by {|t| t['@id']}
 
         # Reorder test assertions to make them consistent with subject order
