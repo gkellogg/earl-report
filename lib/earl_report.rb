@@ -228,6 +228,7 @@ class EarlReport
     end
 
     assertion_stats = {}
+    release_node_mapper = {}
 
     # Read test assertion files into assertion graph
     files.flatten.each do |file|
@@ -303,7 +304,12 @@ class EarlReport
           graph << RDF::Statement(solution[:developer], RDF::Vocab::FOAF.name, devName) if devName
           graph << RDF::Statement(solution[:developer], RDF::Vocab::FOAF.homepage, solution[:devHomepage]) if solution[:devHomepage]
 
-          release ||= solution[:release] || RDF::Node.new
+          # Make sure BNode identifiers don't leak
+          release ||= if !solution[:release] || solution[:release].node?
+            RDF::Node.new
+          else
+            solution[:release]
+          end
           graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.release, release)
           graph << RDF::Statement(release, RDF::Vocab::DOAP.revision, (solution[:revision] || "unknown"))
         end
