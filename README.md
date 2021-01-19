@@ -2,7 +2,7 @@
 Ruby gem to consolidate multiple EARL report and generate a rollup conformance report.
 
 [![Gem Version](https://badge.fury.io/rb/earl-report.png)](http://badge.fury.io/rb/earl-report)
-[![Build Status](https://travis-ci.org/gkellogg/earl-report.png?branch=master)](http://travis-ci.org/gkellogg/earl-report)
+[![Build Status](https://github.com/gkellogg/earl-report/workflows/CI/badge.svg?branch=develop)](https://github.com/gkellogg/earl-report/actions?query=workflow%3ACI)
 [![Coverage Status](https://coveralls.io/repos/gkellogg/earl-report/badge.svg?branch=develop)](https://coveralls.io/r/gkellogg/earl-report?branch=develop)
 
 ## Description
