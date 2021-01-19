@@ -5,7 +5,7 @@ Gem::Specification.new do |gem|
   gem.date                  = File.mtime('VERSION').strftime('%Y-%m-%d')
 
   gem.name                  = "earl-report"
-  gem.homepage              = "http://github.com/gkellogg/earl-report"
+  gem.homepage              = "https://github.com/gkellogg/earl-report"
   gem.license               = 'Unlicense'
   gem.summary               = "Earl Report summary generator"
   gem.description           = "EarlReport generates HTML+RDFa rollups of multiple EARL reports."
@@ -26,6 +26,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency     'haml',            '~> 5.1'
   gem.add_runtime_dependency     'kramdown',        '~> 1.17'
   gem.add_runtime_dependency     'nokogiri',        '~> 1.10'
+  gem.add_runtime_dependency     'rexml',           '~> 3.2'
   gem.add_development_dependency 'rspec',           '~> 3.9'
   gem.add_development_dependency 'rspec-its',       '~> 1.3'
   gem.add_development_dependency "equivalent-xml",  '~> 0.6'
