@@ -110,7 +110,7 @@
   "name": "Unkown",
   "bibRef": "Unknown ref",
   "generatedBy": {
-    "@id": "http://rubygems.org/gems/earl-report",
+    "@id": "https://rubygems.org/gems/earl-report",
     "@type": "doap:Project",
     "name": "earl-report",
     "shortdesc": "Earl Report summary generator",

@@ -6,7 +6,7 @@ require 'rspec'
 require 'rspec/its'
 require 'simplecov'
 require 'coveralls'
-require 'awesome_print'
+require 'amazing_print'
 SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
   SimpleCov::Formatter::HTMLFormatter,
   Coveralls::SimpleCov::Formatter

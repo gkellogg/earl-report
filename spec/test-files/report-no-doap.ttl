@@ -14,7 +14,7 @@
 
 [ a earl:Assertion;
   earl:assertedBy <http://greggkellogg.net/foaf#me>;
-  earl:subject <http://rubygems.org/gems/rdf-turtle>;
+  earl:subject <https://rubygems.org/gems/rdf-turtle>;
   earl:test <http://example/manifest.ttl#testeval00>;
   earl:result [
     a earl:TestResult;
