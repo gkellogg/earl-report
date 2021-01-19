@@ -79,7 +79,7 @@ describe EarlReport do
       end
 
       it "loads doap" do
-        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("https://rubygems.org/gems/rdf-turtle"))
       end
 
       it "loads foaf" do
@@ -96,7 +96,7 @@ describe EarlReport do
           .with(File.expand_path("../test-files/report-no-doap.ttl", __FILE__))
           .and_return(reportNoDoap)
         expect(RDF::Graph).to receive(:load)
-          .with("http://rubygems.org/gems/rdf-turtle")
+          .with("https://rubygems.org/gems/rdf-turtle")
           .and_return(doap)
       end
 
@@ -116,7 +116,7 @@ describe EarlReport do
       end
 
       it "loads doap" do
-        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("https://rubygems.org/gems/rdf-turtle"))
       end
 
       it "loads foaf" do
@@ -153,7 +153,7 @@ describe EarlReport do
       end
 
       it "loads doap" do
-        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://rubygems.org/gems/rdf-turtle"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("https://rubygems.org/gems/rdf-turtle"))
       end
 
       it "loads foaf" do
@@ -384,7 +384,7 @@ describe EarlReport do
         dc:bibliographicCitation "[[TURTLE]]";
         earl:generatedBy ?generatedBy;
         earl:assertions ?assertionFile;
-        earl:testSubjects <http://rubygems.org/gems/rdf-turtle>;
+        earl:testSubjects <https://rubygems.org/gems/rdf-turtle>;
         mf:entries (<http://example/manifest.ttl>) .
 
       <http://example/manifest.ttl> a earl:Report, mf:Manifest;
@@ -401,7 +401,7 @@ describe EarlReport do
     PREFIX earl: <http://www.w3.org/ns/earl#>
           
     ASK WHERE {
-      <http://rubygems.org/gems/rdf-turtle> a earl:TestSubject, doap:Project;
+      <https://rubygems.org/gems/rdf-turtle> a earl:TestSubject, doap:Project;
         doap:name "RDF::Turtle";
         doap:description """RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite."""@en;
         doap:programming-language "Ruby";
@@ -429,7 +429,7 @@ describe EarlReport do
         mf:name "subm-test-00";
         mf:action <http://example/test-00.ttl>;
         mf:result <http://example/test-00.out>;
-        earl:assertions [ a earl:Assertion; earl:subject <http://rubygems.org/gems/rdf-turtle> ] .
+        earl:assertions [ a earl:Assertion; earl:subject <https://rubygems.org/gems/rdf-turtle> ] .
     }
   )
 
@@ -440,7 +440,7 @@ describe EarlReport do
       [ a earl:Assertion;
         earl:assertedBy <http://greggkellogg.net/foaf#me>;
         earl:test <http://example/manifest.ttl#testeval00>;
-        earl:subject <http://rubygems.org/gems/rdf-turtle>;
+        earl:subject <https://rubygems.org/gems/rdf-turtle>;
         earl:mode earl:automatic;
         earl:result [ a earl:TestResult; earl:outcome earl:passed] ] .
     }

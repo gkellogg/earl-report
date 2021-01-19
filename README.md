@@ -2,8 +2,8 @@
 Ruby gem to consolidate multiple EARL report and generate a rollup conformance report.
 
 [![Gem Version](https://badge.fury.io/rb/earl-report.png)](http://badge.fury.io/rb/earl-report)
-[![Build Status](https://travis-ci.org/gkellogg/earl-report.png?branch=master)](http://travis-ci.org/gkellogg/earl-report)
-[![Coverage Status](https://coveralls.io/repos/gkellogg/earl-report/badge.svg)](https://coveralls.io/r/gkellogg/earl-report)
+[![Build Status](https://github.com/gkellogg/earl-report/workflows/CI/badge.svg?branch=develop)](https://github.com/gkellogg/earl-report/actions?query=workflow%3ACI)
+[![Coverage Status](https://coveralls.io/repos/gkellogg/earl-report/badge.svg?branch=develop)](https://coveralls.io/r/gkellogg/earl-report?branch=develop)
 
 ## Description
 Reads a test manifest in the
@@ -18,7 +18,7 @@ in the following form:
 
     [ a earl:Assertion;
       earl:assertedBy <http://greggkellogg.net/foaf#me>;
-      earl:subject <http://rubygems.org/gems/rdf-turtle>;
+      earl:subject <https://rubygems.org/gems/rdf-turtle>;
       earl:test <http://dvcs.w3.org/hg/rdf/raw-file/default/rdf-turtle/tests-ttl/manifest.ttl#turtle-syntax-file-01>;
       earl:result [
         a earl:TestResult;
@@ -29,7 +29,7 @@ in the following form:
 Additionally, `earl:subject` is expected to reference a [DOAP]() description
 of the reported software, in the following form:
 
-    <http://rubygems.org/gems/rdf-turtle> a doap:Project, earl:TestSubject, earl:Software ;
+    <https://rubygems.org/gems/rdf-turtle> a doap:Project, earl:TestSubject, earl:Software ;
       doap:name          "RDF::Turtle" ;
       doap:developer     <http://greggkellogg.net/foaf#me> ;
       doap:homepage      <http://ruby-rdf.github.com/rdf-turtle> ;
@@ -103,7 +103,7 @@ Version 0.3 and prior re-constructed the test manifest used to create the body o
              dc:date "2012-11-06T19:23:29-08:00"^^xsd:dateTime;
              earl:outcome earl:passed
            ];
-           earl:subject <http://rubygems.org/gems/rdf-turtle>;
+           earl:subject <https://rubygems.org/gems/rdf-turtle>;
            earl:test <http://example/manifest.ttl#testeval00>
          ]) .
 
@@ -132,7 +132,7 @@ Generally, creating a `json` format first is more efficient. Subsequent invocati
 When run, `earl-report` attempts to open the file `.earl` in the current directory. This file is in [YAML][] format with entries for each option. Use the `--rc` option to automatically generate it.
 
 ## Author
-* [Gregg Kellogg](http://github.com/gkellogg) - <http://greggkellogg.net/>
+* [Gregg Kellogg](https://github.com/gkellogg) - <http://greggkellogg.net/>
 
 ## License
 

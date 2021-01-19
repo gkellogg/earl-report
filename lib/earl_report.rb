@@ -390,12 +390,12 @@ class EarlReport
       <> a earl:Software, doap:Project;
       doap:name #{quoted(@options.fetch(:name, 'Unknown'))};
       dc:bibliographicCitation "#{@options.fetch(:bibRef, 'Unknown reference')}";
-      earl:generatedBy <http://rubygems.org/gems/earl-report>;
+      earl:generatedBy <https://rubygems.org/gems/earl-report>;
       earl:assertions #{subjects.values.map {|f| f.to_ntriples}.join(",\n          ")};
       earl:testSubjects #{subjects.keys.map {|f| f.to_ntriples}.join(",\n          ")};
       mf:entries (#{man_uris.map {|f| f.to_ntriples}.join("\n          ")}) .
 
-      <http://rubygems.org/gems/earl-report> a earl:Software, doap:Project;
+      <https://rubygems.org/gems/earl-report> a earl:Software, doap:Project;
          doap:name "earl-report";
          doap:shortdesc "Earl Report summary generator"@en;
          doap:description "EarlReport generates HTML+RDFa rollups of multiple EARL reports"@en;
@@ -493,10 +493,10 @@ class EarlReport
           embed: '@never',
           pruneBlankNodeIdentifiers: false)
         # Reorder test subjects by @id
-        framed['testSubjects'] = framed['testSubjects'].sort_by {|t| t['@id']}
+        framed['testSubjects'] = Array(framed['testSubjects']).sort_by {|t| t['@id']}
 
         # Reorder test assertions to make them consistent with subject order
-        framed['entries'].each do |manifest|
+        Array(framed['entries']).each do |manifest|
           manifest['entries'].each do |test|
             test['assertions'] = test['assertions'].sort_by {|a| a['subject']}
           end
@@ -543,18 +543,18 @@ class EarlReport
 
     # Write test subjects
     io.puts "\n# Test Subjects"
-    graph.query(subject: top_level, predicate: EARL.testSubjects).each do |s|
+    graph.query({subject: top_level, predicate: EARL.testSubjects}).each do |s|
       writer.send(:statement, s.object)
 
       # Write each developer
-      graph.query(subject: s.object, predicate: RDF::Vocab::DOAP.developer).each do |d|
+      graph.query({subject: s.object, predicate: RDF::Vocab::DOAP.developer}).each do |d|
         writer.send(:statement, d.object)
       end
     end
 
     # Write generator
     io.puts "\n# Report Generation Software"
-    writer.send(:statement, RDF::URI("http://rubygems.org/gems/earl-report"))
+    writer.send(:statement, RDF::URI("https://rubygems.org/gems/earl-report"))
     writer.send(:statement, RDF::URI("https://github.com/gkellogg/earl-report/tree/#{VERSION}"))
   end
 
