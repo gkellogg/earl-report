@@ -27,7 +27,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency     'kramdown',        '~> 2.3'
   gem.add_runtime_dependency     'nokogiri',        '~> 1.10'
   gem.add_runtime_dependency     'rexml',           '~> 3.2'
-  gem.add_development_dependency 'rspec',           '~> 3.9'
+  gem.add_development_dependency 'rspec',           '~> 3.10'
   gem.add_development_dependency 'rspec-its',       '~> 1.3'
   gem.add_development_dependency "equivalent-xml",  '~> 0.6'
   gem.add_development_dependency 'yard' ,           '~> 0.9'
