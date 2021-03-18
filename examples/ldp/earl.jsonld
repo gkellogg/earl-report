@@ -127,9 +127,9 @@
     },
     "developer": {
       "@type": "foaf:Person",
-      "@id": "http://greggkellogg.net/foaf#me",
+      "@id": "https://greggkellogg.net/foaf#me",
       "foaf:name": "Gregg Kellogg",
-      "foaf:homepage": "http://greggkellogg.net/"
+      "foaf:homepage": "https://greggkellogg.net/"
     }
   },
   "assertions": [

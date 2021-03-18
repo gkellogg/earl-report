@@ -17,7 +17,7 @@ may be specified in an any compatible RDF serialization. The report is composed 
 in the following form:
 
     [ a earl:Assertion;
-      earl:assertedBy <http://greggkellogg.net/foaf#me>;
+      earl:assertedBy <https://greggkellogg.net/foaf#me>;
       earl:subject <https://rubygems.org/gems/rdf-turtle>;
       earl:test <http://dvcs.w3.org/hg/rdf/raw-file/default/rdf-turtle/tests-ttl/manifest.ttl#turtle-syntax-file-01>;
       earl:result [
@@ -31,7 +31,7 @@ of the reported software, in the following form:
 
     <https://rubygems.org/gems/rdf-turtle> a doap:Project, earl:TestSubject, earl:Software ;
       doap:name          "RDF::Turtle" ;
-      doap:developer     <http://greggkellogg.net/foaf#me> ;
+      doap:developer     <https://greggkellogg.net/foaf#me> ;
       doap:homepage      <http://ruby-rdf.github.com/rdf-turtle> ;
       doap:description   "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite."@en ;
       doap:release [
@@ -49,7 +49,7 @@ The `doap:developer` is expected to reference a [FOAF]() profile for the agent
 (user or organization) responsible for the test subject. It is expected to be
 of the following form:
 
-    <http://greggkellogg.net/foaf#me> foaf:name "Gregg Kellogg" .
+    <https://greggkellogg.net/foaf#me> foaf:name "Gregg Kellogg" .
 
 If not found, the IRI identified by `doap:developer`
 will be dereferenced and is presumed to provide a [FOAF]() profile of the developer.
@@ -96,7 +96,7 @@ Version 0.3 and prior re-constructed the test manifest used to create the body o
        mf:result <http://example/test-00.out>;
        earl:assertions ([
            a earl:Assertion;
-           earl:assertedBy <http://greggkellogg.net/foaf#me>;
+           earl:assertedBy <https://greggkellogg.net/foaf#me>;
            earl:mode earl:automatic;
            earl:result [
              a earl:TestResult;
@@ -132,7 +132,7 @@ Generally, creating a `json` format first is more efficient. Subsequent invocati
 When run, `earl-report` attempts to open the file `.earl` in the current directory. This file is in [YAML][] format with entries for each option. Use the `--rc` option to automatically generate it.
 
 ## Author
-* [Gregg Kellogg](https://github.com/gkellogg) - <http://greggkellogg.net/>
+* [Gregg Kellogg](https://github.com/gkellogg) - <https://greggkellogg.net/>
 
 ## License
 

@@ -21,24 +21,24 @@
   doap:download-page <https://rubygems.org/gems/rdf-turtle> ;
   doap:mailing-list  <http://lists.w3.org/Archives/Public/public-rdf-ruby/> ;
   doap:bug-database  <https://github.com/ruby-rdf/rdf-turtle/issues> ;
-  doap:blog          <http://greggkellogg.net/> ;
-  doap:developer     <http://greggkellogg.net/foaf#me> ;
-  doap:maintainer    <http://greggkellogg.net/foaf#me> ;
-  doap:documenter    <http://greggkellogg.net/foaf#me> ;
-  foaf:maker         <http://greggkellogg.net/foaf#me> ;
+  doap:blog          <https://greggkellogg.net/> ;
+  doap:developer     <https://greggkellogg.net/foaf#me> ;
+  doap:maintainer    <https://greggkellogg.net/foaf#me> ;
+  doap:documenter    <https://greggkellogg.net/foaf#me> ;
+  foaf:maker         <https://greggkellogg.net/foaf#me> ;
   dc:title           "RDF::Turtle" ;
   dc:description     "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite."@en ;
   dc:date            "2011-08-29"^^xsd:date;
-  dc:creator         <http://greggkellogg.net/foaf#me>;
+  dc:creator         <https://greggkellogg.net/foaf#me>;
   dc:isPartOf        <https://rubygems.org/gems/rdf> .
 
-<http://greggkellogg.net/foaf#me> a foaf:Person, earl:Assertor;
+<https://greggkellogg.net/foaf#me> a foaf:Person, earl:Assertor;
   foaf:name "Gregg Kellogg";
   foaf:title "Implementor";
-  foaf:homepage <http://greggkellogg.net/> .
+  foaf:homepage <https://greggkellogg.net/> .
 
 [ a earl:Assertion;
-  earl:assertedBy <http://greggkellogg.net/foaf#me>;
+  earl:assertedBy <https://greggkellogg.net/foaf#me>;
   earl:subject <https://rubygems.org/gems/rdf-turtle>;
   earl:test <http://example/manifest.ttl#testeval00>;
   earl:result [

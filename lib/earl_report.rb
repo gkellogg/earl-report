@@ -172,7 +172,7 @@ class EarlReport
      doap:programming-language "Ruby";
      doap:license <http://unlicense.org>;
      doap:release <https://github.com/gkellogg/earl-report/tree/#{VERSION}>;
-     doap:developer <http://greggkellogg.net/foaf#me> .
+     doap:developer <https://greggkellogg.net/foaf#me> .
 
   <https://github.com/gkellogg/earl-report/tree/#{VERSION}> a doap:Version;
     doap:name "earl-report-#{VERSION}";
