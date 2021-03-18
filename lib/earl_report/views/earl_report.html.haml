@@ -27,7 +27,7 @@
 -#      "assertions": [
 -#        {
 -#          "@type": "earl:Assertion",
--#          "assertedBy": "http://greggkellogg.net/foaf#me",
+-#          "assertedBy": "https://greggkellogg.net/foaf#me",
 -#          "test": "http://svn.apache.org/repos/asf/jena/Experimental/riot-reader/testing/RIOT/Lang/TurtleSubm/manifest.ttl#testeval00",
 -#          "subject": "https://rubygems.org/gems/rdf-turtle",
 -#          "result": {
@@ -40,8 +40,8 @@
 -#  }
 - require 'cgi'
 - require 'digest'
-- editors = [{ name: "Gregg Kellogg", url: "http://greggkellogg.net/"}]
-- foaf = {name: "Gregg Kellogg", url: "http://greggkellogg.net/foaf#me" }
+- editors = [{ name: "Gregg Kellogg", url: "https://greggkellogg.net/"}]
+- foaf = {name: "Gregg Kellogg", url: "https://greggkellogg.net/foaf#me" }
 
 !!! 5
 %html
@@ -474,9 +474,9 @@
         application. More information is available at
         %a{property: "doap:homepage", href: doap['homepage']}<=doap['homepage']
         = "."
-      %p{property: "doap:developer", resource: "http://greggkellogg.net/foaf#me", typeof: "foaf:Person"}
+      %p{property: "doap:developer", resource: "https://greggkellogg.net/foaf#me", typeof: "foaf:Person"}
         This software is provided by
-        %a{property: "foaf:homepage", href: "http://greggkellogg.net/"}<
-          %span{about: "http://greggkellogg.net/foaf#me", property: "foaf:name"}<
+        %a{property: "foaf:homepage", href: "https://greggkellogg.net/"}<
+          %span{about: "https://greggkellogg.net/foaf#me", property: "foaf:name"}<
             Gregg Kellogg
         in hopes that it might make the lives of conformance testers easier.

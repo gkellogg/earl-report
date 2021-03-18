@@ -7,13 +7,13 @@
 @prefix ex:   <http://example.org/> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
-<http://greggkellogg.net/foaf#me> a foaf:Person, earl:Assertor;
+<https://greggkellogg.net/foaf#me> a foaf:Person, earl:Assertor;
   foaf:name "Gregg Kellogg";
   foaf:title "Implementor";
-  foaf:homepage <http://greggkellogg.net/> .
+  foaf:homepage <https://greggkellogg.net/> .
 
 [ a earl:Assertion;
-  earl:assertedBy <http://greggkellogg.net/foaf#me>;
+  earl:assertedBy <https://greggkellogg.net/foaf#me>;
   earl:subject <https://rubygems.org/gems/rdf-turtle>;
   earl:test <http://example/manifest.ttl#testeval00>;
   earl:result [

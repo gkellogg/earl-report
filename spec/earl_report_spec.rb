@@ -133,7 +133,7 @@ describe EarlReport do
           .with(File.expand_path("../test-files/report-no-foaf.ttl", __FILE__))
           .and_return(reportNoFoaf)
         expect(RDF::Graph).to receive(:load)
-          .with("http://greggkellogg.net/foaf#me")
+          .with("https://greggkellogg.net/foaf#me")
           .and_return(foaf)
       end
 
@@ -240,7 +240,7 @@ describe EarlReport do
 
     context "prefixes" do
       %w(dc doap earl foaf mf rdf rdfs xsd).each do |pfx|
-        specify {is_expected.to match(/@prefix #{pfx}: </)}
+        specify {is_expected.to match(/@prefix #{pfx}:\s+</)}
       end
     end
 
@@ -264,7 +264,7 @@ describe EarlReport do
     end
 
     context "Assertion" do
-      specify {is_expected.to match(/\sa earl:Assertion;$/)}
+      specify {is_expected.to match(/\sa earl:Assertion\s*;$/)}
     end
 
     context "parsing to RDF" do
@@ -405,7 +405,7 @@ describe EarlReport do
         doap:name "RDF::Turtle";
         doap:description """RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite."""@en;
         doap:programming-language "Ruby";
-        doap:developer <http://greggkellogg.net/foaf#me> .
+        doap:developer <https://greggkellogg.net/foaf#me> .
     }
   )
 
@@ -413,9 +413,9 @@ describe EarlReport do
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
           
     ASK WHERE {
-      <http://greggkellogg.net/foaf#me> a foaf:Person;
+      <https://greggkellogg.net/foaf#me> a foaf:Person;
         foaf:name "Gregg Kellogg";
-        foaf:homepage <http://greggkellogg.net/> .
+        foaf:homepage <https://greggkellogg.net/> .
     }
   )
 
@@ -438,7 +438,7 @@ describe EarlReport do
           
     ASK WHERE {
       [ a earl:Assertion;
-        earl:assertedBy <http://greggkellogg.net/foaf#me>;
+        earl:assertedBy <https://greggkellogg.net/foaf#me>;
         earl:test <http://example/manifest.ttl#testeval00>;
         earl:subject <https://rubygems.org/gems/rdf-turtle>;
         earl:mode earl:automatic;
