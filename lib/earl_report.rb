@@ -152,6 +152,34 @@ class EarlReport
     }]
   }.freeze
 
+  TURTLE_PREFIXES = %(@prefix dc:   <http://purl.org/dc/terms/> .
+  @prefix doap: <http://usefulinc.com/ns/doap#> .
+  @prefix earl: <http://www.w3.org/ns/earl#> .
+  @prefix mf:   <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
+  @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+  @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+  @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+  @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+  ).gsub(/^  /, '')
+
+  TURTLE_SOFTWARE = %(
+  # Report Generation Software
+  <https://rubygems.org/gems/earl-report> a earl:Software, doap:Project;
+     doap:name "earl-report";
+     doap:shortdesc "Earl Report summary generator"@en;
+     doap:description "EarlReport generates HTML+RDFa rollups of multiple EARL reports"@en;
+     doap:homepage <https://github.com/gkellogg/earl-report>;
+     doap:programming-language "Ruby";
+     doap:license <http://unlicense.org>;
+     doap:release <https://github.com/gkellogg/earl-report/tree/#{VERSION}>;
+     doap:developer <http://greggkellogg.net/foaf#me> .
+
+  <https://github.com/gkellogg/earl-report/tree/#{VERSION}> a doap:Version;
+    doap:name "earl-report-#{VERSION}";
+    doap:created "#{File.mtime(File.expand_path('../../VERSION', __FILE__)).strftime('%Y-%m-%d')}"^^xsd:date;
+    doap:revision "#{VERSION}" .
+  ).gsub(/^  /, '')
+
   # Convenience vocabularies
   class EARL < RDF::Vocabulary("http://www.w3.org/ns/earl#"); end
   class MF < RDF::Vocabulary("http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#"); end
@@ -228,7 +256,6 @@ class EarlReport
     end
 
     assertion_stats = {}
-    release_node_mapper = {}
 
     # Read test assertion files into assertion graph
     files.flatten.each do |file|
@@ -380,36 +407,16 @@ class EarlReport
     assertion_stats.each {|stat, count| status("Assertions #{stat}: #{count}")}
 
     # Add report wrapper to graph
-    ttl = %(
-      @prefix dc:   <http://purl.org/dc/terms/> .
-      @prefix doap: <http://usefulinc.com/ns/doap#> .
-      @prefix earl: <http://www.w3.org/ns/earl#> .
-      @prefix mf:   <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#> .
-      @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-
-      <> a earl:Software, doap:Project;
-      doap:name #{quoted(@options.fetch(:name, 'Unknown'))};
-      dc:bibliographicCitation "#{@options.fetch(:bibRef, 'Unknown reference')}";
-      earl:generatedBy <https://rubygems.org/gems/earl-report>;
-      earl:assertions #{subjects.values.map {|f| f.to_ntriples}.join(",\n          ")};
-      earl:testSubjects #{subjects.keys.map {|f| f.to_ntriples}.join(",\n          ")};
-      mf:entries (#{man_uris.map {|f| f.to_ntriples}.join("\n          ")}) .
-
-      <https://rubygems.org/gems/earl-report> a earl:Software, doap:Project;
-         doap:name "earl-report";
-         doap:shortdesc "Earl Report summary generator"@en;
-         doap:description "EarlReport generates HTML+RDFa rollups of multiple EARL reports"@en;
-         doap:homepage <https://github.com/gkellogg/earl-report>;
-         doap:programming-language "Ruby";
-         doap:license <http://unlicense.org>;
-         doap:release <https://github.com/gkellogg/earl-report/tree/#{VERSION}>;
-         doap:developer <http://greggkellogg.net/foaf#me> .
-
-      <https://github.com/gkellogg/earl-report/tree/#{VERSION}> a doap:Version;
-        doap:name "earl-report-#{VERSION}";
-        doap:created "#{File.mtime(File.expand_path('../../VERSION', __FILE__)).strftime('%Y-%m-%d')}"^^xsd:date;
-        doap:revision "#{VERSION}" .
-    ).gsub(/^      /, '')
+    ttl = TURTLE_PREFIXES + %(
+    <> a earl:Software, doap:Project;
+    doap:name #{quoted(@options.fetch(:name, 'Unknown'))};
+    dc:bibliographicCitation "#{@options.fetch(:bibRef, 'Unknown reference')}";
+    earl:generatedBy <https://rubygems.org/gems/earl-report>;
+    earl:assertions #{subjects.values.map {|f| f.to_ntriples}.join(",\n          ")};
+    earl:testSubjects #{subjects.keys.map {|f| f.to_ntriples}.join(",\n          ")};
+    mf:entries (#{man_uris.map {|f| f.to_ntriples}.join("\n          ")}) .
+    ).gsub(/^    /, '') +
+      TURTLE_SOFTWARE
     RDF::Turtle::Reader.new(ttl) {|r| graph << r}
 
     # Each manifest is an earl:Report
@@ -516,50 +523,108 @@ class EarlReport
   # @option options [IO, StringIO] :io
   # @return [String]
   def earl_turtle(options)
+    context = JSON::LD::Context.parse(json_hash['@context'])
     io = options[:io]
+    io.write(TURTLE_PREFIXES + "\n")
 
-    top_level = graph.first_subject(predicate: EARL.generatedBy)
+    # Write project header
+    ttl_entity(io, json_hash, context)
 
-    # Write starting with the entire graph to get preamble
-    writer = RDF::Turtle::Writer.new(io, standard_prefixes: true)
-    writer << graph
+    # Write out each manifest entry
+    io.puts("# Manifests")
+    json_hash['entries'].each do |man|
+      ttl_entity(io, man, context)
 
-    writer.send(:preprocess)
-    writer.send(:start_document)
-
-    # Write top-level object referencing manifests and subjects
-    writer.send(:statement, top_level)
-
-    # Write each manifest
-    io.puts "\n# Manifests"
-    RDF::List.new(subject: graph.first_object(subject: top_level, predicate: MF[:entries]), graph: graph).each do |manifest|
-      writer.send(:statement, manifest)
-
-      # Write each test case
-      RDF::List.new(subject: graph.first_object(subject: manifest, predicate: MF[:entries]), graph: graph).each do |tc|
-        writer.send(:statement, tc)
+      # Output each test entry with assertions
+      man['entries'].each do |entry|
+        ttl_entity(io, entry, context)
       end
     end
 
-    # Write test subjects
-    io.puts "\n# Test Subjects"
-    graph.query({subject: top_level, predicate: EARL.testSubjects}).each do |s|
-      writer.send(:statement, s.object)
+    # Output each DOAP
+    json_hash['testSubjects'].each do |doap|
+      ttl_entity(io, doap, context)
 
-      # Write each developer
-      graph.query({subject: s.object, predicate: RDF::Vocab::DOAP.developer}).each do |d|
-        writer.send(:statement, d.object)
+      # FOAF
+      dev = doap['developer']
+      dev = [dev] unless dev.is_a?(Array)
+      dev.each do |foaf|
+        ttl_entity(io, foaf, context)
       end
     end
-
-    # Write generator
-    io.puts "\n# Report Generation Software"
-    writer.send(:statement, RDF::URI("https://rubygems.org/gems/earl-report"))
-    writer.send(:statement, RDF::URI("https://github.com/gkellogg/earl-report/tree/#{VERSION}"))
+    
+    io.write(TURTLE_SOFTWARE)
   end
 
-  def quoted(string)
-    (@turtle_writer ||= RDF::Turtle::Writer.new).send(:quoted, string)
+  def ttl_entity(io, entity, context)
+    io.write(ttl_value(entity) + " " + entity.map do |dk, dv|
+      case dk
+      when '@context', '@id'
+        nil
+      when '@type'
+        "a " + ttl_value(dv)
+      when 'assertions'
+        "earl:assertions #{dv.map {|a| ttl_assertion(a)}.join(", ")}"
+      when 'entries'
+        "mf:entries #{ttl_value({'@list' => dv}, whitespace: "\n    ")}"
+      when 'release'
+        "doap:release [doap:revision #{quoted(dv['revision'])}]"
+      else
+        dv = [dv] unless dv.is_a?(Array)
+        dv = dv.map {|v| v.is_a?(Hash) ? v : context.expand_value(dk, v)}
+        "#{ttl_value(dk)} #{ttl_value(dv, whitespace: "\n    ")}"
+      end
+    end.compact.join(" ;\n  ") + " .\n\n")
+  end
+
+  def ttl_value(value, whitespace: " ")
+    if value.is_a?(Array)
+      value.map {|v| ttl_value(v)}.join(",#{whitespace}")
+    elsif value.is_a?(Hash)
+      if value.key?('@list')
+        "(#{value['@list'].map {|vv| ttl_value(vv)}.join(whitespace)})"
+      elsif value.key?('@value')
+        quoted(value['@value'], language: value['@language'], datatype: value['@type'])
+      elsif value.key?('@id')
+        ttl_value(value['@id'])
+      else
+        "[]"
+      end
+    elsif value.start_with?(/https?/) || value.start_with?('/')
+      "<#{value}>"
+    elsif value.include?(':')
+      value
+    elsif json_hash['@context'][value].is_a?(Hash)
+      json_hash['@context'][value].fetch('@id', "earl:#{value}")
+    elsif value.empty?
+      "<>"
+    else
+      "earl:#{value}"
+    end
+  end
+
+  def ttl_assertion(value)
+    return ttl_value(value) if value.is_a?(String)
+    block = [
+      "[",
+      "    a earl:Assertion ;",
+      "    earl:test #{ttl_value(value['test'])} ;",
+      "    earl:subject #{ttl_value(value['subject'])} ;",
+      "    earl:result [",
+      "      a earl:TestResult ;",
+      "      earl:outcome #{ttl_value(value['result']['outcome'])}",
+      "    ] ;",
+    ]
+    block << "    earl:assertedBy #{ttl_value(value['assertedBy'])} ;" if value['assertedBy']
+
+    block.join("\n") + "\n  ]"
+  end
+
+  def quoted(string, language: nil, datatype: nil)
+    str = (@turtle_writer ||= RDF::Turtle::Writer.new).send(:quoted, string)
+    str += "@#{language}" if language
+    str += "^^#{ttl_value(datatype)}" if datatype
+    str
   end
 
   def warn(message)

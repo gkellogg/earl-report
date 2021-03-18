@@ -240,7 +240,7 @@ describe EarlReport do
 
     context "prefixes" do
       %w(dc doap earl foaf mf rdf rdfs xsd).each do |pfx|
-        specify {is_expected.to match(/@prefix #{pfx}: </)}
+        specify {is_expected.to match(/@prefix #{pfx}:\s+</)}
       end
     end
 
@@ -264,7 +264,7 @@ describe EarlReport do
     end
 
     context "Assertion" do
-      specify {is_expected.to match(/\sa earl:Assertion;$/)}
+      specify {is_expected.to match(/\sa earl:Assertion\s*;$/)}
     end
 
     context "parsing to RDF" do
