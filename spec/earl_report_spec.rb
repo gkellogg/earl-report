@@ -26,6 +26,9 @@ describe EarlReport do
     let(:reportNoFoaf) {
       RDF::Graph.new << RDF::Turtle::Reader.new(File.open File.expand_path("../test-files/report-no-foaf.ttl", __FILE__))
     }
+    let(:reportNoTest) {
+      RDF::Graph.new << RDF::Turtle::Reader.new(File.open File.expand_path("../test-files/report-no-test.ttl", __FILE__))
+    }
     let(:doap) {
       RDF::Graph.new << RDF::Turtle::Reader.new(File.open File.expand_path("../test-files/doap.ttl", __FILE__))
     }
@@ -158,6 +161,55 @@ describe EarlReport do
 
       it "loads foaf" do
         expect(subject.graph.objects.to_a).to include(RDF::Vocab::FOAF.Person)
+      end
+    end
+
+    context "asserts a test not in manifest" do
+      before(:each) do
+        expect(RDF::Graph).to receive(:load)
+          .with(File.expand_path("../test-files/manifest.ttl", __FILE__), {unique_bnodes: true, })
+          .and_return(manifest)
+        expect(RDF::Graph).to receive(:load)
+          .with(File.expand_path("../test-files/report-no-test.ttl", __FILE__))
+          .and_return(reportNoTest)
+      end
+
+      subject {
+        expect do
+          @no_test_earl = EarlReport.new(
+            File.expand_path("../test-files/report-no-test.ttl", __FILE__),
+            verbose: false,
+            manifest: File.expand_path("../test-files/manifest.ttl", __FILE__))
+        end.to output.to_stderr
+        @no_test_earl
+      }
+      it "loads manifest" do
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://example/manifest.ttl"))
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("http://example/manifest.ttl#testeval00"))
+      end
+
+      it "loads report" do
+        expect(subject.graph.predicates.to_a).to include(RDF::URI("http://www.w3.org/ns/earl#generatedBy"))
+      end
+
+      it "loads doap" do
+        expect(subject.graph.subjects.to_a).to include(RDF::URI("https://rubygems.org/gems/rdf-turtle"))
+      end
+
+      it "loads foaf" do
+        expect(subject.graph.objects.to_a).to include(RDF::Vocab::FOAF.Person)
+      end
+
+      it "raises an error if the strict option is used" do
+        expect do
+          expect do
+            EarlReport.new(
+              File.expand_path("../test-files/report-no-test.ttl", __FILE__),
+              verbose: false,
+              strict: true,
+              manifest: File.expand_path("../test-files/manifest.ttl", __FILE__))
+          end.to raise_error(Exception)
+        end.to output.to_stderr
       end
     end
   end

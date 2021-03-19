@@ -189,7 +189,6 @@ class EarlReport
   # Load test assertions and look for referenced software and developer information
   #
   # @param [Array<String>] files Assertions
-  # @param [Boolean] verbose (false)
   # @param [String] base (nil) Base IRI for loading Manifest
   # @param [String] bibRef ('Unknown reference')
   #   ReSpec bibliography reference for specification being tested
@@ -198,20 +197,24 @@ class EarlReport
   # @param [String] name ('Unknown') Name of specification
   # @param [String] query (MANIFEST_QUERY)
   #   Query, or file containing query for extracting information from Test manifests
+  # @param [Boolean] strict (false) Abort on any warning
+  # @param [Boolean] verbose (false)
   def initialize(*files,
-                 verbose: false,
                  base: nil,
                  bibRef: 'Unknown reference',
                  json: false,
                  manifest: nil,
                  name: 'Unknown',
                  query: MANIFEST_QUERY,
+                 strict: false,
+                 verbose: false,
                  **options)
     @verbose = verbose
     raise "Test Manifests must be specified with :manifest option" unless manifest || json
     raise "Require at least one input file" if files.empty?
     @files = files
     @prefixes = {}
+    @warnings = 0
 
     # If provided json, it is used for generating all other output forms
     if json
@@ -268,7 +271,7 @@ class EarlReport
       status "read #{file}"
       file_graph = RDF::Graph.load(file)
       if file_graph.first_object(predicate: RDF::URI('http://www.w3.org/ns/earl#testSubjects'))
-        status "   skip #{file}, which seems to be a previous rollup earl report"
+        warn "   skip #{file}, which seems to be a previous rollup earl report"
         @files -= [file]
       else
         status "  loaded #{file_graph.count} triples"
@@ -440,6 +443,8 @@ class EarlReport
       graph << RDF::Statement.new(u, RDF.type, EARL.TestCriterion)
       graph << RDF::Statement.new(u, RDF.type, EARL.TestCase)
     end
+
+    raise "Warnings issued in strict mode" if strict
   end
 
   ##
@@ -524,10 +529,10 @@ class EarlReport
 
   ##
   # Output consoloated EARL report as Turtle
-  # @param [IO] io (STDOUT)
+  # @param [IO] io ($stdout)
   #   `IO` to output results
   # @return [String]
-  def earl_turtle(io: STDOUT)
+  def earl_turtle(io: $stdout)
     context = JSON::LD::Context.parse(json_hash['@context'])
     io.write(TURTLE_PREFIXES + "\n")
 
@@ -632,6 +637,7 @@ class EarlReport
   end
 
   def warn(message)
+    @warnings += 1
     $stderr.puts message
   end
 
