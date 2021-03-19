@@ -94,6 +94,6 @@ if options.has_key?(:template) && options[:template].nil?
 elsif ARGV.empty?
   usage
 else
-  earl = EarlReport.new(*ARGV, options)
-  earl.generate(options)
+  earl = EarlReport.new(*ARGV, **options)
+  earl.generate(**options)
 end

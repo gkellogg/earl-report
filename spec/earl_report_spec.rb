@@ -6,10 +6,10 @@ describe EarlReport do
   let!(:earl) {
     EarlReport.new(
       File.expand_path("../test-files/report-complete.ttl", __FILE__),
-      :bibRef   =>       "[[TURTLE]]",
-      :name     =>         "Turtle Test Results",
-      :verbose  => false,
-      :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
+      bibRef:   "[[TURTLE]]",
+      name:     "Turtle Test Results",
+      verbose:  false,
+      manifest: File.expand_path("../test-files/manifest.ttl", __FILE__))
   }
   subject {earl}
 
@@ -47,9 +47,9 @@ describe EarlReport do
           .and_return(reportComplete)
         EarlReport.new(
           File.expand_path("../test-files/report-complete.ttl", __FILE__),
-          :verbose => false,
-          :base => "http://example.com/base/",
-          :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
+          verbose: false,
+          base: "http://example.com/base/",
+          manifest: File.expand_path("../test-files/manifest.ttl", __FILE__))
       end
     end
 
@@ -66,8 +66,8 @@ describe EarlReport do
       subject {
         EarlReport.new(
           File.expand_path("../test-files/report-complete.ttl", __FILE__),
-          :verbose => false,
-          :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
+          verbose: false,
+          manifest: File.expand_path("../test-files/manifest.ttl", __FILE__))
       }
       it "loads manifest" do
         expect(subject.graph.subjects.to_a).to include(RDF::URI("http://example/manifest.ttl"))
@@ -103,8 +103,8 @@ describe EarlReport do
       subject {
         EarlReport.new(
           File.expand_path("../test-files/report-no-doap.ttl", __FILE__),
-          :verbose => false,
-          :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
+          verbose: false,
+          manifest: File.expand_path("../test-files/manifest.ttl", __FILE__))
       }
       it "loads manifest" do
         expect(subject.graph.subjects.to_a).to include(RDF::URI("http://example/manifest.ttl"))
@@ -140,8 +140,8 @@ describe EarlReport do
       subject {
         EarlReport.new(
           File.expand_path("../test-files/report-no-foaf.ttl", __FILE__),
-          :verbose => false,
-          :manifest => File.expand_path("../test-files/manifest.ttl", __FILE__))
+          verbose: false,
+          manifest: File.expand_path("../test-files/manifest.ttl", __FILE__))
       }
       it "loads manifest" do
         expect(subject.graph.subjects.to_a).to include(RDF::URI("http://example/manifest.ttl"))
@@ -227,7 +227,7 @@ describe EarlReport do
     let(:output) {
       @output ||= begin
         sio = StringIO.new
-        earl.send(:earl_turtle, {io: sio})
+        earl.send(:earl_turtle, io: sio)
         sio.rewind
         sio.read
       end

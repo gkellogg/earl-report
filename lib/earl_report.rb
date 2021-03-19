@@ -11,6 +11,7 @@ class EarlReport
   autoload :VERSION, 'earl_report/version'
 
   attr_reader :graph
+  attr_reader :verbose
 
   # Return information about each test.
   # Tests all have an mf:action property.
@@ -186,29 +187,34 @@ class EarlReport
 
   ##
   # Load test assertions and look for referenced software and developer information
-  # @overload initialize(*files)
-  #   @param [Array<String>] files Assertions
-  # @overload initialize(*files, options = {})
-  #   @param [Hash{Symbol => Object}] options
-  #   @option options [Boolean] :verbose (true)
-  #   @option options [String] :base Base IRI for loading Manifest
-  #   @option options [String] :bibRef
-  #     ReSpec bibliography reference for specification being tested
-  #   @option options [String] :json Result of previous JSON-LD generation
-  #   @option options [String, Array<String>] :manifest Test manifest
-  #   @option options [String] :name Name of specification
-  #   @option options [String] :query
-  #     Query, or file containing query for extracting information from Test manifests
-  def initialize(*files)
-    @options = files.last.is_a?(Hash) ? files.pop.dup : {}
-    @options[:query] ||= MANIFEST_QUERY
-    raise "Test Manifests must be specified with :manifest option" unless @options[:manifest] || @options[:json]
+  #
+  # @param [Array<String>] files Assertions
+  # @param [Boolean] verbose (false)
+  # @param [String] base (nil) Base IRI for loading Manifest
+  # @param [String] bibRef ('Unknown reference')
+  #   ReSpec bibliography reference for specification being tested
+  # @param [Boolean] json (false) File is in the JSON format of a report.
+  # @param [String, Array<String>] manifest (nil) Test manifest(s)
+  # @param [String] name ('Unknown') Name of specification
+  # @param [String] query (MANIFEST_QUERY)
+  #   Query, or file containing query for extracting information from Test manifests
+  def initialize(*files,
+                 verbose: false,
+                 base: nil,
+                 bibRef: 'Unknown reference',
+                 json: false,
+                 manifest: nil,
+                 name: 'Unknown',
+                 query: MANIFEST_QUERY,
+                 **options)
+    @verbose = verbose
+    raise "Test Manifests must be specified with :manifest option" unless manifest || json
     raise "Require at least one input file" if files.empty?
     @files = files
     @prefixes = {}
 
-    # If provided :json, it is used for generating all other output forms
-    if @options[:json]
+    # If provided json, it is used for generating all other output forms
+    if json
       @json_hash = ::JSON.parse(File.read(files.first))
       # Add a base_uri so relative subjects aren't dropped
       JSON::LD::Reader.open(files.first, base_uri: "http://example.org/report") do |r|
@@ -223,25 +229,25 @@ class EarlReport
     end
 
     # Load manifests, possibly with base URI
-    status "read #{@options[:manifest].inspect}"
+    status "read #{manifest.inspect}"
     man_opts = {}
-    man_opts[:base_uri] = RDF::URI(@options[:base]) if @options[:base]
+    man_opts[:base_uri] = RDF::URI(base) if base
     @graph = RDF::Graph.new
-    Array(@options[:manifest]).each do |man|
+    Array(manifest).each do |man|
       g = RDF::Graph.load(man, unique_bnodes: true, **man_opts)
       status "  loaded #{g.count} triples from #{man}"
       graph << g
     end
 
     # Hash test cases by URI
-    tests = SPARQL.execute(@options[:query], graph)
+    tests = SPARQL.execute(query, graph)
       .to_a
       .inject({}) {|memo, soln| memo[soln[:uri]] = soln; memo}
 
     if tests.empty?
       raise "no tests found querying manifest.\n" +
             "Results are found using the following query, this can be overridden using the --query option:\n" +
-            "#{@options[:query]}"
+            "#{query}"
     end
 
     # Manifests in graph
@@ -314,7 +320,7 @@ class EarlReport
           subjects[solution[:uri]] = RDF::URI(file)
 
           # Add TestSubject information to main graph
-          name = solution[:name].to_s if solution[:name]
+          doapName = solution[:name].to_s if solution[:name]
           language = solution[:language].to_s if solution[:language]
           doapDesc = solution[:doapDesc] if solution[:doapDesc]
           doapDesc.language ||= :en if doapDesc
@@ -322,7 +328,7 @@ class EarlReport
           graph << RDF::Statement(solution[:uri], RDF.type, RDF::Vocab::DOAP.Project)
           graph << RDF::Statement(solution[:uri], RDF.type, EARL.TestSubject)
           graph << RDF::Statement(solution[:uri], RDF.type, EARL.Software)
-          graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.name, name)
+          graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.name, doapName)
           graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.developer, solution[:developer])
           graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.homepage, solution[:homepage]) if solution[:homepage]
           graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.description, doapDesc) if doapDesc
@@ -409,8 +415,8 @@ class EarlReport
     # Add report wrapper to graph
     ttl = TURTLE_PREFIXES + %(
     <> a earl:Software, doap:Project;
-    doap:name #{quoted(@options.fetch(:name, 'Unknown'))};
-    dc:bibliographicCitation "#{@options.fetch(:bibRef, 'Unknown reference')}";
+    doap:name #{quoted(name)};
+    dc:bibliographicCitation "#{bibRef}";
     earl:generatedBy <https://rubygems.org/gems/earl-report>;
     earl:assertions #{subjects.values.map {|f| f.to_ntriples}.join(",\n          ")};
     earl:testSubjects #{subjects.keys.map {|f| f.to_ntriples}.join(",\n          ")};
@@ -441,48 +447,47 @@ class EarlReport
   #
   # If no `io` option is provided, the output is returned as a string
   #
+  # @param [Symbol] format (:html)
+  # @param [IO] io (nil)
+  #   `IO` to output results
   # @param [Hash{Symbol => Object}] options
-  # @option options [Symbol] format (:html)
-  # @option options[IO] :io
-  #   Optional `IO` to output results
+  # @param [String] template
+  #   HAML template for generating report
   # @return [String] serialized graph, if `io` is nil
-  def generate(options = {})
-    options = {format: :html}.merge(options)
+  def generate(format: :html, io: nil, template: nil, **options)
 
-    io = options[:io]
-
-    status("generate: #{options[:format]}")
+    status("generate: #{format}")
     ##
     # Retrieve Hashed information in JSON-LD format
-    case options[:format]
+    case format
     when :jsonld, :json
       json = json_hash.to_json(JSON::LD::JSON_STATE)
       io.write(json) if io
       json
     when :turtle, :ttl
       if io
-        earl_turtle(options)
+        earl_turtle(io: io)
       else
         io = StringIO.new
-        earl_turtle(options.merge(io: io))
+        earl_turtle(io: io)
         io.rewind
         io.read
       end
     when :html
-      template = case options[:template]
-      when String then options[:tempate]
-      when IO, StringIO then options[:template].read
+      haml = case template
+      when String then template
+      when IO, StringIO then template.read
       else
         File.read(File.expand_path('../earl_report/views/earl_report.html.haml', __FILE__))
       end
 
       # Generate HTML report
-      html = Haml::Engine.new(template, format: :xhtml).render(self, tests: json_hash)
+      html = Haml::Engine.new(haml, format: :xhtml).render(self, tests: json_hash)
       io.write(html) if io
       html
     else
-      writer = RDF::Writer.for(options[:format])
-      writer.dump(@graph, io, options.merge(standard_prefixes: true))
+      writer = RDF::Writer.for(format)
+      writer.dump(@graph, io, standard_prefixes: true, **options)
     end
   end
 
@@ -519,12 +524,11 @@ class EarlReport
 
   ##
   # Output consoloated EARL report as Turtle
-  # @param [Hash{Symbol => Object}] options
-  # @option options [IO, StringIO] :io
+  # @param [IO] io (STDOUT)
+  #   `IO` to output results
   # @return [String]
-  def earl_turtle(options)
+  def earl_turtle(io: STDOUT)
     context = JSON::LD::Context.parse(json_hash['@context'])
-    io = options[:io]
     io.write(TURTLE_PREFIXES + "\n")
 
     # Write project header
@@ -632,6 +636,6 @@ class EarlReport
   end
 
   def status(message)
-    $stderr.puts message if @options[:verbose]
+    $stderr.puts message if verbose
   end
 end
