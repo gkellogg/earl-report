@@ -359,12 +359,12 @@ class EarlReport
           subject = solution[:subject]
           unless tests[solution[:test]]
             assertion_stats["Skipped"] = assertion_stats["Skipped"].to_i + 1
-            $stderr.puts "Skipping result for #{solution[:test]} for #{subject}, which is not defined in manifests"
+            warn "Skipping result for #{solution[:test]} for #{subject}, which is not defined in manifests"
             next
           end
           unless subjects[subject]
             assertion_stats["Missing Subject"] = assertion_stats["Missing Subject"].to_i + 1
-            $stderr.puts "No test result subject found for #{subject}: in #{subjects.keys.join(', ')}"
+            warn "No test result subject found for #{subject}: in #{subjects.keys.join(', ')}"
             next
           end
           found_solutions ||= true
@@ -387,7 +387,7 @@ class EarlReport
         end
 
         # See if subject did not report results, which may indicate a formatting error in the EARL source
-        $stderr.puts "No results found for #{subject} using #{ASSERTION_QUERY}" unless found_solutions
+        warn "No results found for #{subject} using #{ASSERTION_QUERY}" unless found_solutions
       end
     end
 
@@ -444,7 +444,7 @@ class EarlReport
       graph << RDF::Statement.new(u, RDF.type, EARL.TestCase)
     end
 
-    raise "Warnings issued in strict mode" if strict
+    raise "Warnings issued in strict mode" if strict && @warnings > 0
   end
 
   ##
