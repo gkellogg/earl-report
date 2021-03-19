@@ -26,13 +26,11 @@ jobs:
       fail-fast: false
       matrix:
         ruby:
-          - 2.4
           - 2.5
           - 2.6
           - 2.7
           - 3.0
           - ruby-head
-          #- jruby # Refinements issue?
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
