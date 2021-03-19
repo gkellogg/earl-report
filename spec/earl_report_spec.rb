@@ -88,6 +88,18 @@ describe EarlReport do
       it "loads foaf" do
         expect(subject.graph.objects.to_a).to include(RDF::Vocab::FOAF.Person)
       end
+
+      it "does not raise an error if the strict option is used" do
+        expect do
+          expect do
+            EarlReport.new(
+              File.expand_path("../test-files/report-complete.ttl", __FILE__),
+              verbose: false,
+              strict: true,
+              manifest: File.expand_path("../test-files/manifest.ttl", __FILE__))
+          end.not_to raise_error
+        end.not_to output.to_stderr
+      end
     end
 
     context "no doap report" do
@@ -125,6 +137,18 @@ describe EarlReport do
       it "loads foaf" do
         expect(subject.graph.objects.to_a).to include(RDF::Vocab::FOAF.Person)
       end
+
+      it "does not raise an error if the strict option is used" do
+        expect do
+          expect do
+            EarlReport.new(
+              File.expand_path("../test-files/report-no-doap.ttl", __FILE__),
+              verbose: false,
+              strict: true,
+              manifest: File.expand_path("../test-files/manifest.ttl", __FILE__))
+          end.not_to raise_error
+        end.not_to output.to_stderr
+      end
     end
 
     context "no foaf report" do
@@ -161,6 +185,18 @@ describe EarlReport do
 
       it "loads foaf" do
         expect(subject.graph.objects.to_a).to include(RDF::Vocab::FOAF.Person)
+      end
+
+      it "does not raise an error if the strict option is used" do
+        expect do
+          expect do
+            EarlReport.new(
+              File.expand_path("../test-files/report-no-foaf.ttl", __FILE__),
+              verbose: false,
+              strict: true,
+              manifest: File.expand_path("../test-files/manifest.ttl", __FILE__))
+          end.not_to raise_error
+        end.not_to output.to_stderr
       end
     end
 
@@ -208,7 +244,7 @@ describe EarlReport do
               verbose: false,
               strict: true,
               manifest: File.expand_path("../test-files/manifest.ttl", __FILE__))
-          end.to raise_error(Exception)
+          end.to raise_error(RuntimeError)
         end.to output.to_stderr
       end
     end
