@@ -4,16 +4,22 @@ $:.unshift File.dirname(__FILE__)
 require "bundler/setup"
 require 'rspec'
 require 'rspec/its'
-require 'simplecov'
-require 'coveralls'
 require 'amazing_print'
-SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
-  SimpleCov::Formatter::HTMLFormatter,
-  Coveralls::SimpleCov::Formatter
-])
-SimpleCov.start do
-  add_filter "/spec/"
+
+begin
+  require 'simplecov'
+  require 'coveralls'
+  SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
+    SimpleCov::Formatter::HTMLFormatter,
+    Coveralls::SimpleCov::Formatter
+  ])
+  SimpleCov.start do
+    add_filter "/spec/"
+  end
+rescue LoadError => e
+  STDERR.puts "Coverage Skipped: #{e.message}"
 end
+
 require 'earl_report'
 
 JSON_STATE = JSON::State.new(

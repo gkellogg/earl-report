@@ -15,6 +15,7 @@ OPT_ARGS = [
   ["--output", "-o",      GetoptLong::REQUIRED_ARGUMENT,"Output report to file"],
   ["--query",             GetoptLong::REQUIRED_ARGUMENT,"Query, or file containing query for extracting information from Test manifest"],
   ["--rc",                GetoptLong::NO_ARGUMENT,      "Write options to run-control file"],
+  ["--strict",            GetoptLong::NO_ARGUMENT,      "Fails if any skipped result is found"],
   ["--template",          GetoptLong::OPTIONAL_ARGUMENT,"Specify or return default report template"],
   ["--verbose",           GetoptLong::NO_ARGUMENT,      "Detail on execution"],
   ["--help", "-?",        GetoptLong::NO_ARGUMENT,      "This message"]
@@ -65,6 +66,7 @@ opts.each do |opt, arg|
   when '--name'         then options[:name] = arg
   when '--output'       then options[:io] = File.open(arg, "w")
   when '--rc'           then options[:rc] = true
+  when '--strict'       then options[:strict] = true
   when '--template'     then options[:template] = (File.open(arg, "r") unless arg.empty?)
   when '--verbose'      then options[:verbose] = true
   when '--help'         then usage
@@ -94,6 +96,6 @@ if options.has_key?(:template) && options[:template].nil?
 elsif ARGV.empty?
   usage
 else
-  earl = EarlReport.new(*ARGV, options)
-  earl.generate(options)
+  earl = EarlReport.new(*ARGV, **options)
+  earl.generate(**options)
 end
