@@ -22,11 +22,16 @@ Gem::Specification.new do |gem|
 
   gem.required_ruby_version = '>= 2.5'
   gem.requirements          = []
-  gem.add_runtime_dependency     'linkeddata',      '~> 3.1'
+  gem.add_runtime_dependency     'rdf',             '~> 3.1'
+  gem.add_runtime_dependency     'rdf-turtle',      '~> 3.1'
+  gem.add_runtime_dependency     'rdf-vocab',       '~> 3.1'
+  gem.add_runtime_dependency     'json-ld',         '~> 3.1'
+  gem.add_runtime_dependency     'sparql',          '~> 3.1'
   gem.add_runtime_dependency     'haml',            '~> 5.2'
   gem.add_runtime_dependency     'kramdown',        '~> 2.3'
   gem.add_runtime_dependency     'nokogiri',        '~> 1.10'
   gem.add_runtime_dependency     'rexml',           '~> 3.2'
+  gem.add_development_dependency 'rdf-rdfa',        '~> 3.1'
   gem.add_development_dependency 'rspec',           '~> 3.10'
   gem.add_development_dependency 'rspec-its',       '~> 1.3'
   gem.add_development_dependency "equivalent-xml",  '~> 0.6'

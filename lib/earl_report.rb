@@ -1,5 +1,7 @@
 # EARL reporting
-require 'linkeddata'
+require 'json/ld'
+require 'rdf/turtle'
+require 'rdf/vocab'
 require 'sparql'
 require 'haml'
 require 'open-uri'
