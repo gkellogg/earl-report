@@ -400,6 +400,10 @@ describe EarlReport do
       end
     }
 
+    it "is valid HTML" do
+      expect(output).to be_valid_html
+    end
+
     context "parsing to RDF" do
       let(:graph) do
         @graph ||= begin
@@ -472,7 +476,7 @@ describe EarlReport do
         doap:name "Turtle Test Results";
         dc:bibliographicCitation "[[TURTLE]]";
         earl:generatedBy ?generatedBy;
-        earl:assertions ?assertionFile;
+        mf:report ?assertionFile;
         earl:testSubjects <https://rubygems.org/gems/rdf-turtle>;
         mf:entries (<http://example/manifest.ttl>) .
 
@@ -517,8 +521,11 @@ describe EarlReport do
       <http://example/manifest.ttl#testeval00> a earl:TestCriterion, earl:TestCase;
         mf:name "subm-test-00";
         mf:action <http://example/test-00.ttl>;
-        mf:result <http://example/test-00.out>;
-        earl:assertions [ a earl:Assertion; earl:subject <https://rubygems.org/gems/rdf-turtle> ] .
+        mf:result <http://example/test-00.out>.
+      [ a earl:Assertion;
+        earl:subject <https://rubygems.org/gems/rdf-turtle>;
+        earl:test <http://example/manifest.ttl#testeval00>
+      ] .
     }
   )
 

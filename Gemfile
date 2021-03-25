@@ -2,6 +2,7 @@ source "https://rubygems.org"
 
 gemspec
 
+gem 'rdf-vocab', path: '../rdf-vocab'
 group :develop, :test do
   gem "byebug", platforms: :mri
   gem 'amazing_print'

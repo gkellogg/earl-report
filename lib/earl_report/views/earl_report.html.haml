@@ -333,7 +333,7 @@
                   - assertion = test['assertions'].detect {|a| a['subject'] == subject['@id']}
                   - pass_fail = assertion['result']['outcome'].split(':').last.upcase.sub(/(PASS|FAIL)ED$/, '\1')
                   - passed_tests[ndx2][ndx] = (passed_tests[ndx2][ndx] || 0) + (pass_fail == 'PASS' ? 1 : 0)
-                  %td{class: pass_fail, property: "earl:assertions", typeof: assertion['@type']}
+                  %td{class: pass_fail, typeof: assertion['@type']}
                     - if assertion['assertedBy'] && !assertion['assertedBy'].start_with?('_:')
                       %link{property: "earl:assertedBy", href: assertion['assertedBy']}
                     - if assertion['test'] && !assertion['test'].start_with?('_:')
@@ -418,7 +418,7 @@
                         %td{class: (pct == 100.0 ? 'passed-all' : (pct >= 85.0 ? 'passed-most' : 'passed-some'))}
                           = "#{passed}/#{total} (#{'%.1f' % pct}%)"
     - unless tests['assertions'].empty?
-      %section.appendix#individual-test-results{rel: "xhv:related earl:assertions"}
+      %section.appendix#individual-test-results{rel: "xhv:related mf:report"}
         %h2
           %span.secno="B."
           Individual Test Results
