@@ -1,6 +1,7 @@
 # coding: utf-8
 $:.unshift "."
 require 'spec_helper'
+require 'rdf/rdfa'
 
 describe EarlReport do
   let!(:earl) {
