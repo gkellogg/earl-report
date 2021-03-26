@@ -93,12 +93,20 @@ class EarlReport
       "foaf" =>         "http://xmlns.com/foaf/0.1/",
       "rdfs" =>         "http://www.w3.org/2000/01/rdf-schema#",
       "assertedBy" =>   {"@type" => "@id"},
-      "assertions" =>   {"@type" => "@id", "@container" => "@set"},
+      "assertions" =>   {"@id" => "mf:report", "@type" => "@id", "@container" => "@set"},
       "bibRef" =>       {"@id" => "dc:bibliographicCitation"},
       "created" =>      {"@id" => "doap:created", "@type" => "xsd:date"},
       "description" =>  {"@id" => "rdfs:comment", "@language" => "en"},
       "developer" =>    {"@id" => "doap:developer", "@type" => "@id", "@container" => "@set"},
       "doapDesc" =>     {"@id" => "doap:description", "@language" => "en"},
+      "entries" =>      {
+        "@id" => "mf:entries", "@type" => "@id", "@container" => "@list",
+        "@context" => {
+          "assertions" =>   {
+            "@reverse" => "earl:test", "@type" => "@id", "@container" => "@set"
+          },
+        }
+      },
       "generatedBy" =>  {"@type" => "@id"},
       "homepage" =>     {"@id" => "doap:homepage", "@type" => "@id"},
       "language" =>     {"@id" => "doap:programming-language"},
@@ -114,7 +122,6 @@ class EarlReport
       "testAction" =>   {"@id" => "mf:action", "@type" => "@id"},
       "testResult" =>   {"@id" => "mf:result", "@type" => "@id"},
       "title" =>        {"@id" => "mf:name"},
-      "entries" =>      {"@id" => "mf:entries", "@type" => "@id", "@container" => "@list"},
       "testSubjects" => {"@type" => "@id", "@container" => "@set"},
       "xsd" =>          {"@id" => "http://www.w3.org/2001/XMLSchema#"}
     },
@@ -184,7 +191,6 @@ class EarlReport
   ).gsub(/^  /, '')
 
   # Convenience vocabularies
-  class EARL < RDF::Vocabulary("http://www.w3.org/ns/earl#"); end
   class MF < RDF::Vocabulary("http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#"); end
 
   ##
@@ -331,8 +337,8 @@ class EarlReport
           doapDesc.language ||= :en if doapDesc
           devName = solution[:devName].to_s if solution[:devName]
           graph << RDF::Statement(solution[:uri], RDF.type, RDF::Vocab::DOAP.Project)
-          graph << RDF::Statement(solution[:uri], RDF.type, EARL.TestSubject)
-          graph << RDF::Statement(solution[:uri], RDF.type, EARL.Software)
+          graph << RDF::Statement(solution[:uri], RDF.type, RDF::Vocab::EARL.TestSubject)
+          graph << RDF::Statement(solution[:uri], RDF.type, RDF::Vocab::EARL.Software)
           graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.name, doapName)
           graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.developer, solution[:developer])
           graph << RDF::Statement(solution[:uri], RDF::Vocab::DOAP.homepage, solution[:homepage]) if solution[:homepage]
@@ -377,15 +383,15 @@ class EarlReport
           ary = test_assertion_lists[solution[:test]]
 
           ary[ndx] = a = RDF::Node.new
-          graph << RDF::Statement(a, RDF.type, EARL.Assertion)
-          graph << RDF::Statement(a, EARL.subject, subject)
-          graph << RDF::Statement(a, EARL.test, solution[:test])
-          graph << RDF::Statement(a, EARL.assertedBy, solution[:by])
-          graph << RDF::Statement(a, EARL.mode, solution[:mode]) if solution[:mode]
+          graph << RDF::Statement(a, RDF.type, RDF::Vocab::EARL.Assertion)
+          graph << RDF::Statement(a, RDF::Vocab::EARL.subject, subject)
+          graph << RDF::Statement(a, RDF::Vocab::EARL.test, solution[:test])
+          graph << RDF::Statement(a, RDF::Vocab::EARL.assertedBy, solution[:by])
+          graph << RDF::Statement(a, RDF::Vocab::EARL.mode, solution[:mode]) if solution[:mode]
           r = RDF::Node.new
-          graph << RDF::Statement(a, EARL.result, r)
-          graph << RDF::Statement(r, RDF.type, EARL.TestResult)
-          graph << RDF::Statement(r, EARL.outcome, solution[:outcome])
+          graph << RDF::Statement(a, RDF::Vocab::EARL.result, r)
+          graph << RDF::Statement(r, RDF.type, RDF::Vocab::EARL.TestResult)
+          graph << RDF::Statement(r, RDF::Vocab::EARL.outcome, solution[:outcome])
         end
 
         # See if subject did not report results, which may indicate a formatting error in the EARL source
@@ -401,17 +407,14 @@ class EarlReport
         unless a
           assertion_stats["Untested"] = assertion_stats["Untested"].to_i + 1
           ary[ndx] = a = RDF::Node.new
-          graph << RDF::Statement(a, RDF.type, EARL.Assertion)
-          graph << RDF::Statement(a, EARL.subject, subjects.keys[ndx])
-          graph << RDF::Statement(a, EARL.test, test)
+          graph << RDF::Statement(a, RDF.type, RDF::Vocab::EARL.Assertion)
+          graph << RDF::Statement(a, RDF::Vocab::EARL.subject, subjects.keys[ndx])
+          graph << RDF::Statement(a, RDF::Vocab::EARL.test, test)
           r = RDF::Node.new
-          graph << RDF::Statement(a, EARL.result, r)
-          graph << RDF::Statement(r, RDF.type, EARL.TestResult)
-          graph << RDF::Statement(r, EARL.outcome, EARL.untested)
+          graph << RDF::Statement(a, RDF::Vocab::EARL.result, r)
+          graph << RDF::Statement(r, RDF.type, RDF::Vocab::EARL.TestResult)
+          graph << RDF::Statement(r, RDF::Vocab::EARL.outcome, RDF::Vocab::EARL.untested)
         end
-
-        # This counts on order being preserved in default repository so we can avoid using an rdf:List
-        graph << RDF::Statement(test, EARL.assertions, a)
       end
     end
 
@@ -423,7 +426,7 @@ class EarlReport
     doap:name #{quoted(name)};
     dc:bibliographicCitation "#{bibRef}";
     earl:generatedBy <https://rubygems.org/gems/earl-report>;
-    earl:assertions #{subjects.values.map {|f| f.to_ntriples}.join(",\n          ")};
+    mf:report #{subjects.values.map {|f| f.to_ntriples}.join(",\n          ")};
     earl:testSubjects #{subjects.keys.map {|f| f.to_ntriples}.join(",\n          ")};
     mf:entries (#{man_uris.map {|f| f.to_ntriples}.join("\n          ")}) .
     ).gsub(/^    /, '') +
@@ -432,18 +435,18 @@ class EarlReport
 
     # Each manifest is an earl:Report
     man_uris.each do |u|
-      graph << RDF::Statement.new(u, RDF.type, EARL.Report)
+      graph << RDF::Statement.new(u, RDF.type, RDF::Vocab::EARL.Report)
     end
 
     # Each subject is an earl:TestSubject
     subjects.keys.each do |u|
-      graph << RDF::Statement.new(u, RDF.type, EARL.TestSubject)
+      graph << RDF::Statement.new(u, RDF.type, RDF::Vocab::EARL.TestSubject)
     end
 
     # Each assertion test is a earl:TestCriterion and earl:TestCase
     test_resources.each do |u|
-      graph << RDF::Statement.new(u, RDF.type, EARL.TestCriterion)
-      graph << RDF::Statement.new(u, RDF.type, EARL.TestCase)
+      graph << RDF::Statement.new(u, RDF.type, RDF::Vocab::EARL.TestCriterion)
+      graph << RDF::Statement.new(u, RDF.type, RDF::Vocab::EARL.TestCase)
     end
 
     raise "Warnings issued in strict mode" if strict && @warnings > 0
@@ -575,7 +578,11 @@ class EarlReport
       when '@type'
         "a " + ttl_value(dv)
       when 'assertions'
-        "earl:assertions #{dv.map {|a| ttl_assertion(a)}.join(", ")}"
+        if dv.all? {|a| a.is_a?(String)}
+          "mf:report #{ttl_value(dv, whitespace: "\n    ")}"
+        else
+          "earl:assertions #{dv.map {|a| ttl_assertion(a)}.join(", ")}"
+        end
       when 'entries'
         "mf:entries #{ttl_value({'@list' => dv}, whitespace: "\n    ")}"
       when 'release'

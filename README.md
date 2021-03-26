@@ -78,11 +78,21 @@ can be used by specifying a customized manifest query, but may require a custom
 The report template is in [ReSpec][] form using [Haml]() to generate individual report elements.
 
 ## Changes from previous versions
-Version 0.3 and prior re-constructed the test manifest used to create the body of the report, which caused information not described within the query to be lost. Starting with 0.4, all manifests and assertions are read into a single graph, and each test references a list of assertions against it using a list referenced by `earl:assertions`. Additionally, all included manifests are included in a top-level entity referenced via `mf:entries`. For example:
+### Version 0.7
+Version 0.7 creates incompatibilities with previous result formats. Previously, terms were "added" to the EARL vocabulary to help with coordination. This version pulls that back, but does depend on an added `earl:Report` class which acts as an appropriate container for for collections of  `earl:Assertion`.
+
+Within an `earl:TestCase`, the former `earl:assertions` property is replaced with a reverse property on `earl:test` so that, in the JSON-LD representation, an `earl:TestCase` will contain a property representing the related assertions.
+
+Also, `earl:assertions` had been miss-appropriated to reference the sources of the individual test results provided for each test subject. A new property as appropriated from the Test Manifest vocabulary: `mf:report`. The alias `assertions` continues to be used within the JSON-LD representation, although it now maps to `mf:report` at the top level, and as mentioned, is a reverse property of `earl:test` within an `earl:TestCase`.
+
+These changes may require updates to customized Haml templates.
+
+### Version 0.3
+Version 0.3 and prior re-constructed the test manifest used to create the body of the report, which caused information not described within the query to be lost. Starting with 0.4, all manifests and assertions are read into a single graph, and each test references a list of assertions against it using a list referenced by `mf:assertions`. Additionally, all included manifests are included in a top-level entity referenced via `mf:entries`. For example:
 
     <> a earl:Software, doap:Project;
        mf:entries (<http://example/manifest.ttl>);
-       earl:assertions (<spec/test-files/report-complete.ttl>)  .
+       mf:assertions (<spec/test-files/report-complete.ttl>)  .
 
     <http://example/manifest.ttl> a mf:Manifest, earl:Report;
        mf:name "Example Test Cases";
@@ -94,7 +104,7 @@ Version 0.3 and prior re-constructed the test manifest used to create the body o
        rdfs:comment "Blank subject";
        mf:action <http://example/test-00.ttl>;
        mf:result <http://example/test-00.out>;
-       earl:assertions ([
+       mf:assertions ([
            a earl:Assertion;
            earl:assertedBy <https://greggkellogg.net/foaf#me>;
            earl:mode earl:automatic;
