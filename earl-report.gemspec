@@ -24,7 +24,7 @@ Gem::Specification.new do |gem|
   gem.requirements          = []
   gem.add_runtime_dependency     'rdf',             '~> 3.1'
   gem.add_runtime_dependency     'rdf-turtle',      '~> 3.1'
-  gem.add_runtime_dependency     'rdf-vocab',       '~> 3.1'
+  gem.add_runtime_dependency     'rdf-vocab',       '~> 3.1', '>= 3.1.13'
   gem.add_runtime_dependency     'json-ld',         '~> 3.1'
   gem.add_runtime_dependency     'sparql',          '~> 3.1'
   gem.add_runtime_dependency     'haml',            '~> 5.2'
