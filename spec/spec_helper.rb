@@ -5,7 +5,7 @@ require "bundler/setup"
 require 'rspec'
 require 'rspec/its'
 require 'amazing_print'
-require 'nokogumbo'
+require 'nokogiri'
 
 begin
   require 'simplecov'
