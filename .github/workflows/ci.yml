@@ -34,11 +34,6 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Clone Test Suite repository
-        uses: actions/checkout@v2
-        with:
-          repository: w3c/N3
-          path: spec/w3c-N3
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -46,5 +41,9 @@ jobs:
       - name: Install dependencies
         run: bundle install --jobs 4 --retry 3
       - name: Run tests
-        run: bundle exec rspec spec
- 
+        run: bundle exec rspec spec || $ALLOW_FAILURES
+      - name: Coveralls GitHub Action
+        uses: coverallsapp/github-action@v1.1.2
+        if: "matrix.ruby == '3.0'"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
