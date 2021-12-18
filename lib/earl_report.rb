@@ -1,5 +1,6 @@
 # EARL reporting
 require 'json/ld'
+require 'rdf/ordered_repo'
 require 'rdf/turtle'
 require 'rdf/vocab'
 require 'sparql'
@@ -310,19 +311,22 @@ class EarlReport
         end
 
         # Load developers referenced from Test Subjects
-        if !solutions.first[:developer]
+        if !solutions.all? {|s| s[:developer]}
           warn "\nNo developer identified for #{solutions.first[:uri]}"
-        elsif !solutions.first[:devName]
-          status "  read description for developer #{solutions.first[:developer].inspect}"
-          begin
-            foaf_graph = RDF::Graph.load(solutions.first[:developer])
-            status "    loaded #{foaf_graph.count} triples"
-            file_graph << foaf_graph.to_a
-            # Reload solutions
-            solutions = SPARQL.execute(TEST_SUBJECT_QUERY, file_graph)
-          rescue
-            warn "\nfailed to load FOAF from #{solutions.first[:developer]}: #{$!}"
+        elsif !solutions.all? {|s| s[:devName]}
+          solutions.reject {|s| s[:devName]}.each do |no_foaf|
+            status "  read description for developer #{no_foaf[:developer].inspect}"
+            begin
+              foaf_graph = RDF::Graph.load(no_foaf[:developer])
+              status "    loaded #{foaf_graph.count} triples"
+              file_graph << foaf_graph.to_a
+            rescue
+              warn "\nfailed to load FOAF from #{no_foaf[:developer]}: #{$!}"
+            end
           end
+
+          # Reload solutions
+          solutions = SPARQL.execute(TEST_SUBJECT_QUERY, file_graph)
         end
 
         release = nil

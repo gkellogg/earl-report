@@ -2,26 +2,21 @@
 
 name: CI
 
-# Controls when the action will run. 
 on:
-  # Triggers the workflow on push or pull request events but only for the develop branch
   push:
     branches: [ '**' ]
   pull_request:
     branches: [ develop ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   tests:
     name: Ruby ${{ matrix.ruby }}
     if: "contains(github.event.commits[0].message, '[ci skip]') == false"
     runs-on: ubuntu-latest
     env:
       CI: true
+      ALLOW_FAILURES: ${{ endsWith(matrix.ruby, 'head') || matrix.ruby == 'jruby' }}
     strategy:
       fail-fast: false
       matrix:
@@ -31,14 +26,10 @@ jobs:
           - 2.7
           - 3.0
           - ruby-head
+          - jruby
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
-      - name: Clone Test Suite repository
-        uses: actions/checkout@v2
-        with:
-          repository: w3c/N3
-          path: spec/w3c-N3
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -46,5 +37,9 @@ jobs:
       - name: Install dependencies
         run: bundle install --jobs 4 --retry 3
       - name: Run tests
-        run: bundle exec rspec spec
- 
+        run: ruby --version; bundle exec rspec spec || $ALLOW_FAILURES
+      - name: Coveralls GitHub Action
+        uses: coverallsapp/github-action@v1.1.2
+        if: "matrix.ruby == '3.0'"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
