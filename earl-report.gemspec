@@ -23,6 +23,7 @@ Gem::Specification.new do |gem|
   gem.required_ruby_version = '>= 2.5'
   gem.requirements          = []
   gem.add_runtime_dependency     'rdf',             '~> 3.1'
+  gem.add_runtime_dependency     'rdf-ordered-repo','~> 3.1'
   gem.add_runtime_dependency     'rdf-turtle',      '~> 3.1'
   gem.add_runtime_dependency     'rdf-vocab',       '~> 3.1', '>= 3.1.13'
   gem.add_runtime_dependency     'json-ld',         '~> 3.1'
