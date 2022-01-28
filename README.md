@@ -32,7 +32,7 @@ of the reported software, in the following form:
     <https://rubygems.org/gems/rdf-turtle> a doap:Project, earl:TestSubject, earl:Software ;
       doap:name          "RDF::Turtle" ;
       doap:developer     <https://greggkellogg.net/foaf#me> ;
-      doap:homepage      <http://ruby-rdf.github.com/rdf-turtle> ;
+      doap:homepage      <https://ruby-rdf.github.io/rdf-turtle> ;
       doap:description   "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite."@en ;
       doap:release [
                          doap:name "RDF::Turtle 3.1.0" ;
