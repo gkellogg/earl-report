@@ -9,6 +9,12 @@ Gem::Specification.new do |gem|
   gem.license               = 'Unlicense'
   gem.summary               = "Earl Report summary generator"
   gem.description           = "EarlReport generates HTML+RDFa rollups of multiple EARL reports."
+  gem.metadata              = {
+    "documentation_uri" => "https://gkellogg.github.io/earl-report",
+    "bug_tracker_uri"   => "https://github.com/gkellogg/earl-report/issues",
+    "homepage_uri"      => "https://github.com/gkellogg/earl-report",
+    "source_code_uri"   => "https://github.com/gkellogg/earl-report",
+  }
 
   gem.authors               = ['Gregg Kellogg']
   gem.email                 = 'gregg@greggkellogg.net'
