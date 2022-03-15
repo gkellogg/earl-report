@@ -525,7 +525,7 @@ class EarlReport
         # Reorder test assertions to make them consistent with subject order
         Array(framed['entries']).each do |manifest|
           manifest['entries'].each do |test|
-            test['assertions'] = test['assertions'].sort_by {|a| a['subject']}
+            test['assertions'] = test['assertions'].sort_by {|a| a['subject'].to_s}
           end
         end
         framed
