@@ -68,16 +68,16 @@ class EarlReport
   ASSERTION_QUERY = %(
     PREFIX earl: <http://www.w3.org/ns/earl#>
     
-    SELECT ?test ?subject ?by ?mode ?outcome
+    SELECT ?test ?subject ?by ?mode ?outcome ?info
     WHERE {
       ?a a earl:Assertion;
         earl:assertedBy ?by;
-        earl:result [earl:outcome ?outcome];
+        earl:result ?result;
         earl:subject ?subject;
         earl:test ?test .
-      OPTIONAL {
-        ?a earl:mode ?mode .
-      }
+      ?result earl:outcome ?outcome .
+      OPTIONAL {?a earl:mode ?mode .}
+      OPTIONAL {?result earl:info ?info .}
     }
     ORDER BY ?subject
   ).freeze
@@ -396,6 +396,7 @@ class EarlReport
           graph << RDF::Statement(a, RDF::Vocab::EARL.result, r)
           graph << RDF::Statement(r, RDF.type, RDF::Vocab::EARL.TestResult)
           graph << RDF::Statement(r, RDF::Vocab::EARL.outcome, solution[:outcome])
+          graph << RDF::Statement(r, RDF::Vocab::EARL.info, solution[:info]) if solution[:info]
         end
 
         # See if subject did not report results, which may indicate a formatting error in the EARL source
