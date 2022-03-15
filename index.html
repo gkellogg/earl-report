@@ -60,13 +60,15 @@
       <div id="content"><div id='filecontents'>
 <h1 id="label-earl-report">earl-report</h1>
 
-<p>Ruby gem to consolidate multiple EARL report and generate a rollup conformance report.</p>
+<p>Ruby gem to consolidate multiple <a href="http://www.w3.org/TR/EARL10-Schema/">EARL</a> report and generate a rollup conformance report.</p>
 
 <p><a href="http://badge.fury.io/rb/earl-report"><img src="https://badge.fury.io/rb/earl-report.png"></a> <a href="https://github.com/gkellogg/earl-report/actions?query=workflow%3ACI"><img src="https://github.com/gkellogg/earl-report/workflows/CI/badge.svg?branch=develop"></a> <a href="https://coveralls.io/r/gkellogg/earl-report?branch=develop"><img src="https://coveralls.io/repos/gkellogg/earl-report/badge.svg?branch=develop"></a></p>
 
 <h2 id="label-Description">Description</h2>
 
-<p>Reads a test manifest in the <a href="http://www.w3.org/2011/rdf-wg/wiki/Turtle_Test_Suite">standard RDF WG format</a> along with one or more individual EARL reports and generates a rollup report in HTML+RDFa in <a href="http://dev.w3.org/2009/dap/ReSpec.js/documentation.html">ReSpec</a> format.</p>
+<p>Reads a test manifest in the <a href="http://www.w3.org/2011/rdf-wg/wiki/Turtle_Test_Suite">standard RDF WG format</a> along with one or more individual &lt;abbr title=“Evaluation and Report Language (EARL) 1.0 Schema”&gt;EARL[http://www.w3.org/TR/EARL10-Schema/]</abbr&gt; reports and generates a rollup report in HTML in <a href="http://dev.w3.org/2009/dap/ReSpec.js/documentation.html">ReSpec</a> format.</p>
+
+<p><a href="http://www.w3.org/TR/EARL10-Schema/">EARL}[] reports use the {Evaluation and Report Language (EARL) 1.0 Schema</a> to describe test results in RDF to relate the results for a given <em>subject</em> to a <em>test</em> defined in a <em>test manifest</em>.</p>
 
 <h2 id="label-Individual+EARL+reports">Individual EARL reports</h2>
 
@@ -83,7 +85,7 @@
   earl:mode earl:automatic ] .
 </code></pre>
 
-<p>Additionally, <code>earl:subject</code> is expected to reference a DOAP[] description of the reported software, in the following form:</p>
+<p>Additionally, <code>earl:subject</code> is expected to reference a <a href="https://github.com/edumbill/doap/wiki">DOAP</a> description of the reported software, in the following form:</p>
 
 <pre class="code ruby"><code class="ruby">&lt;https://rubygems.org/gems/rdf-turtle&gt; a doap:Project, earl:TestSubject, earl:Software ;
   doap:name          &quot;RDF::Turtle&quot; ;
@@ -98,20 +100,20 @@
   doap:programming-language &quot;Ruby&quot; .
 </code></pre>
 
-<p>The DOAP[] description may be included in the EARL[] report. If not found, the IRI identified by <code>earl:subject</code> will be dereferenced and is presumed to provide a DOAP[] specification of the test subject.</p>
+<p>The <a href="https://github.com/edumbill/doap/wiki">DOAP</a> description may be included in the <a href="http://www.w3.org/TR/EARL10-Schema/">EARL</a> report. If not found, the IRI identified by <code>earl:subject</code> will be dereferenced and is presumed to provide a <a href="https://github.com/edumbill/doap/wiki">DOAP</a> specification of the test subject.</p>
 
-<p>The <code>doap:developer</code> is expected to reference a FOAF[] profile for the agent (user or organization) responsible for the test subject. It is expected to be of the following form:</p>
+<p>The <code>doap:developer</code> is expected to reference a <a href="http://xmlns.com/foaf/spec/">FOAF</a> profile for the agent (user or organization) responsible for the test subject. It is expected to be of the following form:</p>
 
 <pre class="code ruby"><code class="ruby">&lt;https://greggkellogg.net/foaf#me&gt; foaf:name &quot;Gregg Kellogg&quot; .
 </code></pre>
 
-<p>If not found, the IRI identified by <code>doap:developer</code> will be dereferenced and is presumed to provide a FOAF[] profile of the developer.</p>
+<p>If not found, the IRI identified by <code>doap:developer</code> will be dereferenced and is presumed to provide a <a href="http://xmlns.com/foaf/spec/">FOAF</a> profile of the developer.</p>
 
 <p>Assertions are added to each test entry based on that test being referenced from the assertion.</p>
 
 <h2 id="label-Manifest+query">Manifest query</h2>
 
-<p>The test manifest is used to find test entries and a manifest. The built-in query is based on the RDF WG format[]. Alternative manifest formats can be used by specifying a customized manifest query, but may require a custom Haml[] template for report generation. The default query is the following:</p>
+<p>The test manifest is used to find test entries and a manifest. The built-in query is based on the [standard RDF WG format][]. Alternative manifest formats can be used by specifying a customized manifest query, but may require a custom <a href="http://haml.info/">Haml</a> template for report generation. The default query is the following:</p>
 
 <pre class="code ruby"><code class="ruby">PREFIX mf: &lt;http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#&gt;
 PREFIX rdf: &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#&gt;
@@ -128,7 +130,7 @@ WHERE {
 
 <h2 id="label-Report+generation+template">Report generation template</h2>
 
-<p>The report template is in <a href="http://dev.w3.org/2009/dap/ReSpec.js/documentation.html">ReSpec</a> form using Haml[] to generate individual report elements.</p>
+<p>The report template is in <a href="http://dev.w3.org/2009/dap/ReSpec.js/documentation.html">ReSpec</a> form using <a href="http://haml.info/">Haml</a> to generate individual report elements.</p>
 
 <h2 id="label-Changes+from+previous+versions">Changes from previous versions</h2>
 
@@ -211,9 +213,9 @@ earl-report \
 </div></div>
 
       <div id="footer">
-  Generated on Sat Jan 29 00:25:28 2022 by
+  Generated on Tue Mar 15 21:52:20 2022 by
   <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
-  0.9.27 (ruby-3.1.0).
+  0.9.27 (ruby-3.1.1).
 </div>
 
     </div>
