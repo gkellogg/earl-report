@@ -204,6 +204,7 @@
             Test Manifests
           %ul.toc
             - tests['entries'].sort_by {|m| m['title'].to_s.downcase}.each_with_index do |manifest, ndx|
+              - manifest['rdfs:comment'] = manifest['rdfs:comment']['@value'] if manifest['rdfs:comment'].is_a?(Hash)
               %li.tocline
                 %span.secno="2.#{ndx+1}"
                 %a.tocxref{href: "##{manifest['rdfs:comment'].gsub(' ', '-')}"}
@@ -296,6 +297,7 @@
         Test Manifests
       - tests['entries'].each_with_index do |manifest, ndx2|
         - test_cases = manifest['entries']
+        - manifest['title'] = manifest['title']['@value'] if manifest['title'].is_a?(Hash)
         %section{id: manifest['rdfs:comment'].gsub(' ', '-'), typeof: manifest['@type'].join(" "), resource: manifest['@id']}
           %h2
             %span.secno="2.#{ndx2+1}"
@@ -319,6 +321,7 @@
                     %a{href: '#' + subject_refs[subject['@id']]}<=subject['name']
             - test_cases.each do |test|
               - test['title'] ||= test['rdfs:label']
+              - test['title'] = test['title']['@value'] if test['title'].is_a?(Hash)
               - test['title'] = Array(test['title']).first
               - tid = "test_#{Digest::MD5.hexdigest(test['@id'])}"
               - (test_info[tid] ||= []) << test
@@ -391,6 +394,7 @@
               - if subject['developer']
                 %dt= "Developer"
                 - subject['developer'].each do |dev|
+                  - dev['foaf:name'] = dev['foaf:name']['@value'] if dev['foaf:name'].is_a?(Hash)
                   %dd{rel: "doap:developer"}
                     %div{resource: dev['@id'], typeof: Array(dev['@type']).join(" ")}
                       - if dev.has_key?('@id')

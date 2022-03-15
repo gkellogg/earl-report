@@ -9,6 +9,12 @@ Gem::Specification.new do |gem|
   gem.license               = 'Unlicense'
   gem.summary               = "Earl Report summary generator"
   gem.description           = "EarlReport generates HTML+RDFa rollups of multiple EARL reports."
+  gem.metadata              = {
+    "documentation_uri" => "https://gkellogg.github.io/earl-report",
+    "bug_tracker_uri"   => "https://github.com/gkellogg/earl-report/issues",
+    "homepage_uri"      => "https://github.com/gkellogg/earl-report",
+    "source_code_uri"   => "https://github.com/gkellogg/earl-report",
+  }
 
   gem.authors               = ['Gregg Kellogg']
   gem.email                 = 'gregg@greggkellogg.net'
@@ -20,18 +26,18 @@ Gem::Specification.new do |gem|
   gem.require_paths         = %w(lib)
   gem.test_files            = Dir.glob('spec/**/*.rb') + Dir.glob('spec/test-files/*')
 
-  gem.required_ruby_version = '>= 2.5'
+  gem.required_ruby_version = '>= 2.6'
   gem.requirements          = []
-  gem.add_runtime_dependency     'rdf',             '~> 3.1'
-  gem.add_runtime_dependency     'rdf-ordered-repo','~> 3.1'
-  gem.add_runtime_dependency     'rdf-turtle',      '~> 3.1'
-  gem.add_runtime_dependency     'rdf-vocab',       '~> 3.1', '>= 3.1.13'
-  gem.add_runtime_dependency     'json-ld',         '~> 3.1'
-  gem.add_runtime_dependency     'sparql',          '~> 3.1'
+  gem.add_runtime_dependency     'rdf',             '~> 3.2'
+  gem.add_runtime_dependency     'rdf-ordered-repo','~> 3.2'
+  gem.add_runtime_dependency     'rdf-turtle',      '~> 3.2'
+  gem.add_runtime_dependency     'rdf-vocab',       '~> 3.2'
+  gem.add_runtime_dependency     'json-ld',         '~> 3.2'
+  gem.add_runtime_dependency     'sparql',          '~> 3.2'
   gem.add_runtime_dependency     'haml',            '~> 5.2'
   gem.add_runtime_dependency     'kramdown',        '~> 2.3'
   gem.add_development_dependency 'nokogiri',        '~> 1.12'
-  gem.add_development_dependency 'rdf-rdfa',        '~> 3.1'
+  gem.add_development_dependency 'rdf-rdfa',        '~> 3.2'
   gem.add_development_dependency 'rspec',           '~> 3.10'
   gem.add_development_dependency 'rspec-its',       '~> 1.3'
   gem.add_development_dependency "equivalent-xml",  '~> 0.6'

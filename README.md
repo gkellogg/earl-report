@@ -1,5 +1,5 @@
 # earl-report
-Ruby gem to consolidate multiple EARL report and generate a rollup conformance report.
+Ruby gem to consolidate multiple [EARL][] report and generate a rollup conformance report.
 
 [![Gem Version](https://badge.fury.io/rb/earl-report.png)](http://badge.fury.io/rb/earl-report)
 [![Build Status](https://github.com/gkellogg/earl-report/workflows/CI/badge.svg?branch=develop)](https://github.com/gkellogg/earl-report/actions?query=workflow%3ACI)
@@ -8,8 +8,9 @@ Ruby gem to consolidate multiple EARL report and generate a rollup conformance r
 ## Description
 Reads a test manifest in the
 [standard RDF WG format](http://www.w3.org/2011/rdf-wg/wiki/Turtle_Test_Suite)
-along with one or more individual EARL reports and generates a rollup report in
-HTML+RDFa in [ReSpec][] format.
+along with one or more individual <abbr title="Evaluation and Report Language (EARL) 1.0 Schema">[EARL][]</abbr> reports and generates a rollup report in HTML in [ReSpec][] format.
+
+[EARL]() reports use the [Evaluation and Report Language (EARL) 1.0 Schema][EARL] to describe test results in RDF to relate the results for a given _subject_ to a _test_ defined in a _test manifest_.
 
 ## Individual EARL reports
 Results for individual implementations should be specified in Turtle form, but
@@ -26,13 +27,13 @@ in the following form:
         dc:date "2012-11-17T15:19:11-05:00"^^xsd:dateTime];
       earl:mode earl:automatic ] .
 
-Additionally, `earl:subject` is expected to reference a [DOAP]() description
+Additionally, `earl:subject` is expected to reference a [DOAP][] description
 of the reported software, in the following form:
 
     <https://rubygems.org/gems/rdf-turtle> a doap:Project, earl:TestSubject, earl:Software ;
       doap:name          "RDF::Turtle" ;
       doap:developer     <https://greggkellogg.net/foaf#me> ;
-      doap:homepage      <http://ruby-rdf.github.com/rdf-turtle> ;
+      doap:homepage      <https://ruby-rdf.github.io/rdf-turtle> ;
       doap:description   "RDF::Turtle is an Turtle reader/writer for the RDF.rb library suite."@en ;
       doap:release [
                          doap:name "RDF::Turtle 3.1.0" ;
@@ -41,26 +42,26 @@ of the reported software, in the following form:
       ] ;
       doap:programming-language "Ruby" .
 
-The [DOAP]() description may be included in the [EARL]() report. If not found,
+The [DOAP][] description may be included in the [EARL][] report. If not found,
 the IRI identified by `earl:subject` will be dereferenced and is presumed to
-provide a [DOAP]() specification of the test subject.
+provide a [DOAP][] specification of the test subject.
 
-The `doap:developer` is expected to reference a [FOAF]() profile for the agent
+The `doap:developer` is expected to reference a [FOAF][] profile for the agent
 (user or organization) responsible for the test subject. It is expected to be
 of the following form:
 
     <https://greggkellogg.net/foaf#me> foaf:name "Gregg Kellogg" .
 
 If not found, the IRI identified by `doap:developer`
-will be dereferenced and is presumed to provide a [FOAF]() profile of the developer.
+will be dereferenced and is presumed to provide a [FOAF][] profile of the developer.
 
 Assertions are added to each test entry based on that test being referenced from the assertion.
 
 ## Manifest query
 The test manifest is used to find test entries and a manifest. The built-in
-query is based on the [standard RDF WG format](). Alternative manifest formats
+query is based on the [standard RDF WG format][]. Alternative manifest formats
 can be used by specifying a customized manifest query, but may require a custom
-[Haml]() template for report generation. The default query is the following:
+[Haml][] template for report generation. The default query is the following:
 
     PREFIX mf: <http://www.w3.org/2001/sw/DataAccess/tests/test-manifest#>
     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -75,7 +76,7 @@ can be used by specifying a customized manifest query, but may require a custom
     }
 
 ## Report generation template
-The report template is in [ReSpec][] form using [Haml]() to generate individual report elements.
+The report template is in [ReSpec][] form using [Haml][] to generate individual report elements.
 
 ## Changes from previous versions
 ### Version 0.7
