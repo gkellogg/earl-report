@@ -36,7 +36,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency     'sparql',          '~> 3.2'
   gem.add_runtime_dependency     'haml',            '~> 5.2'
   gem.add_runtime_dependency     'kramdown',        '~> 2.3'
-  gem.add_development_dependency 'nokogiri',        '~> 1.12'
+  gem.add_development_dependency 'nokogiri',        '~> 1.13', '>= 1.13.4'
   gem.add_development_dependency 'rdf-rdfa',        '~> 3.2'
   gem.add_development_dependency 'rspec',           '~> 3.10'
   gem.add_development_dependency 'rspec-its',       '~> 1.3'
