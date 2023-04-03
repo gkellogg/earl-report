@@ -26,7 +26,7 @@ Gem::Specification.new do |gem|
   gem.require_paths         = %w(lib)
   gem.test_files            = Dir.glob('spec/**/*.rb') + Dir.glob('spec/test-files/*')
 
-  gem.required_ruby_version = '>= 2.6'
+  gem.required_ruby_version = '>= 2.7'
   gem.requirements          = []
   gem.add_runtime_dependency     'rdf',             '~> 3.2'
   gem.add_runtime_dependency     'rdf-ordered-repo','~> 3.2'
@@ -34,8 +34,9 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency     'rdf-vocab',       '~> 3.2'
   gem.add_runtime_dependency     'json-ld',         '~> 3.2'
   gem.add_runtime_dependency     'sparql',          '~> 3.2'
-  gem.add_runtime_dependency     'haml',            '~> 5.2'
+  gem.add_runtime_dependency     'haml',            '>= 5.2', "< 7"
   gem.add_runtime_dependency     'kramdown',        '~> 2.3'
+  gem.add_development_dependency 'htmlbeautifier',  '~> 1.4'
   gem.add_development_dependency 'nokogiri',        '~> 1.13', '>= 1.13.4'
   gem.add_development_dependency 'rdf-rdfa',        '~> 3.2'
   gem.add_development_dependency 'rspec',           '~> 3.10'
