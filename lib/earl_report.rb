@@ -1,6 +1,5 @@
 # EARL reporting
 require 'json/ld'
-require 'rdf/ordered_repo'
 require 'rdf/turtle'
 require 'rdf/vocab'
 require 'sparql'
