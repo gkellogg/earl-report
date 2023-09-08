@@ -1,11 +1,17 @@
 # EARL reporting
 require 'json/ld'
-require 'rdf/ordered_repo'
 require 'rdf/turtle'
 require 'rdf/vocab'
 require 'sparql'
 require 'haml'
 require 'open-uri'
+
+# Optionally, beautify HTML output
+begin
+  require 'htmlbeautifier'
+rescue LoadError
+  # No beautification
+end
 
 ##
 # EARL reporting class.
@@ -497,7 +503,14 @@ class EarlReport
       end
 
       # Generate HTML report
-      html = Haml::Engine.new(haml, format: :xhtml).render(self, tests: json_hash)
+      html = if Haml.const_defined?(:Template)
+        Haml::Template.new(format: :xhtml) {haml}.render(self, tests: json_hash)
+      else
+        Haml::Engine.new(haml, format: :xhtml).render(self, tests: json_hash)
+      end
+      if defined?(::HtmlBeautifier)
+        html = HtmlBeautifier.beautify(html)
+      end
       io.write(html) if io
       html
     else
