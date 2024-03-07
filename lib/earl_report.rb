@@ -626,7 +626,7 @@ class EarlReport
       else
         "[]"
       end
-    elsif value.start_with?(/https?/) || value.start_with?('/')
+    elsif value.start_with?(/(https?|mailto)/) || value.start_with?('/')
       "<#{value}>"
     elsif value.include?(':')
       value
